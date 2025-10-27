@@ -468,8 +468,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
-          <h2 className="section-title">Gestión de Contratos</h2>
-          <div className="ml-0 sm:ml-2 inline-flex border rounded overflow-visible flex-wrap sm:flex-nowrap gap-0.5">
+          <div className="inline-flex border rounded overflow-visible flex-wrap sm:flex-nowrap gap-0.5">
             <button onClick={()=> setContractsTab('events')} className={`px-3 py-1 text-sm ${contractsTab==='events' ? 'bg-black text-white' : ''}`}>Eventos futuros</button>
             <button onClick={()=> setContractsTab('finished')} className={`px-3 py-1 text-sm ${contractsTab==='finished' ? 'bg-black text-white' : ''}`}>Finalizados</button>
             <div className="relative">
