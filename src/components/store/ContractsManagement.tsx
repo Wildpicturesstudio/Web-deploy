@@ -42,6 +42,20 @@ interface ContractItem {
 
 const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 
+const isWeddingPackage = (contract: ContractItem): boolean => {
+  const eventType = String(contract.eventType || '').toLowerCase();
+  const packageTitle = String(contract.packageTitle || '').toLowerCase();
+  const packageDuration = String(contract.packageDuration || '').toLowerCase();
+
+  const weddingKeywords = ['casamiento', 'boda', 'wedding', 'civil', 'matrimonio', 'nupcia'];
+
+  return weddingKeywords.some(keyword =>
+    eventType.includes(keyword) ||
+    packageTitle.includes(keyword) ||
+    packageDuration.includes(keyword)
+  );
+};
+
 // Resolve local dress image paths to proper URLs via Vite asset handling
 const DRESS_ASSETS_CM: Record<string, string> = import.meta.glob('/src/utils/fotos/vestidos/*', { eager: true, as: 'url' }) as any;
 const normCM = (s: string) => s.normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase().replace(/\s+/g,' ').trim();
