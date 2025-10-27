@@ -224,7 +224,7 @@ const AdminStorePage: React.FC = () => {
 
       {/* Mobile Dropdown */}
       {adminView !== 'calendar' && (
-        <div className="md:hidden px-2 md:px-4 lg:hidden">
+        <div className="md:hidden px-2 md:px-4 lg:hidden space-y-2">
           <select
             value={adminView}
             onChange={(e) => setAdminView(e.target.value as any)}
@@ -240,6 +240,7 @@ const AdminStorePage: React.FC = () => {
             <option value="settings">Ajustes</option>
             <option value="investments">Inversiones</option>
           </select>
+          <button onClick={() => setAdminDark(v => !v)} className="w-full px-3 py-2 rounded-none border border-black text-black hover:bg-black hover:text-white text-sm transition-colors">{adminDark ? 'Modo claro' : 'Modo oscuro'}</button>
         </div>
       )}
 
