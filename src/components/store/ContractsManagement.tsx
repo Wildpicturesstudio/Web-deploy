@@ -512,7 +512,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
         <div className="divide-y">
           {filtered.map(c => {
             return (
-              <div key={c.id} className="hidden md:grid grid-cols-12 p-2 md:p-3 items-center hover:bg-gray-50 cursor-pointer border-b text-xs md:text-sm" onClick={() => openView(c)}>
+              <div key={c.id} className="hidden md:grid grid-cols-12 p-2 md:p-3 items-center hover:bg-gray-50 hover:text-black cursor-pointer border-b text-xs md:text-sm transition-colors admin-contract-row" onClick={() => openView(c)}>
                 <div className="col-span-2 text-sm">{c.eventDate || '-'}</div>
                 <div className="col-span-3 lowercase first-letter:uppercase">{c.clientName || 'Trabajo'}</div>
                 <div className="col-span-2 text-sm">{((c as any).clientPhone || (c as any).phone || (c as any).client_phone || (c as any).formSnapshot?.phone || '') || '-'}</div>
@@ -694,7 +694,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
                         <div className="space-y-2">
                           <p>2.1. Realizar o pagamento conforme estipulado: 20% do valor total como sinal de reserva e o restante no dia do evento.</p>
                           <p>2.2. Fornecer todas as informações necessárias sobre o evento (horários, locais, pessoas importantes).</p>
-                          <p>2.3. Garantir acesso aos locais do evento e cooperação das pessoas envolvidas.</p>
+                          <p>2.3. Garantir acesso aos locais do evento e cooperaç��o das pessoas envolvidas.</p>
                           <p>2.4. Comunicar qualquer alteração com antecedência mínima de 48 horas.</p>
                         </div>
                       </section>
