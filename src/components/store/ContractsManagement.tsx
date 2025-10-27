@@ -555,7 +555,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
         {/* Mobile view - Card layout */}
         <div className="md:hidden space-y-2">
           {filtered.map(c => (
-            <div key={c.id} className="p-3 border-b hover:bg-gray-50 cursor-pointer space-y-2" onClick={() => openView(c)}>
+            <div key={c.id} className="p-3 border-b hover:bg-gray-50 hover:text-black cursor-pointer space-y-2 transition-colors admin-contract-row" onClick={() => openView(c)}>
               <div className="flex justify-between items-start gap-2">
                 <div className="flex-1">
                   <div className="font-semibold text-sm">{c.clientName || 'Trabajo'}</div>
@@ -694,7 +694,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
                         <div className="space-y-2">
                           <p>2.1. Realizar o pagamento conforme estipulado: 20% do valor total como sinal de reserva e o restante no dia do evento.</p>
                           <p>2.2. Fornecer todas as informações necessárias sobre o evento (horários, locais, pessoas importantes).</p>
-                          <p>2.3. Garantir acesso aos locais do evento e cooperaç��o das pessoas envolvidas.</p>
+                          <p>2.3. Garantir acesso aos locais do evento e cooperação das pessoas envolvidas.</p>
                           <p>2.4. Comunicar qualquer alteração com antecedência mínima de 48 horas.</p>
                         </div>
                       </section>
