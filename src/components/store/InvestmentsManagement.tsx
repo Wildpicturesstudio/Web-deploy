@@ -126,7 +126,7 @@ const InvestmentsManagement: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="section-title">Inversiones</h2>
+        <div></div>
         <button onClick={() => { setEditing(null); setModalOpen(true); }} className="px-4 py-2 rounded-none border-2 border-black text-black hover:bg-black hover:text-white">Agregar</button>
       </div>
 
