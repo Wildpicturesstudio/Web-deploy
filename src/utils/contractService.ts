@@ -38,37 +38,80 @@ export interface OrderData {
   createdAt: string;
 }
 
-export const saveContract = async (formData: BookingFormData, userUid?: string): Promise<string> => {
+export const saveContract = async (formData: BookingFormData, userUid?: string): Promise<{ id: string; status?: string; pendingApproval?: boolean }> => {
   try {
+    const timeToMinutes = (t: string) => { const [h, m] = (t || '00:00').split(':').map(Number); return (h||0)*60 + (m||0); };
+    const minutesToTime = (m: number) => { const h = Math.floor(m/60)%24; const mm = m%60; return `${String(h).padStart(2,'0')}:${String(mm).padStart(2,'0')}`; };
+    const parseCombinedDurationToMinutes = (text?: string): number => {
+      if (!text) return 120;
+      const t = text.toLowerCase();
+      // Sum all hour/minute occurrences; default hours if unit not specified
+      const hourMatches = Array.from(t.matchAll(/(\d+[\,\.]?\d*)\s*(hora|horas|hour|h)\b/g)).map(m=> Number(String(m[1]).replace(',','.'))*60);
+      const minMatches = Array.from(t.matchAll(/(\d+[\,\.]?\d*)\s*(min|mins|minutos)\b/g)).map(m=> Number(String(m[1]).replace(',','.')));
+      let total = hourMatches.reduce((a,b)=>a+b,0) + minMatches.reduce((a,b)=>a+b,0);
+      if (total === 0) {
+        const nums = (t.match(/\d+/g) || []).map(n=> Number(n));
+        total = nums.reduce((a,b)=> a + (isFinite(b)? b*60 : 0), 0);
+      }
+      return Math.max(30, Math.round(total || 120));
+    };
+
     // Calculate total amount
     const servicesTotal = formData.cartItems?.reduce((sum, item) => {
       const itemPrice = Number(item.price.replace(/[^0-9]/g, ''));
       const itemTotal = itemPrice * item.quantity;
-      
-      // Apply coupon discounts
       const coupon = formData[`discountCoupon_${formData.cartItems?.indexOf(item)}`];
       if (coupon === 'FREE' && item.id && item.id.includes('prewedding') && !item.id.includes('teaser')) {
-        return sum; // FREE coupon makes the item free
+        return sum;
       }
-      
       return sum + itemTotal;
     }, 0) || 0;
 
-    const storeTotal = formData.storeItems?.reduce((sum, item) => {
-      return sum + (item.price * item.quantity);
-    }, 0) || 0;
+    const storeTotal = formData.storeItems?.reduce((sum, item) => sum + (item.price * item.quantity), 0) || 0;
 
     const subtotal = servicesTotal + storeTotal + formData.travelCost;
     const paymentDiscount = formData.paymentMethod === 'cash' ? subtotal * 0.05 : 0;
     const totalAmount = subtotal - paymentDiscount;
 
+    const eventDate = formData.cartItems?.[0] ? (formData[`date_0`] || '') : '';
+    const startTime = formData.cartItems?.[0] ? (formData[`time_0`] || '') : '';
+    const pkgDuration = formData.cartItems?.[0]?.duration || '';
+    const baseMinutes = parseCombinedDurationToMinutes(pkgDuration);
+    const endWithIntermissionMin = timeToMinutes(startTime) + baseMinutes + 60; // +1h intermedio
+    const eventEndTime = minutesToTime(endWithIntermissionMin);
+
+    // Availability check (conflicts consider occupied window until end+intermission already included)
+    let pendingApproval = false;
+    if (eventDate && startTime) {
+      try {
+        const { getDocs, collection, where, query } = await import('firebase/firestore');
+        const q = query(collection(db, 'contracts'), where('eventDate','==', eventDate));
+        const snap = await getDocs(q);
+        const newStart = timeToMinutes(startTime);
+        const newEnd = endWithIntermissionMin;
+        for (const d of snap.docs) {
+          const c: any = d.data();
+          const st = String(c.status || 'booked');
+          // Ignore released and cancelled
+          if (st === 'released' || st === 'cancelled') continue;
+          const cStart = timeToMinutes(String(c.eventTime || '00:00'));
+          const cEnd = c.eventEndTime ? timeToMinutes(String(c.eventEndTime)) : (timeToMinutes(String(c.eventTime || '00:00')) + parseCombinedDurationToMinutes(String(c.packageDuration || '')) + 60);
+          const overlap = newStart < cEnd && newEnd > cStart;
+          if (overlap) { pendingApproval = true; break; }
+        }
+      } catch (e) {
+        // On read failure, be safe and mark pending
+        pendingApproval = true;
+      }
+    }
+
     // Prepare contract data
-    const contractData: ContractData = {
+    const contractData: ContractData & { status?: string; eventEndTime?: string } = {
       clientName: formData.name,
       clientEmail: formData.email,
-      eventType: formData.cartItems?.[0]?.type === 'events' ? 'Eventos' : 
+      eventType: formData.cartItems?.[0]?.type === 'events' ? 'Eventos' :
                  formData.cartItems?.[0]?.type === 'portrait' ? 'Retratos' : 'Gestantes',
-      eventDate: formData.cartItems?.[0] ? formData[`date_0`] || '' : '',
+      eventDate,
       contractDate: new Date().toISOString().split('T')[0],
       totalAmount,
       travelFee: formData.travelCost,
@@ -77,13 +120,15 @@ export const saveContract = async (formData: BookingFormData, userUid?: string):
       finalPaymentPaid: false,
       eventCompleted: false,
       packageTitle: formData.cartItems?.[0]?.name || '',
-      packageDuration: formData.cartItems?.[0]?.duration || '',
+      packageDuration: pkgDuration,
       eventLocation: formData.cartItems?.[0] ? formData[`eventLocation_0`] || '' : '',
-      eventTime: formData.cartItems?.[0] ? formData[`time_0`] || '' : '',
+      eventTime: startTime,
       services: formData.cartItems || [],
       storeItems: formData.storeItems || [],
       message: formData.message,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      eventEndTime,
+      ...(pendingApproval ? { status: 'pending_approval' } : { status: 'confirmed' })
     };
 
     // Save to Firebase with retry for transient network errors
@@ -95,7 +140,7 @@ export const saveContract = async (formData: BookingFormData, userUid?: string):
         docRef = await addDoc(collection(db, 'contracts'), {
           ...contractData,
           userUid: userUid || null,
-          formSnapshot: formData
+          formSnapshot: { ...formData, pendingApproval }
         });
         break;
       } catch (err: any) {
@@ -140,7 +185,7 @@ export const saveContract = async (formData: BookingFormData, userUid?: string):
       }
     }
 
-    return docRef.id;
+    return { id: docRef.id, status: (contractData as any).status, pendingApproval };
   } catch (error: any) {
     console.error('Error saving contract:', error);
     // Enhance error with code/message for better debugging in UI

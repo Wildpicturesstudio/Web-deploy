@@ -50,7 +50,7 @@ const EventsPage = () => {
           (p.category || '').toLowerCase().includes('prewedding') ||
           (p.category || '').toLowerCase().includes('civil') ||
           p.id.startsWith('wedding') || p.id.startsWith('prewedding') || p.id.startsWith('civil')
-        )));
+        ) && (!((p as any).displayPage) || (p as any).displayPage === 'events')));
       } catch (e) {
         console.warn('EventsPage: falling back to static packages');
         setDbEvents(null);
@@ -103,7 +103,8 @@ const EventsPage = () => {
         duration: p.duration,
         description: p.description,
         features: p.features || [],
-        image: p.image_url
+        image: p.image_url,
+        recommended: Boolean((p as any).recommended)
       }))
     : eventPackages.filter(pkg => pkg.id.startsWith('prewedding'))
   );
@@ -116,7 +117,8 @@ const EventsPage = () => {
         duration: p.duration,
         description: p.description,
         features: p.features || [],
-        image: p.image_url
+        image: p.image_url,
+        recommended: Boolean((p as any).recommended)
       }))
     : eventPackages.filter(pkg => pkg.id.startsWith('wedding'))
   );
@@ -129,7 +131,8 @@ const EventsPage = () => {
         duration: p.duration,
         description: p.description,
         features: p.features || [],
-        image: p.image_url
+        image: p.image_url,
+        recommended: Boolean((p as any).recommended)
       }))
     : []
   );
@@ -156,17 +159,37 @@ const EventsPage = () => {
       setTimeout(() => console.log('📱 EventsPage: Checking cart after add'), 100);
 
       const dbPkg: DBPackage | undefined = (dbEvents || [])?.find(d => d.id === pkg.id);
-      const includes = (dbPkg && Array.isArray((dbPkg as any).storeItemsIncluded)) ? (dbPkg as any).storeItemsIncluded as { productId: string; quantity: number }[] : [];
+      const includes = (dbPkg && Array.isArray((dbPkg as any).storeItemsIncluded)) ? (dbPkg as any).storeItemsIncluded as { productId: string; quantity: number; variantName?: string }[] : [];
       for (const inc of includes) {
         if (!inc?.productId || Number(inc.quantity||0) <= 0) continue;
         try {
+          const isPkg = String(inc.productId).startsWith('pkg:');
+          if (isPkg) {
+            const pkgId = String(inc.productId).slice(4);
+            const psnap = await getDoc(doc(db, 'packages', pkgId));
+            const pkgData = psnap.exists() ? (psnap.data() as any) : null;
+            if (!pkgData) continue;
+            const serviceItem = {
+              id: `pkg:${pkgId}`,
+              type: (pkgData.type || 'events') as 'events' | 'portrait' | 'maternity',
+              name: String(pkgData.title || 'Pacote'),
+              price: 'R$ 0', // included in main package
+              duration: String(pkgData.duration || ''),
+              image: String(pkgData.image_url || ''),
+            } as const;
+            for (let i = 0; i < Number(inc.quantity||0); i++) addToCart(serviceItem as any);
+            continue;
+          }
           const snap = await getDoc(doc(db, 'products', inc.productId));
           const p = snap.exists() ? (snap.data() as any) : null;
           if (!p) continue;
+          const variant = inc.variantName ? String(inc.variantName) : '';
+          const displayName = variant ? `${p.name || 'Producto'} — ${variant}` : (p.name || 'Producto');
+          const compositeId = variant ? `${inc.productId}||${variant}` : inc.productId;
           const item = {
-            id: inc.productId,
+            id: compositeId,
             type: 'store' as const,
-            name: p.name || 'Producto',
+            name: displayName,
             price: 'R$ 0',
             duration: '',
             image: p.image_url || '',
@@ -178,7 +201,7 @@ const EventsPage = () => {
       }
     } catch (error) {
       console.error('📱 EventsPage: Error adding to cart:', error);
-      window.dispatchEvent(new CustomEvent('adminToast', { detail: { message: 'Error al agregar al carrito: ' + error.message, type: 'error' } }));
+      window.dispatchEvent(new CustomEvent('adminToast', { detail: { message: 'Error al agregar al carrito: ' + (error as any)?.message, type: 'error' } }));
     }
   };
 
@@ -225,7 +248,8 @@ const EventsPage = () => {
                 return sortPre==='asc' ? pa - pb : pb - pa;
               })
               .map((pkg) => (
-              <div key={pkg.id} className="bg-accent/20 shadow-sm p-5 md:p-6 flex flex-col h-full relative max-h-screen lg:max-h-[85vh] overflow-x-hidden min-h-0">
+              <div key={pkg.id} className={`bg-accent/20 shadow-sm p-5 md:p-6 flex flex-col h-full relative max-h-screen lg:max-h-[85vh] overflow-x-hidden min-h-0 ${pkg.recommended ? 'ring-2 ring-secondary shadow-md' : ''}`}>
+                {pkg.recommended && (<span className="absolute top-2 left-3 z-10 bg-secondary text-white text-xs px-2 py-1 rounded">Recomendado</span>)}
                 {user && dbEvents && (
                   <button
                     className="absolute top-2 right-2 p-2 rounded-full bg-white shadow hover:bg-gray-50"
@@ -258,7 +282,7 @@ const EventsPage = () => {
                   })()}
                 </div>
                 <h3 className="text-lg md:text-xl font-playfair font-medium mb-2">{pkg.title}</h3>
-                <p className="text-gray-600 text-sm md:text-base mb-2 break-words">{pkg.description}</p>
+                {/* descrição oculta no card */}
                 
                 <div className="flex items-center space-x-2 mb-4">
                   <span className="text-xl md:text-2xl font-playfair text-primary">{pkg.price}</span>
@@ -279,11 +303,14 @@ const EventsPage = () => {
                     <>
                       <li className="mt-2 text-xs text-gray-600">Productos incluidos</li>
                       {inc.map((it: any, idx: number) => {
-                        const sp = storeProducts[it.productId];
+                        const isPkg = String(it.productId).startsWith('pkg:');
+                        const pkgName = isPkg && dbEvents ? (dbEvents.find(p => `pkg:${p.id}` === String(it.productId))?.title) : undefined;
+                        const sp = !isPkg ? storeProducts[it.productId] : undefined;
+                        const label = `${pkgName || sp?.name || it.productId}${it.variantName ? ` — ${it.variantName}` : ''}`;
                         return (
                           <li key={`inc-${idx}`} className="flex items-start mb-2">
                             <ChevronRight size={16} className="text-secondary mt-1 mr-2 flex-shrink-0" />
-                            <span className="text-xs md:text-sm text-gray-700 break-words">{`${sp?.name || it.productId}${it.variantName ? ` — ${it.variantName}` : ''}`} x{Number(it.quantity || 0)}</span>
+                            <span className="text-xs md:text-sm text-gray-700 break-words">{label} x{Number(it.quantity || 0)}</span>
                           </li>
                         );
                       })}
@@ -294,7 +321,7 @@ const EventsPage = () => {
                 <button
                   onClick={() => openAddModal(pkg)}
                   className="btn-primary mt-auto touch-manipulation mobile-cart-btn"
-                  onTouchStart={(e) => {
+                  onTouchStart={() => {
 
                   }}
                   onTouchEnd={(e) => {
@@ -345,10 +372,8 @@ const EventsPage = () => {
               })
               .slice(0,4)
               .map((pkg, idx) => (
-              <div key={pkg.id} className={`card flex flex-col h-full relative max-h-screen lg:max-h-[85vh] overflow-x-hidden min-h-0 ${typeof idx !== 'undefined' && idx===1 ? 'ring-2 ring-secondary shadow-md' : ''}`}>
-                {typeof idx !== 'undefined' && idx===1 && (
-                  <span className="absolute -top-3 left-3 bg-secondary text-white text-xs px-2 py-1 rounded">Recomendado</span>
-                )}
+              <div key={pkg.id} className={`card flex flex-col h-full relative max-h-screen lg:max-h-[85vh] overflow-x-hidden min-h-0 ${pkg.recommended ? 'ring-2 ring-secondary shadow-md' : ''}`}>
+                {pkg.recommended && (<span className="absolute top-2 left-3 z-10 bg-secondary text-white text-xs px-2 py-1 rounded">Recomendado</span>)}
                 {user && dbEvents && (
                   <button
                     className="absolute top-2 right-2 p-2 rounded-full bg-white shadow hover:bg-gray-50"
@@ -381,7 +406,7 @@ const EventsPage = () => {
                   })()}
                 </div>
                 <h3 className="text-lg md:text-xl font-playfair font-medium mb-2">{pkg.title}</h3>
-                <p className="text-gray-600 text-sm md:text-base mb-2 break-words">{pkg.description}</p>
+                {/* descrição oculta no card */}
                 
                 <div className="flex items-center space-x-2 mb-4">
                   <span className="text-xl md:text-2xl font-playfair text-primary">{pkg.price}</span>
@@ -402,11 +427,14 @@ const EventsPage = () => {
                     <>
                       <li className="mt-2 text-xs text-gray-600">Productos incluidos</li>
                       {inc.map((it: any, idx: number) => {
-                        const sp = storeProducts[it.productId];
+                        const isPkg = String(it.productId).startsWith('pkg:');
+                        const pkgName = isPkg && dbEvents ? (dbEvents.find(p => `pkg:${p.id}` === String(it.productId))?.title) : undefined;
+                        const sp = !isPkg ? storeProducts[it.productId] : undefined;
+                        const label = `${pkgName || sp?.name || it.productId}${it.variantName ? ` — ${it.variantName}` : ''}`;
                         return (
                           <li key={`inc-${idx}`} className="flex items-start mb-2">
                             <ChevronRight size={16} className="text-secondary mt-1 mr-2 flex-shrink-0" />
-                            <span className="text-xs md:text-sm text-gray-700 break-words">{`${sp?.name || it.productId}${it.variantName ? ` — ${it.variantName}` : ''}`} x{Number(it.quantity || 0)}</span>
+                            <span className="text-xs md:text-sm text-gray-700 break-words">{label} x{Number(it.quantity || 0)}</span>
                           </li>
                         );
                       })}
@@ -417,7 +445,7 @@ const EventsPage = () => {
                 <button
                   onClick={() => openAddModal(pkg)}
                   className="btn-primary mt-auto touch-manipulation mobile-cart-btn"
-                  onTouchStart={(e) => {
+                  onTouchStart={() => {
 
                   }}
                   onTouchEnd={(e) => {
@@ -442,30 +470,10 @@ const EventsPage = () => {
       {/* Seção Casamento Civil / Cartório */}
       <section className="py-16">
         <div className="container-custom">
-          <div className="mb-6 flex items-center justify-between gap-4">
-            <h2 className="section-title mb-0">Casamento Civil / Cartório</h2>
-            <div className="ml-auto">
-              <label className="text-sm mr-2">Ordenar:</label>
-              <select value={sortCivil} onChange={e=>setSortCivil(e.target.value as any)} className="border px-2 py-1 text-sm">
-                <option value="default">Por defecto</option>
-                <option value="asc">Preço: menor a maior</option>
-                <option value="desc">Preço: maior a menor</option>
-              </select>
-            </div>
-          </div>
-          <p className="text-gray-700 mb-8 text-center max-w-3xl mx-auto">
-            Cobertura especializada para cerimônias civis em cartório.
-          </p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
-            {[...civilPackages]
-              .sort((a:any,b:any)=>{
-                if (sortCivil==='default') return 0;
-                const pa = parsePrice(a.price);
-                const pb = parsePrice(b.price);
-                return sortCivil==='asc' ? pa - pb : pb - pa;
-              })
-              .map((pkg) => (
-              <div key={pkg.id} className="card flex flex-col h-full relative max-h-screen lg:max-h-[85vh] overflow-x-hidden min-h-0">
+            {civilPackages.map((pkg) => (
+              <div key={pkg.id} className={`card flex flex-col h-full relative max-h-screen lg:max-h-[85vh] overflow-x-hidden min-h-0 ${pkg.recommended ? 'ring-2 ring-secondary shadow-md' : ''}`}>
+                {pkg.recommended && (<span className="absolute top-2 left-3 z-10 bg-secondary text-white text-xs px-2 py-1 rounded">Recomendado</span>)}
                 <div className="h-48 md:h-56 overflow-hidden mb-4 relative">
                   <img loading="lazy"
                     src={pkg.image}
@@ -474,7 +482,7 @@ const EventsPage = () => {
                   />
                 </div>
                 <h3 className="text-lg md:text-xl font-playfair font-medium mb-2">{pkg.title}</h3>
-                <p className="text-gray-600 text-sm md:text-base mb-2 break-words">{pkg.description}</p>
+                {/* descrição oculta no card */}
                 <div className="flex items-center space-x-2 mb-4">
                   <span className="text-xl md:text-2xl font-playfair text-primary">{pkg.price}</span>
                   <span className="text-gray-500 text-sm">/{pkg.duration}</span>
@@ -552,39 +560,31 @@ const EventsPage = () => {
       <AddPackageModal
         isOpen={pkgModalOpen}
         onClose={() => setPkgModalOpen(false)}
-        pkg={selectedPkg ? {
-          id: selectedPkg.id,
-          title: selectedPkg.title,
-          description: selectedPkg.description,
-          image: selectedPkg.image,
-          priceNumber: selectedPkg.__db && selectedPkg.__db.price != null ? Number(selectedPkg.__db.price) : (Number.isFinite(Number(selectedPkg.price)) ? Number(selectedPkg.price) : parsePrice(selectedPkg.price)),
-          type: (selectedPkg.__db?.type || 'events')
-        } : null}
+        pkg={selectedPkg ? (() => {
+          const dbPkg: DBPackage | undefined = selectedPkg.__db as any;
+          const includes = (dbPkg && Array.isArray((dbPkg as any).storeItemsIncluded)) ? (dbPkg as any).storeItemsIncluded as { productId: string; quantity: number; variantName?: string }[] : [];
+          const includesLabels = includes.map(it => {
+            const isPkg = String(it.productId).startsWith('pkg:');
+            const pkgName = isPkg && dbEvents ? (dbEvents.find(p => `pkg:${p.id}` === String(it.productId))?.title) : undefined;
+            const sp = !isPkg ? storeProducts[it.productId] : undefined;
+            const label = `${pkgName || sp?.name || it.productId}${it.variantName ? ` — ${it.variantName}` : ''}`;
+            return { label, quantity: Number(it.quantity || 0) };
+          });
+          return {
+            id: selectedPkg.id,
+            title: selectedPkg.title,
+            description: selectedPkg.description,
+            image: selectedPkg.image,
+            priceNumber: selectedPkg.__db && selectedPkg.__db.price != null ? Number(selectedPkg.__db.price) : (Number.isFinite(Number(selectedPkg.price)) ? Number(selectedPkg.price) : parsePrice(selectedPkg.price)),
+            type: (selectedPkg.__db?.type || 'events'),
+            features: Array.isArray(selectedPkg.features) ? selectedPkg.features : [],
+            includes: includesLabels,
+          };
+        })() : null}
         onAdd={({ id, name, priceNumber, image }) => {
           const pkg = selectedPkg;
           if (!pkg) return;
           handleAddToCart(pkg, priceNumber);
-          const dbPkg: DBPackage | undefined = pkg.__db;
-          const includes = (dbPkg && Array.isArray((dbPkg as any).storeItemsIncluded)) ? (dbPkg as any).storeItemsIncluded as { productId: string; quantity: number }[] : [];
-          includes.forEach(async (inc) => {
-            if (!inc?.productId || Number(inc.quantity||0) <= 0) return;
-            try {
-              const snap = await getDoc(doc(db, 'products', inc.productId));
-              const p = snap.exists() ? (snap.data() as any) : null;
-              if (!p) return;
-              const item = {
-                id: inc.productId,
-                type: 'store' as const,
-                name: p.name || 'Producto',
-                price: 'R$ 0',
-                duration: '',
-                image: p.image_url || '',
-              };
-              for (let i = 0; i < Number(inc.quantity||0); i++) {
-                addToCart(item);
-              }
-            } catch {}
-          });
         }}
       />
     </>

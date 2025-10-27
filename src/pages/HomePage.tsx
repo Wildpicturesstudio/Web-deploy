@@ -1,11 +1,11 @@
 import Hero from '../components/home/Hero';
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import Testimonials from '../components/home/Testimonials';
 import CTA from '../components/home/CTA';
 import ParallaxSection from '../components/ui/ParallaxSection';
 import { Camera, Users, Baby, Landmark } from 'lucide-react';
 import Button from '../components/ui/Button';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useFeatureFlags } from '../contexts/FeatureFlagsContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -15,7 +15,6 @@ const HomePage = () => {
   const { flags } = useFeatureFlags();
   const { user } = useAuth();
   const location = useLocation();
-  const navigate = useNavigate();
 
   const isAdmin = !!user && user.email === 'javierevents2@gmail.com';
 
