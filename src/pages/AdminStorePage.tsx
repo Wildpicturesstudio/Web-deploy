@@ -245,7 +245,7 @@ const AdminStorePage: React.FC = () => {
         </div>
       )}
 
-      <div className={`${adminView === 'calendar' ? 'hidden' : 'container-custom px-2 md:px-4 h-full flex flex-col'}`}>
+      <div className={`${adminView === 'calendar' ? 'hidden' : 'h-full flex'}`}>
         <div className="mb-2 space-y-2">
           {/* Desktop Tabs */}
           <div className="hidden md:flex flex-wrap items-center gap-1 md:gap-2 admin-tabs">
