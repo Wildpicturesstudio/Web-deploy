@@ -24,13 +24,10 @@ export default defineConfig(async () => {
       exclude: ['lucide-react'],
     },
     server: {
-      hmr: process.env.NODE_ENV === 'production' ? false : undefined,
-    },
-    build: {
-      rollupOptions: {
-        output: {
-          manualChunks: undefined,
-        },
+      hmr: process.env.NODE_ENV === 'production' ? false : {
+        host: 'localhost',
+        port: 5173,
+        protocol: 'ws',
       },
     },
   };
