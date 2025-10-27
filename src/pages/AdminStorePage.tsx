@@ -358,7 +358,7 @@ const AdminStorePage: React.FC = () => {
             {adminView === 'products' && (
               <div>
                 <div className="flex justify-between items-center mb-6">
-                  <h2 className="section-title">Gestión de Productos</h2>
+                  <div></div>
                   <div className="flex items-center gap-2">
                     <button onClick={() => setProductFilter('products')} className={`px-3 py-2 rounded-none border ${productFilter==='products' ? 'bg-black text-white border-black' : 'border-black text-black hover:bg-black hover:text-white'}`}>Productos</button>
                     <button onClick={() => setProductFilter('dresses')} className={`px-3 py-2 rounded-none border ${productFilter==='dresses' ? 'bg-black text-white border-black' : 'border-black text-black hover:bg-black hover:text-white'}`}>Vestidos</button>
