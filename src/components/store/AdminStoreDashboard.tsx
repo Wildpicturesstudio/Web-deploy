@@ -253,11 +253,6 @@ const AdminStoreDashboard: React.FC<AdminProps> = ({ onNavigate }) => {
 
   return (
     <div className="space-y-4 md:space-y-6">
-      <div>
-        <h1 className="section-title text-2xl md:text-3xl">Dashboard</h1>
-        <p className="text-gray-600 text-sm md:text-base">Visualiza el rendimiento de tu tienda</p>
-      </div>
-
       {/* Period Filter at the top */}
       <div className="bg-white rounded-xl border border-gray-200 p-3 md:p-4 flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
         <label className="text-sm font-medium text-gray-700">Periodo:</label>
