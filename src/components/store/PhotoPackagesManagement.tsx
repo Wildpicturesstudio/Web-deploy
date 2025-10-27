@@ -69,9 +69,8 @@ const PhotoPackagesManagement = () => {
   };
 
   const handleToggle = async (p: DBPackage) => {
-    // @ts-expect-error allow
     const newActive = !(p as any).active;
-    await updatePackage(p.id, { /* @ts-expect-error */ active: newActive });
+    await updatePackage(p.id, { active: newActive } as any);
     await load();
   };
 
@@ -161,7 +160,6 @@ const PhotoPackagesManagement = () => {
         description: '',
         features: [],
         image_url: '',
-        // @ts-expect-error allow
         active: true,
       });
       const all = await fetchPackages();
@@ -215,7 +213,7 @@ const PhotoPackagesManagement = () => {
                       <ul className="grid grid-cols-1 gap-1">
                         {(p as any).storeItemsIncluded.map((it: any, idx: number) => (
                           <li key={idx} className="text-sm text-gray-800 flex items-center justify-between">
-                            <span>{`${storeProducts[it.productId]?.name || it.productId}${it.variantName ? ` — ${it.variantName}` : ''}`}</span>
+                            {(() => { const isPkg = String(it.productId).startsWith('pkg:'); const pkgName = isPkg ? (packages.find(pk => `pkg:${pk.id}` === String(it.productId))?.title) : undefined; const baseName = pkgName || storeProducts[it.productId]?.name || String(it.productId); return (<span>{`${baseName}${it.variantName ? ` — ${it.variantName}` : ''}`}</span>); })()}
                             <span className="text-gray-600">x{Number(it.quantity||0)}</span>
                           </li>
                         ))}

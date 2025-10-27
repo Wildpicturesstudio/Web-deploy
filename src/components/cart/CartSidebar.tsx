@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, ShoppingCart, Minus, Plus, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { ShoppingCart, Trash2, X } from 'lucide-react';
 import { useCart } from '../../contexts/CartContext';
 import { useNavigate } from 'react-router-dom';
 import { formatPrice as formatBRL } from '../../utils/format';
@@ -11,7 +11,6 @@ interface CartSidebarProps {
 
 const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => {
   const { items, removeFromCart, updateQuantity, getTotalPrice, clearCart } = useCart();
-  const [isExpanded, setIsExpanded] = React.useState(false);
   const navigate = useNavigate();
   
 
@@ -53,6 +52,9 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => {
               <ShoppingCart size={24} className="text-primary" />
               <h2 className="text-xl font-playfair font-medium">Carrinho</h2>
             </div>
+            <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-full">
+              <X size={20} className="text-gray-500" />
+            </button>
           </div>
 
           {/* Content */}
@@ -180,11 +182,10 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => {
           onClick={onClose}
         />
         
-        {/* Bottom drawer */}
-        <div className="fixed bottom-0 left-0 right-0 bg-white shadow-2xl z-50 transform transition-all duration-300 ease-out"
-             style={{ height: '70vh', maxHeight: '500px' }}>
-          {/* Handle bar and summary */}
-          <div 
+        {/* Right full-screen drawer on mobile */}
+        <div className="fixed inset-0 right-0 bg-white z-50 flex flex-col overflow-hidden transform transition-transform duration-300 ease-out">
+          {/* Header / summary */}
+          <div
             className="p-4 border-b bg-white"
           >
             {/* Handle bar */}

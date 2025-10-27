@@ -15,7 +15,7 @@ export interface ProductInput {
   active?: boolean;
   allow_name?: boolean;
   allow_custom_image?: boolean;
-  variants?: { name: string; priceDelta: number }[];
+  variants?: { name: string; priceDelta?: number; price?: number }[];
 }
 
 interface Props {
@@ -66,7 +66,7 @@ const ProductEditorModal: React.FC<Props> = ({ open, onClose, product, onSaved }
     if (product) {
       const basePrice = Number(product.price) || 0;
       const variantes = (product as any).variantes as any[] || [];
-      const variants = (product.variants || []).map(v => ({ nombre: v.name, precio: v.price != null ? Number(v.price) : basePrice + Number(v.priceDelta || 0) }));
+      const variants = (product.variants || []).map((v: any) => ({ nombre: v.name, precio: v.price != null ? Number(v.price) : basePrice + Number(v.priceDelta || 0) }));
       const mergedVariantes = variantes.length ? variantes : variants;
       setForm({
         id: product.id,

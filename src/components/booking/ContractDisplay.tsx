@@ -73,8 +73,10 @@ const ContractDisplay = ({ onAccept, onReject }: ContractDisplayProps) => {
             <section className="contract-section">
               <h2 className="section-title">CLÁUSULA 3ª – DO ENSAIO PRÉ-WEDDING OU ENSAIO FOTOGRÁFICO</h2>
               <div className="space-y-4 text-gray-700">
-                <p>No caso de contratação de ensaio pré-wedding ou ensaio fotográfico, o(a) CONTRATANTE deverá informar à CONTRATADA a data escolhida com, no mínimo, 15 (quinze) dias de antecedência, para que a equipe possa se organizar e enviar o formulário de agendamento.</p>
-                <p>Quando se tratar de casamento, o ensaio pré-wedding deverá ser realizado até 15 (quinze) dias antes da data do evento.</p>
+                <p>No caso de contratação de ensaio pré-wedding ou ensaio fotográfico, o(a) CONTRATANTE deverá informar à CONTRATADA a data escolhida com, no mínimo, 3 (três) dias de antecedência, para que a equipe possa se organizar e enviar o formulário de agendamento.</p>
+                <p>Quando se tratar de casamento, o ensaio pré-wedding deverá ser realizado até 3 (três) dias antes da data do evento.</p>
+                <p><strong>Parágrafo único – Reagendamento de ensaios:</strong> Em caso de condições climáticas desfavoráveis no dia do ensaio, o reagendamento poderá ser realizado sem qualquer custo adicional. O(a) CONTRATANTE terá direito a 1 (uma) remarcação gratuita por outros motivos pessoais, desde que avise com pelo menos 3 (três) dias de antecedência. A partir da segunda remarcação por motivos pessoais, será necessário efetuar novo pagamento do valor da reserva (20%) para garantir a nova data.</p>
+                <p><strong>Exceção:</strong> Situações imprevisíveis e de força maior, tais como acidentes, doenças súbitas ou emergências comprovadas, não serão consideradas como remarcação pessoal e poderão ser reagendadas sem custo adicional, mediante comunicação imediata à <strong>CONTRATADA</strong>.</p>
               </div>
             </section>
 
@@ -94,7 +96,7 @@ const ContractDisplay = ({ onAccept, onReject }: ContractDisplayProps) => {
                 <p>Em caso de desistência injustificada pelo(a) CONTRATANTE, o valor pago a título de reserva de data (20%) não será devolvido.</p>
                 <p>Se a rescisão ocorrer por parte da CONTRATADA sem justa causa, esta deverá restituir integralmente os valores pagos, acrescidos de multa de 1/3 (um terço) sobre o valor já pago.</p>
                 <p>Em caso de mudança de data do evento, o(a) CONTRATANTE deverá informar à CONTRATADA com antecedência mínima de 30 (trinta) dias, ficando a alteração condicionada à disponibilidade da agenda.</p>
-                <p>Caso a nova data não esteja disponível, aplicam-se as disposições de rescisão previstas nos itens anteriores.</p>
+                <p><strong>Parágrafo único – Sessões fotográficas:</strong> O reagendamento de ensaios deve ser solicitado com, no mínimo, 3 (três) dias de antecedência. Caso a solicitação ocorra fora deste prazo, a remarcação estará sujeita à cobrança de nova reserva de data (20%). Se a nova data não estiver disponível, aplicam-se as disposições de rescisão previstas nos itens anteriores.</p>
               </div>
             </section>
 

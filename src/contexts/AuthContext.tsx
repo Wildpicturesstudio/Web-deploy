@@ -24,6 +24,8 @@ interface AuthContextType {
   user: User | null;
   userProfile: UserProfile | null;
   loading: boolean;
+  isAdmin: boolean;
+  refreshClaims: (u?: User | null) => Promise<boolean>;
   signUp: (email: string, password: string, userData?: any) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
@@ -55,6 +57,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const current = u || auth.currentUser;
       if (!current) {
+        setIsAdmin(false);
+        return false;
+      }
+      // If offline, skip token refresh to avoid fetch errors
+      if (typeof navigator !== 'undefined' && navigator && navigator.onLine === false) {
         setIsAdmin(false);
         return false;
       }

@@ -93,7 +93,7 @@ const OrdersManagement = () => {
             .map((c: any) => {
               const storeItems = Array.isArray(c.storeItems) ? c.storeItems : [];
               const itemsForOrder = storeItems.map((si: any) => ({ name: si.name, quantity: Number(si.quantity || 1), price: Number(si.price || 0), total: Number(si.price || 0) * Number(si.quantity || 1) }));
-              const total = itemsForOrder.reduce((s, it) => s + Number(it.total || 0), 0) + Number(c.travelFee || 0);
+              const total = itemsForOrder.reduce((s: number, it: any) => s + Number((it as any).total || 0), 0) + Number(c.travelFee || 0);
               return {
                 id: `contract-${c.id}`,
                 customer_name: c.clientName || c.client_name || '',
@@ -188,7 +188,7 @@ const OrdersManagement = () => {
   function normalize(s: string) { return s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().trim(); }
 
   function getDisplayItems(o: OrderItem) {
-    if (!o) return o.items || [];
+    if (!o) return [] as any[];
     let c = o.contractId ? contractsMap[o.contractId] : null;
     if (!c && o.customer_email) {
       const key = String(o.customer_email).toLowerCase().trim();
@@ -225,8 +225,8 @@ const OrdersManagement = () => {
     const doneSet = new Set(
       deliveryCat.tasks.filter(t => t.done).map(t => normalize(t.title))
     );
-    const productNames = items.map(it => String(it.name || it.product_id || it.productId || ''));
-    return productNames.every(n => doneSet.has(normalize(`entregar ${n}`)));
+    const productNames = items.map((it: any) => String(it.name || it.product_id || it.productId || ''));
+    return productNames.every((n: string) => doneSet.has(normalize(`entregar ${n}`)));
   }
 
   function getDerivedStatusForOrder(o: OrderItem): OrderStatus {
@@ -267,7 +267,7 @@ const OrdersManagement = () => {
     setViewing(o);
     const base = (o.workflow && o.workflow.length) ? o.workflow : [];
     const items = getDisplayItems(o);
-    const names = items.map(it => String(it.name || it.product_id || it.productId || ''));
+    const names = items.map((it: any) => String(it.name || it.product_id || it.productId || ''));
     const wf = ensureDeliveryTasks(base, names);
     setWorkflow(JSON.parse(JSON.stringify(wf)));
     if (templates.length === 0) await fetchTemplates();
@@ -308,7 +308,7 @@ const OrdersManagement = () => {
             const contract = { id: cSnap.id, ...(cSnap.data() as any) } as any;
             const base = (contract.workflow && contract.workflow.length) ? contract.workflow : [];
             const items = getDisplayItems(viewing);
-            const names = items.map(it => String(it.name || it.product_id || it.productId || ''));
+            const names = items.map((it: any) => String(it.name || it.product_id || it.productId || ''));
             const merged = ensureDeliveryTasks(base, names);
             const ordDeliveryCat = (workflow as WorkflowCategory[]).find(c => normalize(c.name).includes('entrega'));
             if (ordDeliveryCat) {
@@ -445,7 +445,18 @@ const OrdersManagement = () => {
             const progressColor = deliveryComplete ? '#16a34a' : (deliveryPct >= 67 ? '#16a34a' : deliveryPct >= 34 ? '#eab308' : '#ef4444');
             return (
               <div key={o.id} className="grid grid-cols-12 p-3 items-center hover:bg-gray-50 cursor-pointer" onClick={() => openWorkflow(o)}>
-                <div className="col-span-1" />
+                <div className="col-span-1">
+                  {!String(o.id || '').startsWith('contract-') && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); remove(o.id); }}
+                      className="text-red-600 hover:text-red-800"
+                      title="Eliminar orden"
+                      aria-label="Eliminar orden"
+                    >
+                      <Trash size={16} />
+                    </button>
+                  )}
+                </div>
                 <div className="col-span-3 lowercase first-letter:uppercase">{o.customer_name || 'cliente'}</div>
                 <div className="col-span-2 text-sm text-gray-600">{o.created_at ? new Date(o.created_at).toLocaleDateString() : ''}</div>
                 <div className="col-span-1 font-semibold">${Number(o.total || 0).toFixed(0)}</div>

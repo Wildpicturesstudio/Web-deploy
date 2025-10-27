@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { X, Plus, Trash2, Search, CheckCircle } from 'lucide-react';
-import { DBPackage, updatePackage } from '../../utils/packagesService';
+import { DBPackage, updatePackage, createPackage } from '../../utils/packagesService';
 import { storage } from '../../utils/firebaseClient';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, getDoc, doc } from 'firebase/firestore';
 import { db } from '../../utils/firebaseClient';
 
 interface PackageEditorModalProps {
@@ -21,22 +21,32 @@ const PackageEditorModal: React.FC<PackageEditorModalProps> = ({ open, onClose, 
   const [featuresText, setFeaturesText] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [category, setCategory] = useState<string | undefined>('');
+  const [displayPage, setDisplayPage] = useState<'' | 'portrait' | 'maternity' | 'events' | 'civilWedding'>('');
   const [sections, setSections] = useState<string[]>([]);
   const [showNewSection, setShowNewSection] = useState(false);
   const [newSection, setNewSection] = useState('');
   const [selectedSection, setSelectedSection] = useState<string | undefined>('');
+  const [availableSections, setAvailableSections] = useState<string[]>([]);
+  const [availableCategories, setAvailableCategories] = useState<string[]>([]);
+  const [showNewCategory, setShowNewCategory] = useState(false);
+  const [newCategory, setNewCategory] = useState('');
   const [saving, setSaving] = useState(false);
+  const [recommended, setRecommended] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [products, setProducts] = useState<any[]>([]);
+  const [availablePkgs, setAvailablePkgs] = useState<{ id: string; title: string; category?: string; active?: boolean }[]>([]);
   const [productSearch, setProductSearch] = useState('');
   // key format: productId or productId||Variant Name
   const [included, setIncluded] = useState<Record<string, number>>({});
   const [manualId, setManualId] = useState<string>('');
   const [manualQty, setManualQty] = useState<number>(1);
+  const [serviceId, setServiceId] = useState<string>('');
+  const [serviceQty, setServiceQty] = useState<number>(1);
   const parseKey = (key: string) => { const [id, variantName] = key.split('||'); return { id, variantName }; };
+  const normalize = (s: any) => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
   const getVariantNames = (p: any): string[] => {
     const names: string[] = [];
     if (Array.isArray(p.variantes) && p.variantes.length) { names.push(...p.variantes.map((v: any) => String(v?.nombre||'').trim()).filter(Boolean)); }
@@ -53,13 +63,19 @@ const PackageEditorModal: React.FC<PackageEditorModalProps> = ({ open, onClose, 
     setFeaturesText((pkg.features || []).join('\n'));
     setImageUrl(pkg.image_url || '');
     setCategory(pkg.category || '');
+    setDisplayPage(((pkg as any).displayPage as any) || '');
+    setRecommended(Boolean((pkg as any).recommended || false));
     // load sections if present
     const s = Array.isArray((pkg as any).sections) ? (pkg as any).sections.slice() : [];
     setSections(s);
     setSelectedSection(s[0] || '');
     const incArr = Array.isArray((pkg as any).storeItemsIncluded) ? (pkg as any).storeItemsIncluded as any[] : [];
     const map: Record<string, number> = {};
-    incArr.forEach(x => { if (x?.productId) map[String(x.productId)] = Number(x.quantity||1); });
+    incArr.forEach(x => {
+      if (!x?.productId) return;
+      const key = x?.variantName ? `${String(x.productId)}||${String(x.variantName)}` : String(x.productId);
+      map[key] = Number(x.quantity || 1);
+    });
     setIncluded(map);
   }, [pkg]);
 
@@ -95,6 +111,47 @@ const PackageEditorModal: React.FC<PackageEditorModalProps> = ({ open, onClose, 
     if (open) loadProducts();
   }, [open]);
 
+  useEffect(() => {
+    const loadAvailableSections = async () => {
+      try {
+        if (typeof navigator !== 'undefined' && !navigator.onLine) { setAvailableSections([]); setAvailableCategories([]); return; }
+        const snap = await getDocs(collection(db, 'packages'));
+        const all = snap.docs
+          .flatMap(d => {
+            const data = d.data() as any;
+            const arr = Array.isArray(data?.sections) ? data.sections : [];
+            return arr;
+          })
+          .map((s: any) => String(s || '').trim())
+          .filter(Boolean);
+        const seen = new Set<string>();
+        const unique: string[] = [];
+        for (const s of all) {
+          const key = s.toLowerCase();
+          if (!seen.has(key)) { seen.add(key); unique.push(s); }
+        }
+        setAvailableSections(unique);
+        // build categories from packages + products
+        const catSet = new Set<string>();
+        const pkgs: { id: string; title: string; category?: string; active?: boolean }[] = [];
+        snap.docs.forEach(d => {
+          const data = d.data() as any;
+          const c = String(data?.category || '').trim();
+          if (c) catSet.add(c);
+          pkgs.push({ id: d.id, title: String(data?.title || d.id), category: c || undefined, active: data?.active });
+        });
+        setAvailablePkgs(pkgs);
+        (products || []).forEach((p: any) => { const c = String(p?.category || '').trim(); if (c) catSet.add(c); });
+        setAvailableCategories(Array.from(catSet).sort((a,b)=>a.localeCompare(b)));
+      } catch {
+        setAvailableSections([]);
+        setAvailableCategories([]);
+        setAvailablePkgs([]);
+      }
+    };
+    if (open) loadAvailableSections();
+  }, [open, products]);
+
   const handleSave = async () => {
     if (!pkg) return;
     try {
@@ -112,18 +169,66 @@ const PackageEditorModal: React.FC<PackageEditorModalProps> = ({ open, onClose, 
           .filter(Boolean),
         image_url: imageUrl,
         category: category || undefined,
-      } as Partial<DBPackage>;
+        recommended: Boolean(recommended),
+      } as Partial<DBPackage> & { displayPage?: 'portrait'|'maternity'|'events'|'civilWedding' };
+      if (displayPage) (updates as any).displayPage = displayPage;
       (updates as any).sections = sections;
       (updates as any).storeItemsIncluded = Object.entries(included).map(([rawKey, quantity]) => { const { id, variantName } = parseKey(rawKey); return { productId: id, quantity: Number(quantity||0), ...(variantName ? { variantName } : {}) }; }).filter(x => x.quantity > 0);
       await updatePackage(pkg.id, updates);
       console.log('PackageEditorModal: package saved');
-      const updated: DBPackage = { ...pkg, ...updates, sections } as DBPackage;
+      const updated: DBPackage = { ...pkg, ...updates, sections, recommended: Boolean(recommended) } as DBPackage;
       onSaved && onSaved(updated);
       setSuccessMessage('Datos guardados correctamente');
+      onClose && onClose();
     } catch (e: any) {
       console.error('PackageEditorModal: save error', e);
       const msg = e?.message || 'Erro ao salvar pacote';
       setError(msg);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDuplicate = async () => {
+    if (!pkg) return;
+    try {
+      setSaving(true);
+      setError(null);
+      const baseFeatures = featuresText
+        .split('\n')
+        .map((f) => f.trim())
+        .filter(Boolean);
+      const payload: any = {
+        type: pkg.type,
+        title: `${title || pkg.title} (Copia)`,
+        price: Number(price) || 0,
+        duration: duration || '',
+        description: description || '',
+        features: baseFeatures,
+        image_url: imageUrl || '',
+        category: category || undefined,
+        sections: sections,
+        recommended: Boolean(recommended),
+        storeItemsIncluded: Object.entries(included).map(([rawKey, quantity]) => {
+          const [id, variantName] = rawKey.split('||');
+          return { productId: id, quantity: Number(quantity || 0), ...(variantName ? { variantName } : {}) };
+        }).filter((x) => x.quantity > 0),
+        active: true,
+      };
+      if (displayPage) payload.displayPage = displayPage;
+      const newId = await createPackage(payload);
+      try {
+        const ref = doc(db, 'packages', newId);
+        const snap = await getDoc(ref);
+        if (snap.exists()) {
+          const created = { id: snap.id, ...(snap.data() as any) } as DBPackage;
+          onSaved && onSaved(created);
+        }
+      } catch (_) {}
+      setSuccessMessage('Copia creada correctamente');
+      window.dispatchEvent(new CustomEvent('adminToast', { detail: { message: 'Copia creada', type: 'success', refresh: true } }));
+    } catch (e: any) {
+      setError(e?.message || 'No se pudo duplicar el paquete');
     } finally {
       setSaving(false);
     }
@@ -204,17 +309,76 @@ const PackageEditorModal: React.FC<PackageEditorModalProps> = ({ open, onClose, 
           </div>
 
           <div>
+            <label className="block text-sm text-gray-700 mb-1">Página donde mostrar</label>
+            <select
+              value={displayPage}
+              onChange={e=> setDisplayPage(e.target.value as any)}
+              className="px-3 py-2 border rounded w-full mb-3"
+            >
+              <option value="">Todas (por tipo)</option>
+              <option value="portrait">Retratos (PortraitPage)</option>
+              <option value="maternity">Gestantes (MaternityPage)</option>
+              <option value="events">Eventos (EventsPage)</option>
+              <option value="civilWedding">Casamento Civil (CivilWeddingPage)</option>
+            </select>
+
             <label className="block text-sm text-gray-700 mb-1">Categoria (opcional)</label>
-            <input value={category || ''} onChange={e => setCategory(e.target.value)} className="w-full px-3 py-2 border rounded" />
+            <div className="flex items-center gap-2">
+              <select
+                value={category || ''}
+                onChange={(e)=> setCategory(e.target.value || undefined)}
+                className="px-3 py-2 border rounded flex-1"
+              >
+                <option value="">Sin categoría</option>
+                {availableCategories.map(c => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+              <button type="button" title="Nueva categoría" onClick={()=>{ setShowNewCategory(true); setNewCategory(''); }} className="p-2 border rounded text-gray-600">
+                <Plus size={14} />
+              </button>
+            </div>
+            {showNewCategory && (
+              <div className="mt-2 flex items-center gap-2">
+                <input value={newCategory} onChange={e=> setNewCategory(e.target.value)} className="px-3 py-2 border rounded-md flex-1" placeholder="Nueva categoría" />
+                <button type="button" onClick={()=>{
+                  const v = (newCategory||'').trim();
+                  if (!v) return;
+                  if (!availableCategories.includes(v)) setAvailableCategories(prev => [...prev, v].sort((a,b)=>a.localeCompare(b)));
+                  setCategory(v);
+                  setShowNewCategory(false);
+                  setNewCategory('');
+                }} className="p-2 bg-primary text-white rounded"><Plus size={14} /></button>
+                <button type="button" onClick={()=>{ setShowNewCategory(false); setNewCategory(''); }} className="p-2 border rounded text-gray-600"><X size={14} /></button>
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <input id="pkg-recommended" type="checkbox" checked={recommended} onChange={(e)=> setRecommended(e.target.checked)} />
+            <label htmlFor="pkg-recommended" className="text-sm text-gray-700">Marcar como recomendado (destaca o card e mostra etiqueta)</label>
           </div>
 
           {/* Sections selector and management */}
           <div>
             <label className="block text-sm text-gray-700 mb-1">Sección</label>
             <div className="flex items-center gap-2">
-              <select value={selectedSection || ''} onChange={e => setSelectedSection(e.target.value)} className="px-3 py-2 border rounded flex-1">
+              <select
+                value={selectedSection || ''}
+                onChange={e => {
+                  const v = e.target.value;
+                  setSelectedSection(v);
+                  if (v && !sections.includes(v)) setSections(prev => [...prev, v]);
+                }}
+                className="px-3 py-2 border rounded flex-1"
+              >
                 <option value="">Sin sección</option>
-                {sections.map(s => <option key={s} value={s}>{s}</option>)}
+                {Array.from(new Set([...(availableSections || []), ...(sections || [])]))
+                  .filter(Boolean)
+                  .sort((a, b) => a.localeCompare(b))
+                  .map(s => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
               </select>
 
               <button type="button" title="Agregar" onClick={() => { setShowNewSection(true); setNewSection(''); }} className="p-2 border rounded text-gray-600">
@@ -281,14 +445,38 @@ const PackageEditorModal: React.FC<PackageEditorModalProps> = ({ open, onClose, 
               <input type="number" min={1} value={manualQty} onChange={e=> setManualQty(Math.max(1, Number(e.target.value||1)))} className="w-24 px-2 py-1 border rounded text-sm" />
               <button type="button" onClick={()=>{ if(!manualId) return; setIncluded(prev=> ({ ...prev, [manualId]: manualQty })); }} className="px-3 py-1 bg-primary text-white rounded text-sm">Agregar</button>
             </div>
+
+            {/* Servicios (categoría 'Servicios') */}
+            <div className="mt-4">
+              <div className="text-xs text-gray-600 mb-1">Añadir servicio al paquete</div>
+              <div className="flex items-center gap-2">
+                <select value={serviceId} onChange={e=>setServiceId(e.target.value)} className="px-2 py-1 border rounded text-sm flex-1">
+                  <option value="">Selecciona un servicio…</option>
+                  {(() => {
+                    const key = 'servicios';
+                    const packageOptions = availablePkgs
+                      .filter(pk => normalize(pk.category || '') === key && pk.active !== false)
+                      .map(pk => (
+                        <option key={`pkg:${pk.id}`} value={`pkg:${pk.id}`}>{pk.title}</option>
+                      ));
+                    return packageOptions;
+                  })()}
+                </select>
+                <input type="number" min={1} value={serviceQty} onChange={e=> setServiceQty(Math.max(1, Number(e.target.value||1)))} className="w-24 px-2 py-1 border rounded text-sm" />
+                <button type="button" onClick={()=>{ if(!serviceId) return; setIncluded(prev=> ({ ...prev, [serviceId]: serviceQty })); }} className="px-3 py-1 bg-primary text-white rounded text-sm">Agregar</button>
+              </div>
+            </div>
+
             {Object.keys(included).length > 0 && (
               <div className="mt-3 p-3 bg-gray-50 rounded border border-gray-200">
                 <div className="text-xs text-gray-600 mb-2">Productos seleccionados</div>
                 <ul className="grid grid-cols-1 gap-2">
                   {Object.entries(included).map(([rawKey, qty]) => {
                     const { id, variantName } = parseKey(rawKey);
-                    const base = products.find(p=>p.id===id);
-                    const display = variantName ? `${base?.name || id} — ${variantName}` : (base?.name || id);
+                    const base = id.startsWith('pkg:') ? null : products.find(p=>p.id===id);
+                    const pkgBase = id.startsWith('pkg:') ? availablePkgs.find(p=>`pkg:${p.id}`===id) : null;
+                    const baseName = base ? (base.name || id) : (pkgBase ? (pkgBase.title || id) : id);
+                    const display = variantName ? `${baseName} — ${variantName}` : baseName;
                     return (
                       <li key={rawKey} className="flex items-center justify-between gap-2">
                         <div className="text-sm">{display}</div>
@@ -307,11 +495,16 @@ const PackageEditorModal: React.FC<PackageEditorModalProps> = ({ open, onClose, 
           <div className="text-xs text-gray-500 mt-1">Estos productos se añadirán automáticamente al carrito como items individuales al seleccionar este paquete (precio R$ 0 recomendado para evitar doble cobro).</div>
         </div>
 
-        <div className="border-t p-4 flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 rounded border">Cancelar</button>
-          <button type="button" onClick={handleSave} disabled={saving || uploading} className="px-4 py-2 rounded bg-primary text-white disabled:opacity-50">
-            {saving ? 'Salvando...' : 'Salvar'}
+        <div className="border-t p-4 flex justify-between gap-2">
+          <button type="button" onClick={handleDuplicate} disabled={saving || uploading} className="px-4 py-2 rounded border-2 border-secondary text-secondary hover:bg-secondary hover:text-white disabled:opacity-50">
+            Duplicar paquete
           </button>
+          <div className="flex gap-2">
+            <button onClick={onClose} className="px-4 py-2 rounded border">Cancelar</button>
+            <button type="button" onClick={handleSave} disabled={saving || uploading} className="px-4 py-2 rounded bg-primary text-white disabled:opacity-50">
+              {saving ? 'Salvando...' : 'Salvar'}
+            </button>
+          </div>
         </div>
       </div>
     </div>

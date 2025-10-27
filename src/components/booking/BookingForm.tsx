@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { BookingFormData } from '../../types/booking';
+import { withFirestoreRetry } from '../../utils/firestoreRetry';
 import { maternityPackages } from '../../data/maternityData';
-import { dressOptions } from '../../data/dressData';
 import DressSelector from './DressSelector';
+import { db } from '../../utils/firebaseClient';
+import { collection, getDocs } from 'firebase/firestore';
+import type { DressOption } from '../../types/booking';
 import BookingCart from './BookingCart';
-import { Check } from 'lucide-react';
-import { formatPrice } from '../../utils/format';
-import { gcalCheckAvailability, gcalUpsertBooking, parseDurationToMinutes } from '../../utils/calendar';
+import { findCouponByCode, isCouponActiveNow, isItemApplicable, computeCouponDiscountForCart, type DBCoupon } from '../../utils/couponsService';
 
 // Helpers for BR formatting/validation
 function onlyDigits(s: string) { return s.replace(/\D/g, ''); }
@@ -53,22 +54,60 @@ function validateEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value.toLowerCase());
 }
 
+// Helper to parse YYYY-MM-DD as a local date (avoids UTC shift)
+function parseLocalDate(dateStr: string) {
+  const [y, m, d] = String(dateStr || '').split('-').map(Number);
+  if (!y || !m || !d) return new Date();
+  return new Date(y, (m - 1), d);
+}
+
+// Preset event locations and their travel costs (R$)
+const LOCATION_OPTIONS = [
+  { key: 'jardim-botanico', label: 'Jardim Botânico', cost: 30 },
+  { key: 'parque-barigui', label: 'Parque Barigüi', cost: 40 },
+  { key: 'parque-tangua', label: 'Parque Tanguá', cost: 45 },
+  { key: 'parque-tingui', label: 'Parque Tingüi', cost: 45 },
+  { key: 'bosque-alemao', label: 'Bosque Alemão', cost: 45 },
+  { key: 'parque-das-aguas', label: 'Parque das Águas', cost: 10 },
+  { key: 'parque-lago-azul', label: 'Parque Lago Azul (Umbará)', cost: 50 },
+  { key: 'parque-sao-jose', label: 'Parque São José (São José dos Pinhais)', cost: 40 }
+] as const;
+
+type LocationKey = typeof LOCATION_OPTIONS[number]['key'];
+
+function recomputeTravelCost(data: BookingFormData, count: number): number {
+  // If any service uses custom location (manual), deslocamento = 0
+  for (let i = 0; i < count; i++) {
+    if ((data as any)[`eventLocationMode_${i}`] === 'custom') return 0;
+  }
+  // Else take the maximum cost among selected presets
+  let maxCost = 0;
+  for (let i = 0; i < count; i++) {
+    const key: LocationKey | undefined = (data as any)[`eventLocationPreset_${i}`];
+    if (!key) continue;
+    const opt = LOCATION_OPTIONS.find(o => o.key === key);
+    if (opt && opt.cost > maxCost) maxCost = opt.cost;
+  }
+  return maxCost;
+}
+
 // Simple DatePicker
 const DatePicker: React.FC<{ value: string; onChange: (val: string) => void; min?: string }>=({ value, onChange, min })=>{
   const today = new Date();
   const [view, setView] = useState(() => {
-    const d = value ? new Date(value) : today;
+    const d = value ? parseLocalDate(value) : today;
     return { year: d.getFullYear(), month: d.getMonth() };
   });
   const first = new Date(view.year, view.month, 1);
-  const startWeekday = (first.getDay() + 6) % 7; // Monday-first
+  const startWeekday = first.getDay(); // Sunday-first
   const daysInMonth = new Date(view.year, view.month+1, 0).getDate();
-  const minDate = min ? new Date(min) : today;
+  const minDate = min ? parseLocalDate(min) : today;
   const asStr = (y:number,m:number,d:number)=> `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
 
-  const cells: (string|null)[] = Array.from({length: startWeekday}, ()=>null)
-    .concat(Array.from({length: daysInMonth}, (_,i)=>asStr(view.year, view.month, i+1)));
-  const canSelect = (d: string) => new Date(d) >= new Date(minDate.getFullYear(), minDate.getMonth(), minDate.getDate());
+  const prefix: (string|null)[] = Array.from({ length: startWeekday }, () => null) as (string | null)[];
+  const monthDays: (string|null)[] = Array.from({ length: daysInMonth }, (_, i) => asStr(view.year, view.month, i + 1)) as (string | null)[];
+  const cells: (string | null)[] = prefix.concat(monthDays);
+  const canSelect = (ds: string) => parseLocalDate(ds) >= new Date(minDate.getFullYear(), minDate.getMonth(), minDate.getDate());
 
   return (
     <div className="border rounded-md p-3">
@@ -78,7 +117,7 @@ const DatePicker: React.FC<{ value: string; onChange: (val: string) => void; min
         <button type="button" onClick={()=>setView(v=>({year: v.month===11? v.year+1:v.year, month: v.month===11?0:v.month+1}))} className="px-2 py-1 border rounded">»</button>
       </div>
       <div className="grid grid-cols-7 gap-1 text-center text-xs text-gray-500 mb-1">
-        {['S','T','Q','Q','S','S','D'].map((d, i) => <div key={`${d}-${i}`}>{d}</div>)}
+        {['D','L','M','M','J','V','S'].map((d, i) => <div key={`${d}-${i}`}>{d}</div>)}
       </div>
       <div className="grid grid-cols-7 gap-1">
         {cells.map((d, idx)=> d ? (
@@ -130,12 +169,38 @@ const BookingForm: React.FC<BookingFormProps> = ({ initialData, packages, onSubm
     discountCoupon: ''
   });
   const [errors, setErrors] = useState<{[key: string]: string}>({});
+  const [dresses, setDresses] = useState<DressOption[]>([]);
+  const [resolvedCoupons, setResolvedCoupons] = useState<Record<number, DBCoupon | null>>({});
 
   const serviceTypes = [
     { id: 'portrait', name: 'Retratos' },
     { id: 'maternity', name: 'Gestantes' },
     { id: 'events', name: 'Eventos' }
   ];
+
+  // Load dresses from Firestore (category = vestidos)
+  useEffect(() => {
+    (async () => {
+      try {
+        const snap = await withFirestoreRetry(() => getDocs(collection(db, 'products')));
+        const list: DressOption[] = snap.docs
+          .map(d => ({ id: d.id, ...(d.data() as any) }))
+          .filter(p => {
+            const c = String((p as any).category || '').toLowerCase();
+            return c.includes('vestid') || c.includes('dress');
+          })
+          .map((p: any) => ({
+            id: p.id,
+            name: p.name || 'Vestido',
+            color: Array.isArray(p.tags) && p.tags.length ? String(p.tags[0]) : '',
+            image: p.image_url || ''
+          }));
+        setDresses(list);
+      } catch (e) {
+        setDresses([]);
+      }
+    })();
+  }, []);
 
   // Set PIX as default payment method
   useEffect(() => {
@@ -427,8 +492,8 @@ const BookingForm: React.FC<BookingFormProps> = ({ initialData, packages, onSubm
                 formData.cartItems.map((item, index) => (
                   <section key={`service-${index}`}>
                     <h2 className="text-xl font-medium mb-6 pb-2 border-b">
-                      Informações do Serviço {formData.cartItems.length > 1 ? `#${index + 1}` : ''}
-                      {formData.cartItems.length > 1 && (
+                      Informações do Serviço {(formData.cartItems && formData.cartItems.length > 1) ? `#${index + 1}` : ''}
+                      {(formData.cartItems && formData.cartItems.length > 1) && (
                         <span className="text-base font-normal text-gray-600 ml-2">
                           ({item.name})
                         </span>
@@ -510,7 +575,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ initialData, packages, onSubm
                       {item.type === 'maternity' && (
                         <div className="md:col-span-2">
                           <DressSelector
-                            dresses={dressOptions}
+                            dresses={dresses}
                             maxSelections={getMaxLooks(item)}
                             selectedDresses={formData.selectedDresses || []}
                             onChange={handleDressSelection}
@@ -530,19 +595,55 @@ const BookingForm: React.FC<BookingFormProps> = ({ initialData, packages, onSubm
                             (Buscar no Google Maps)
                           </a>
                         </label>
-                        <input
-                          type="text"
-                          name={`eventLocation_${index}`}
-                          value={formData[`eventLocation_${index}`] || ''}
-                          onChange={(e) => setFormData(prev => ({ ...prev, [`eventLocation_${index}`]: e.target.value }))}
+                        <select
+                          name={`eventLocationSelect_${index}`}
+                          value={(formData[`eventLocationMode_${index}`] === 'custom') ? 'custom' : (formData[`eventLocationPreset_${index}`] || '')}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            setFormData(prev => {
+                              const next: any = { ...prev };
+                              const count = (prev.cartItems || []).length || 0;
+                              if (v === 'custom') {
+                                next[`eventLocationMode_${index}`] = 'custom';
+                                next[`eventLocationPreset_${index}`] = '';
+                                next[`eventLocation_${index}`] = '';
+                              } else {
+                                next[`eventLocationMode_${index}`] = 'preset';
+                                next[`eventLocationPreset_${index}`] = v;
+                                const opt = LOCATION_OPTIONS.find(o => o.key === v);
+                                next[`eventLocation_${index}`] = opt ? opt.label : '';
+                              }
+                              next.travelCost = recomputeTravelCost(next, count);
+                              return next;
+                            });
+                          }}
                           className={`input-base focus:outline-none focus:ring-2 focus:ring-secondary ${
                             errors[`eventLocation_${index}`] ? 'border-red-500' : 'border-gray-300'
                           }`}
-                          placeholder="Endereço completo do evento ou link do Google Maps"
-                        />
+                        >
+                          <option value="">Selecione um local</option>
+                          {LOCATION_OPTIONS.map(opt => (
+                            <option key={opt.key} value={opt.key}>{opt.label} – R$ {opt.cost}</option>
+                          ))}
+                          <option value="custom">Outro (digitar endereço)</option>
+                        </select>
+
+                        {(formData[`eventLocationMode_${index}`] === 'custom') && (
+                          <input
+                            type="text"
+                            name={`eventLocation_${index}`}
+                            value={formData[`eventLocation_${index}`] || ''}
+                            onChange={(e) => setFormData(prev => ({ ...prev, [`eventLocation_${index}`]: e.target.value, travelCost: 0 }))}
+                            className={`mt-3 input-base focus:outline-none focus:ring-2 focus:ring-secondary ${
+                              errors[`eventLocation_${index}`] ? 'border-red-500' : 'border-gray-300'
+                            }`}
+                            placeholder="Endereço completo do evento ou link do Google Maps"
+                          />
+                        )}
+
                         {errors[`eventLocation_${index}`] && <p className="text-red-500 text-sm mt-1">{errors[`eventLocation_${index}`]}</p>}
                         <p className="text-xs text-gray-500 mt-1">
-                          Você pode colar o link do Google Maps aqui para maior precisão
+                          Selecione um local predefinido para preencher a taxa automaticamente, ou escolha "Outro" para digitar o endereço (deslocamento = R$ 0)
                         </p>
                       </div>
                     </div>
@@ -556,40 +657,58 @@ const BookingForm: React.FC<BookingFormProps> = ({ initialData, packages, onSubm
                         type="text"
                         name={`discountCoupon_${index}`}
                         value={formData[`discountCoupon_${index}`] || ''}
-                        onChange={(e) => setFormData(prev => ({ ...prev, [`discountCoupon_${index}`]: e.target.value }))}
+                        onChange={async (e) => {
+                          const code = e.target.value;
+                          setFormData(prev => ({ ...prev, [`discountCoupon_${index}`]: code }));
+                          const trimmed = code.trim();
+                          if (!trimmed) { setResolvedCoupons(prev => ({ ...prev, [index]: null })); return; }
+                          try {
+                            const found = await findCouponByCode(trimmed);
+                            const itemLike = { id: item.id, name: item.name, type: item.type, price: item.price, quantity: item.quantity } as any;
+                            if (found && isCouponActiveNow(found) && isItemApplicable(found.appliesTo as any, itemLike)) {
+                              // compute to ensure discount > 0
+                              const { discount } = computeCouponDiscountForCart(found, [itemLike]);
+                              if (discount > 0) { setResolvedCoupons(prev => ({ ...prev, [index]: found })); }
+                              else { setResolvedCoupons(prev => ({ ...prev, [index]: null })); }
+                            } else {
+                              setResolvedCoupons(prev => ({ ...prev, [index]: null }));
+                            }
+                          } catch {
+                            setResolvedCoupons(prev => ({ ...prev, [index]: null }));
+                          }
+                        }}
                         className={`input-base focus:outline-none focus:ring-2 focus:ring-secondary ${
                           (() => {
-                            const coupon = formData[`discountCoupon_${index}`];
-                            if (!coupon || coupon.trim() === '') {
+                            const code = formData[`discountCoupon_${index}`];
+                            if (!code || code.trim() === '') {
                               return 'border-gray-300 text-gray-900';
                             }
-                            const hasDiscount = coupon === 'FREE' && item.id && item.id.includes('prewedding') && !item.id.includes('teaser');
-                            return hasDiscount 
-                              ? 'border-green-500 text-green-600 bg-green-50' 
+                            const rc = resolvedCoupons[index];
+                            return rc
+                              ? 'border-green-500 text-green-600 bg-green-50'
                               : 'border-red-500 text-red-600 bg-red-50';
                           })()
                         }`}
                         placeholder="Insira seu cupom de descuento"
                       />
                       {(() => {
-                        const coupon = formData[`discountCoupon_${index}`];
-                        if (!coupon || coupon.trim() === '') {
+                        const code = formData[`discountCoupon_${index}`];
+                        if (!code || code.trim() === '') {
                           return (
                             <p className="text-xs text-gray-500 mt-1">
                               Insira seu cupom de desconto se disponível
                             </p>
                           );
                         }
-                        const hasDiscount = coupon === 'FREE' && item.id && item.id.includes('prewedding') && !item.id.includes('teaser');
-                        
-                        if (hasDiscount) {
+                        const rc = resolvedCoupons[index];
+                        if (rc) {
+                          const perc = rc.discountType === 'percentage' ? `${Math.round(Number(rc.discountValue||0))}%` : (rc.discountType === 'full' ? '100%' : `R$ ${Number(rc.discountValue||0).toFixed(2)}`);
                           return (
                             <p className="text-xs text-green-600 mt-1 font-medium">
-                              ��� Cupom aplicado com sucesso! Desconto de 100%
+                              🎉 Cupom {rc.code} aplicado! Desconto de {perc}
                             </p>
                           );
                         }
-                        
                         return (
                           <p className="text-xs text-red-600 mt-1 font-medium">
                             ❌ Cupom inválido ou não aplicável a este serviço
@@ -602,7 +721,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ initialData, packages, onSubm
               ) : (
                 (!formData.storeItems || formData.storeItems.length === 0) ? (
                   <section>
-                    <h2 className="text-xl font-medium mb-6 pb-2 border-b">Informações do Servi��o</h2>
+                    <h2 className="text-xl font-medium mb-6 pb-2 border-b">Informações do Serviço</h2>
                     <div className="bg-yellow-50 border border-yellow-200 p-4">
                       <p className="text-yellow-800">Nenhum serviço selecionado. Por favor, adicione serviços ao carrinho primeiro.</p>
                     </div>
@@ -641,6 +760,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ initialData, packages, onSubm
                         name="travelCost"
                         value={formData.travelCost}
                         onChange={handleInputChange}
+                        onInput={(e)=>{ const t=e.currentTarget; t.value = t.value.replace(/^0+(?=\d)/,''); }}
                         className="input-base focus:outline-none focus:ring-2 focus:ring-secondary"
                         placeholder="0"
                         min="0"
@@ -710,6 +830,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ initialData, packages, onSubm
               travelCost={formData.travelCost}
               paymentMethod={formData.paymentMethod}
               formData={formData}
+              resolvedCoupons={resolvedCoupons}
             />
           </div>
         </div>

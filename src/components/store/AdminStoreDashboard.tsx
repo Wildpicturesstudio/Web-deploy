@@ -26,15 +26,16 @@ interface OrderItem {
 
 interface ProductLite { id: string; name: string }
 
-interface AdminProps { onNavigate?: (view: 'dashboard' | 'products' | 'orders' | 'contracts') => void }
+interface AdminProps { onNavigate?: (view: 'dashboard' | 'products' | 'orders' | 'contracts' | 'calendar') => void }
 const AdminStoreDashboard: React.FC<AdminProps> = ({ onNavigate }) => {
   const [stats, setStats] = useState({ products: 0, orders: 0, income: 0, customers: 0 });
   const [recentOrders, setRecentOrders] = useState<OrderItem[]>([]);
   const [allOrders, setAllOrders] = useState<OrderItem[]>([]);
   const [products, setProducts] = useState<ProductLite[]>([]);
   const [contracts, setContracts] = useState<any[]>([]);
-  const [selectedProductId, setSelectedProductId] = useState<'all' | string>('all');
-  const [selectedProductIdB, setSelectedProductIdB] = useState<'none' | string>('none');
+  const [investmentInstallments, setInvestmentInstallments] = useState<any[]>([]);
+  const [period, setPeriod] = useState<{ type: 'all' | 'year' | 'month' | 'custom'; start?: string; end?: string }>({ type: 'all' });
+  const [metric, setMetric] = useState<'revenue' | 'contracts'>('revenue');
   const { flags, setPageEnabled } = useFeatureFlags();
 
   useEffect(() => {
@@ -125,6 +126,15 @@ const AdminStoreDashboard: React.FC<AdminProps> = ({ onNavigate }) => {
         setProducts([]);
       }
 
+      // fetch investment installments for chart
+      try {
+        const instSnap = await getDocs(collection(db, 'investment_installments'));
+        const inst = instSnap.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
+        setInvestmentInstallments(inst);
+      } catch {
+        setInvestmentInstallments([]);
+      }
+
       // assign random product to orders missing items
       try {
         if (typeof navigator === 'undefined' || navigator.onLine) {
@@ -147,18 +157,86 @@ const AdminStoreDashboard: React.FC<AdminProps> = ({ onNavigate }) => {
     })();
   }, []);
 
-  const salesTotals = useMemo(() => {
-    const services = (allOrders || []).reduce((sum, o) => sum + (o.status === 'completado' ? Number(o.total || 0) : 0), 0);
-    const packages = (contracts || []).reduce((sum, c: any) => sum + (c.eventCompleted ? Number(c.totalAmount || 0) : 0), 0);
-    return { services, packages };
-  }, [allOrders, contracts]);
+  useEffect(() => {
+    const handler = () => {
+      (async () => {
+        try {
+          const cs = await getDocs(collection(db, 'contracts'));
+          const list = cs.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
+          setContracts(list);
+        } catch { setContracts([]); }
+      })();
+    };
+    window.addEventListener('contractsUpdated', handler as EventListener);
+    return () => window.removeEventListener('contractsUpdated', handler as EventListener);
+  }, []);
 
-  const statCards = useMemo(() => ([
-    { label: 'Ventas Serv. Adicionales', value: `R$ ${salesTotals.services.toFixed(0)}` , icon: <DollarSign className="text-amber-500" size={18} /> },
-    { label: 'Ventas Paquetes Foto', value: `R$ ${salesTotals.packages.toFixed(0)}` , icon: <Package className="text-primary" size={18} /> },
-    { label: 'Ingresos Totales', value: `$${stats.income}`, icon: <DollarSign className="text-amber-500" size={18} /> },
-    { label: 'Nuevos Clientes', value: stats.customers, icon: <Users className="text-fuchsia-500" size={18} /> },
-  ]), [salesTotals, stats]);
+  useEffect(() => {
+    const handler = () => {
+      (async () => {
+        try {
+          const instSnap = await getDocs(collection(db, 'investment_installments'));
+          const inst = instSnap.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
+          setInvestmentInstallments(inst);
+        } catch { setInvestmentInstallments([]); }
+      })();
+    };
+    window.addEventListener('investmentsUpdated', handler as EventListener);
+    return () => window.removeEventListener('investmentsUpdated', handler as EventListener);
+  }, []);
+
+  const isInPeriod = (dateStr?: string) => {
+    if (!dateStr) return false;
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return false;
+    if (period.type === 'all') return true;
+    if (period.type === 'year') { const now = new Date(); return d.getFullYear() === now.getFullYear(); }
+    if (period.type === 'month') { const now = new Date(); return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth(); }
+    if (period.type === 'custom') {
+      const start = period.start ? new Date(period.start) : null;
+      const end = period.end ? new Date(period.end) : null;
+      if (start && d < start) return false;
+      if (end) { const ed = new Date(end); ed.setHours(23,59,59,999); if (d > ed) return false; }
+      return true;
+    }
+    return true;
+  };
+
+  const contractAmounts = (c: any) => {
+    const svcList: any[] = Array.isArray(c.services) && c.services.length ? c.services : (Array.isArray(c.formSnapshot?.cartItems) ? c.formSnapshot.cartItems : []);
+    const servicesTotalRaw = svcList.reduce((sum, it: any) => {
+      const qty = Number(it?.quantity ?? 1);
+      const price = Number(String(it?.price || '').replace(/[^0-9]/g, ''));
+      return sum + (price * qty);
+    }, 0);
+    const storeTotal = (Array.isArray(c.storeItems) ? c.storeItems : []).reduce((sum: number, it: any) => sum + (Number(it.price) * Number(it.quantity || 1)), 0);
+    const travel = Number(c.travelFee || 0);
+    const totalFromDoc = Number(c.totalAmount || 0);
+    const services = servicesTotalRaw > 0 ? servicesTotalRaw : Math.max(0, totalFromDoc - storeTotal - travel);
+    const total = Math.round(services + storeTotal + travel);
+    return { services, storeTotal, travel, total };
+  };
+
+  const filteredContracts = useMemo(() => {
+    return (contracts || []).filter((c: any) => isInPeriod(c.contractDate || c.eventDate || c.createdAt));
+  }, [contracts, period]);
+
+  const salesTotals = useMemo(() => {
+    const packages = filteredContracts.reduce((sum, c: any) => sum + contractAmounts(c).services, 0);
+    const services = filteredContracts.reduce((sum, c: any) => sum + contractAmounts(c).storeTotal, 0);
+    return { services, packages };
+  }, [filteredContracts]);
+
+  const statCards = useMemo(() => {
+    const income = filteredContracts.reduce((sum, c: any) => sum + contractAmounts(c).total, 0);
+    const customers = new Set(filteredContracts.map((c:any)=> c.clientEmail || c.clientName)).size;
+    return ([
+      { label: 'Ventas Serv. Adicionales', value: `R$ ${salesTotals.services.toFixed(0)}` , icon: <DollarSign className="text-amber-500" size={18} /> },
+      { label: 'Ventas Paquetes Foto', value: `R$ ${salesTotals.packages.toFixed(0)}` , icon: <Package className="text-primary" size={18} /> },
+      { label: 'Ingresos Totales', value: `R$ ${income.toFixed(0)}`, icon: <DollarSign className="text-amber-500" size={18} /> },
+      { label: 'Nuevos Clientes', value: customers, icon: <Users className="text-fuchsia-500" size={18} /> },
+    ]);
+  }, [salesTotals, filteredContracts]);
 
   const nearestContracts = useMemo(() => {
     const today = new Date(); today.setHours(0,0,0,0);
@@ -174,10 +252,27 @@ const AdminStoreDashboard: React.FC<AdminProps> = ({ onNavigate }) => {
   }, [contracts]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <div>
-        <h1 className="section-title">Panel de Administración</h1>
-        <p className="text-gray-600">Gestiona tu tienda de productos personalizados</p>
+        <h1 className="section-title text-2xl md:text-3xl">Panel de Administración</h1>
+        <p className="text-gray-600 text-sm md:text-base">Gestiona tu tienda de productos personalizados</p>
+      </div>
+
+      {/* Period Filter at the top */}
+      <div className="bg-white rounded-xl border border-gray-200 p-3 md:p-4 flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
+        <label className="text-sm font-medium text-gray-700">Periodo:</label>
+        <select value={period.type} onChange={e=> setPeriod({ type: e.target.value as any })} className="px-3 py-2 border rounded-none">
+          <option value="all">Global</option>
+          <option value="year">Este año</option>
+          <option value="month">Este mes</option>
+          <option value="custom">Personalizado</option>
+        </select>
+        {period.type === 'custom' && (
+          <>
+            <input type="date" value={period.start || ''} onChange={e=> setPeriod(p => ({ ...p, start: e.target.value }))} className="px-2 py-1 border rounded-none" />
+            <input type="date" value={period.end || ''} onChange={e=> setPeriod(p => ({ ...p, end: e.target.value }))} className="px-2 py-1 border rounded-none" />
+          </>
+        )}
       </div>
 
       {/* Stats */}
@@ -206,6 +301,10 @@ const AdminStoreDashboard: React.FC<AdminProps> = ({ onNavigate }) => {
             </button>
             <button onClick={() => onNavigate?.('contracts')} className="w-full border-2 border-black text-black px-4 py-3 rounded-none hover:bg-black hover:text-white flex items-center justify-center gap-2">
               Ver Contratos
+              <ArrowUpRight size={18} />
+            </button>
+            <button onClick={() => onNavigate?.('calendar')} className="w-full border-2 border-black text-black px-4 py-3 rounded-none hover:bg-black hover:text-white flex items-center justify-center gap-2">
+              Ver Calendario
               <ArrowUpRight size={18} />
             </button>
             <button onClick={() => onNavigate?.('products')} className="w-full border-2 border-black text-black px-4 py-3 rounded-none hover:bg-black hover:text-white">
@@ -248,32 +347,21 @@ const AdminStoreDashboard: React.FC<AdminProps> = ({ onNavigate }) => {
 
       {/* Performance */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-medium">Rendimiento: Ventas Mensuales</h3>
-          <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-600">Producto A</label>
-            <select value={selectedProductId} onChange={e => setSelectedProductId(e.target.value)} className="px-3 py-2 border rounded-none">
-              <option value="all">Todos</option>
-              {products.map(p => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
-            <label className="text-sm text-gray-600">Producto B</label>
-            <select value={selectedProductIdB} onChange={e => setSelectedProductIdB(e.target.value as any)} className="px-3 py-2 border rounded-none">
-              <option value="none">Ninguno</option>
-              {products.map(p => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
-          </div>
+        <div className="flex items-center gap-2 mb-4">
+          <h3 className="font-medium">Rendimiento</h3>
+          <select value={metric} onChange={e=> setMetric(e.target.value as any)} className="px-3 py-2 border rounded-none">
+            <option value="revenue">Ventas Mensuales</option>
+            <option value="contracts">Contratos firmados</option>
+          </select>
         </div>
         <div className="h-64">
           <Suspense fallback={<div className="h-64 flex items-center justify-center">Cargando gráfico...</div>}>
             <ChartPerformance
-              data={computeMonthlyCompare(allOrders, contracts, selectedProductId, selectedProductIdB)}
+              data={metric === 'revenue' ? computeMonthlyCompare(allOrders, filteredContracts as any, 'all', 'none', period, investmentInstallments) : computeContractsCountByMonth(filteredContracts as any, period)}
               products={products}
-              selectedProductId={selectedProductId}
-              selectedProductIdB={selectedProductIdB}
+              selectedProductId="all"
+              selectedProductIdB="none"
+              mode={metric as any}
             />
           </Suspense>
         </div>
@@ -288,13 +376,30 @@ function resolveName(products: ProductLite[], id: 'all' | 'none' | string) {
   return products.find(p => p.id === id)?.name || 'Producto';
 }
 
-function computeMonthlyCompare(orders: OrderItem[], contracts: any[], aId: 'all' | string, bId: 'none' | string) {
+function inPeriod(dateStr: string | undefined, period: { type: 'all' | 'year' | 'month' | 'custom'; start?: string; end?: string }) {
+  if (!dateStr) return false;
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return false;
+  if (period.type === 'all') return true;
+  if (period.type === 'year') { const now = new Date(); return d.getFullYear() === now.getFullYear(); }
+  if (period.type === 'month') { const now = new Date(); return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth(); }
+  if (period.type === 'custom') {
+    const start = period.start ? new Date(period.start) : null;
+    const end = period.end ? new Date(period.end) : null;
+    if (start && d < start) return false;
+    if (end) { const ed = new Date(end); ed.setHours(23,59,59,999); if (d > ed) return false; }
+    return true;
+  }
+  return true;
+}
+
+function computeMonthlyCompare(orders: OrderItem[], contracts: any[], aId: 'all' | string, bId: 'none' | string, period: { type: 'all' | 'year' | 'month' | 'custom'; start?: string; end?: string }, investmentInstallments: any[]) {
   const now = new Date();
   const today = new Date(); today.setHours(0,0,0,0);
   const months = Array.from({ length: 12 }).map((_, i) => {
     const d = new Date(now.getFullYear(), i, 1);
     const label = d.toLocaleString('es', { month: 'short' });
-    return { key: i, month: label.charAt(0).toUpperCase() + label.slice(1), a: 0, b: 0, forecast: 0 } as any;
+    return { key: i, month: label.charAt(0).toUpperCase() + label.slice(1), a: 0, b: 0, forecast: 0, investments: 0, earned: 0 } as any;
   });
 
   const getItemAmount = (it: OrderLineItem) => {
@@ -305,11 +410,11 @@ function computeMonthlyCompare(orders: OrderItem[], contracts: any[], aId: 'all'
 
   for (const o of orders) {
     if (!o.created_at) continue;
+    if (period && !inPeriod(o.created_at, period)) continue;
     const d = new Date(o.created_at);
     if (isNaN(d.getTime())) continue;
     const m = d.getMonth();
 
-    // A: total or product
     if (aId === 'all') {
       months[m].a += Number(o.total || 0) || 0;
     } else if (Array.isArray(o.items)) {
@@ -318,7 +423,6 @@ function computeMonthlyCompare(orders: OrderItem[], contracts: any[], aId: 'all'
         .reduce((sum, it) => sum + getItemAmount(it), 0);
     }
 
-    // B: skip if none
     if (bId !== 'none') {
       if (Array.isArray(o.items)) {
         months[m].b += o.items
@@ -328,11 +432,11 @@ function computeMonthlyCompare(orders: OrderItem[], contracts: any[], aId: 'all'
     }
   }
 
-  // include photography services (contracts) into 'a' series when viewing 'all'
   if (aId === 'all') {
     for (const c of (contracts || [])) {
       const dateStr = (c.eventDate as string) || (c.contractDate as string) || (c.createdAt as string) || '';
       if (!dateStr) continue;
+      if (!inPeriod(dateStr, period)) continue;
       const d = new Date(dateStr);
       if (isNaN(d.getTime())) continue;
       const m = d.getMonth();
@@ -340,13 +444,43 @@ function computeMonthlyCompare(orders: OrderItem[], contracts: any[], aId: 'all'
       const completed = Boolean(c.eventCompleted);
       const isFuture = d.getTime() >= today.getTime();
       if (completed) {
-        months[m].a += amount; // ventas
+        months[m].a += amount;
+        months[m].earned += amount;
       } else if (isFuture) {
-        months[m].forecast += amount; // ingresos futuros
+        months[m].forecast += amount;
       }
     }
   }
 
+  // investments: sum installments by due month within period
+  for (const inst of (investmentInstallments || [])) {
+    const dateStr = String(inst.dueDate || '');
+    if (!dateStr) continue;
+    if (!inPeriod(dateStr, period)) continue;
+    const d = new Date(dateStr); if (isNaN(d.getTime())) continue;
+    const m = d.getMonth();
+    const amount = Number(inst.amount || 0) || 0;
+    months[m].investments += amount;
+  }
+
+  return months;
+}
+
+function computeContractsCountByMonth(contracts: any[], period: { type: 'all' | 'year' | 'month' | 'custom'; start?: string; end?: string }) {
+  const now = new Date();
+  const months = Array.from({ length: 12 }).map((_, i) => {
+    const d = new Date(now.getFullYear(), i, 1);
+    const label = d.toLocaleString('es', { month: 'short' });
+    return { key: i, month: label.charAt(0).toUpperCase() + label.slice(1), a: 0 } as any;
+  });
+  for (const c of contracts) {
+    const dateStr = (c.contractDate as string) || (c.createdAt as string) || '';
+    if (!dateStr) continue;
+    if (!inPeriod(dateStr, period)) continue;
+    const d = new Date(dateStr); if (isNaN(d.getTime())) continue;
+    const m = d.getMonth();
+    months[m].a += 1;
+  }
   return months;
 }
 
