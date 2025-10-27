@@ -177,7 +177,7 @@ const PhotoPackagesManagement = () => {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h2 className="section-title">Gestión de Paquetes</h2>
+        <div></div>
         <div className="flex items-center gap-2">
           <button onClick={handleCreate} className="px-4 py-2 border-2 border-black text-black rounded-none hover:bg-black hover:text-white flex items-center gap-2"><Plus size={16}/>Nuevo</button>
         </div>
