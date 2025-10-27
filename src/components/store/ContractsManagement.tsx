@@ -1495,3 +1495,19 @@ const StoreItemAdder: React.FC<{ products: any[]; onAdd: (item: { id: string; na
 };
 
 export default ContractsManagement;
+
+// Add this style block to the document if not already present
+if (typeof document !== 'undefined' && !document.querySelector('style[data-contracts-dark-mode]')) {
+  const style = document.createElement('style');
+  style.setAttribute('data-contracts-dark-mode', 'true');
+  style.textContent = `
+    .admin-dark .admin-contract-row {
+      color: #e5e5e5;
+    }
+    .admin-dark .admin-contract-row:hover {
+      background-color: #000000 !important;
+      color: #ffffff !important;
+    }
+  `;
+  document.head.appendChild(style);
+}
