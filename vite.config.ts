@@ -23,5 +23,15 @@ export default defineConfig(async () => {
     optimizeDeps: {
       exclude: ['lucide-react'],
     },
+    server: {
+      hmr: process.env.NODE_ENV === 'production' ? false : undefined,
+    },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: undefined,
+        },
+      },
+    },
   };
 });
