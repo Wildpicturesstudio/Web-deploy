@@ -337,7 +337,7 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
           <div className={`grid grid-cols-7 text-center text-xs py-0 px-1 border-b flex-shrink-0 transition-colors ${darkMode ? 'border-gray-800 bg-gray-950 lg:bg-gray-950 max-lg:bg-black text-gray-400' : 'border-gray-200 bg-gray-50 lg:bg-gray-50 max-lg:bg-white text-gray-600'}`}>
             {['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'].map((d)=> <div key={d} className="py-1 font-medium">{d}</div>)}
           </div>
-          <div className={`grid grid-cols-7 gap-px flex-1 auto-rows-fr overflow-hidden w-full h-full transition-colors ${darkMode ? 'bg-gray-900 lg:bg-gray-900 max-lg:bg-black' : 'bg-gray-100 lg:bg-gray-100 max-lg:bg-white'}`}>
+          <div className={`grid grid-cols-7 gap-px flex-1 auto-rows-fr overflow-hidden w-full h-full transition-colors ${darkMode ? 'bg-black' : 'bg-gray-100 lg:bg-gray-100 max-lg:bg-white'}`}>
             {monthDays.map((cell, idx)=>{
               const isToday = cell.date && new Date(cell.date.getFullYear(), cell.date.getMonth(), cell.date.getDate()).getTime() === new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
               const key = cell.date ? `${cell.date.getFullYear()}-${String(cell.date.getMonth()+1).padStart(2,'0')}-${String(cell.date.getDate()).padStart(2,'0')}` : `empty-${idx}`;
