@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import AdminStoreDashboard from '../components/store/AdminStoreDashboard';
 import OrdersManagement from '../components/store/OrdersManagement';
 import ContractsManagement from '../components/store/ContractsManagement';
@@ -15,6 +16,7 @@ import AdminCalendar from '../components/store/AdminCalendar';
 import { useCart } from '../contexts/CartContext';
 
 const AdminStorePage: React.FC = () => {
+  const navigate = useNavigate();
   const { setIsCartOpen } = useCart();
   const [navCollapsed, setNavCollapsed] = useState(true);
 
@@ -198,7 +200,7 @@ const AdminStorePage: React.FC = () => {
               <h1 className="text-xl font-semibold text-black">Calendario</h1>
               <div className="flex items-center gap-2">
                 <button onClick={() => setAdminDark(v => !v)} className="px-3 py-1 rounded-none border border-black text-black hover:bg-black hover:text-white text-sm transition-colors">{adminDark ? 'Modo claro' : 'Modo oscuro'}</button>
-                <button onClick={() => setAdminView('dashboard')} className="px-3 py-1 rounded-none border border-black text-black hover:bg-black hover:text-white text-sm transition-colors">Volver</button>
+                <button onClick={() => navigate('/')} className="px-3 py-1 rounded-none border border-black text-black hover:bg-black hover:text-white text-sm transition-colors">Salir</button>
               </div>
             </div>
             {/* Admin Tabs */}
@@ -242,11 +244,12 @@ const AdminStorePage: React.FC = () => {
             <option value="investments">Inversiones</option>
           </select>
           <button onClick={() => setAdminDark(v => !v)} className="w-full px-3 py-2 rounded-none border border-black text-black hover:bg-black hover:text-white text-sm transition-colors">{adminDark ? 'Modo claro' : 'Modo oscuro'}</button>
+          <button onClick={() => navigate('/')} className="w-full px-3 py-2 rounded-none border border-black text-black hover:bg-black hover:text-white text-sm transition-colors">Salir</button>
         </div>
       )}
 
-      <div className={`${adminView === 'calendar' ? 'hidden' : 'flex h-full'}`}>
-        <div className="mb-2 space-y-2">
+      <div className={`${adminView === 'calendar' ? 'hidden' : 'flex h-full w-full p-[2%]'}`}>
+        <div className="mb-2 space-y-2 w-full">
           {/* Desktop Tabs */}
           <div className="hidden md:flex flex-wrap items-center gap-1 md:gap-2 admin-tabs">
             <button onClick={() => setAdminView('dashboard')} className={`px-4 py-2 rounded-none border-2 text-sm ${adminView==='dashboard' ? 'bg-black text-white border-black' : 'border-black text-black hover:bg-black hover:text-white'}`}>Panel</button>
@@ -260,6 +263,7 @@ const AdminStorePage: React.FC = () => {
             <button onClick={() => setAdminView('investments')} className={`px-4 py-2 rounded-none border-2 text-sm ${adminView==='investments' ? 'bg-black text-white border-black' : 'border-black text-black hover:bg-black hover:text-white'}`}>Inversiones</button>
             <div className="ml-auto flex items-center gap-2">
               <button onClick={() => setAdminDark(v => !v)} className="px-3 py-1 rounded-none border border-black text-black hover:bg-black hover:text-white text-sm transition-colors">{adminDark ? 'Modo claro' : 'Modo oscuro'}</button>
+              <button onClick={() => navigate('/')} className="px-3 py-1 rounded-none border border-black text-black hover:bg-black hover:text-white text-sm transition-colors">Salir</button>
             </div>
           </div>
 
@@ -349,6 +353,7 @@ const AdminStorePage: React.FC = () => {
             <button onClick={() => setAdminView('investments')} className={`px-4 py-2 rounded-none border-2 ${adminView==='investments' ? 'bg-black text-white border-black' : 'border-black text-black hover:bg-black hover:text-white'}`}>Inversiones</button>
             <div className="ml-auto flex items-center gap-2">
                   <button onClick={() => setAdminDark(v => !v)} className="px-3 py-1 rounded-none border border-black text-black hover:bg-black hover:text-white text-sm transition-colors">{adminDark ? 'Modo claro' : 'Modo oscuro'}</button>
+                  <button onClick={() => navigate('/')} className="px-3 py-1 rounded-none border border-black text-black hover:bg-black hover:text-white text-sm transition-colors">Salir</button>
                   <button onClick={() => setAdminFullscreen(false)} className="px-4 py-2 rounded-none border-2 border-black text-black hover:bg-black hover:text-white">Cerrar pantalla completa</button>
                 </div>
               </div>
