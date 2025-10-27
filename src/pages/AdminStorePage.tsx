@@ -16,6 +16,7 @@ import { useCart } from '../contexts/CartContext';
 
 const AdminStorePage: React.FC = () => {
   const { setIsCartOpen } = useCart();
+  const [navCollapsed, setNavCollapsed] = useState(true);
 
   // Close cart when entering admin page
   useEffect(() => {
