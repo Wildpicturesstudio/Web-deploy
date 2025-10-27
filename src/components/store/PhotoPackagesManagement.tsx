@@ -191,11 +191,11 @@ const PhotoPackagesManagement = () => {
       {(['portrait','maternity','events'] as const).map((type) => (
         <div key={type} className="mb-8">
           <h3 className="text-lg font-semibold mb-3 capitalize">{type === 'portrait' ? 'Retratos' : type === 'maternity' ? 'Gestantes' : 'Eventos'}</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             {grouped[type].map((p) => (
               <div key={p.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                 <div className="relative">
-                  <img loading="lazy" src={p.image_url} alt={p.title} className="w-full h-44 object-cover" data-pkg-id={p.id} />
+                  <img loading="lazy" src={p.image_url} alt={p.title} className="w-full h-28 object-cover" data-pkg-id={p.id} />
                   {(p as any).active === false && (
                     <span className="absolute top-2 left-2 text-xs px-2 py-1 rounded bg-gray-200 text-gray-700">inactivo</span>
                   )}
