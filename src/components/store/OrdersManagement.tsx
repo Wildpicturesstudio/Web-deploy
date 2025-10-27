@@ -384,7 +384,6 @@ const OrdersManagement = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="section-title">Gestión de Órdenes</h2>
         <div className="flex items-center gap-2">
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar por cliente/email" className="px-3 py-2 border rounded-full" />
           <button onClick={autoLinkOrders} className={`px-3 py-2 border rounded-none ${linking ? 'opacity-60' : ''}`}>{linking ? 'Vinculando...' : 'Vincular órdenes'}</button>
