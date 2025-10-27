@@ -623,10 +623,12 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
             </div>
             <div className="flex items-center gap-2">
               <button onClick={()=> viewing && openEdit(viewing)} className="border px-3 py-2 rounded-none text-sm">Modificar datos</button>
-              <button onClick={async()=>{
-                if (!viewing) return;
-                navigate(`/photo-sharing/${viewing.id}`);
-              }} className="border px-3 py-2 rounded-none text-sm inline-flex items-center gap-2"><Image size={14}/> Escoger fotos</button>
+              {!isWeddingPackage(viewing) && (
+                <button onClick={async()=>{
+                  if (!viewing) return;
+                  navigate(`/photo-sharing/${viewing.id}`);
+                }} className="border px-3 py-2 rounded-none text-sm inline-flex items-center gap-2"><Image size={14}/> Escoger fotos</button>
+              )}
               <button onClick={async()=>{
                 if (!viewing) return;
                 navigate('/admin/contract-preview', { state: { contract: viewing } });
