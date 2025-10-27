@@ -357,7 +357,7 @@ const AdminStorePage: React.FC = () => {
             {adminView === 'dashboard' && <AdminStoreDashboard onNavigate={v => setAdminView(v)} />}
             {adminView === 'products' && (
               <div>
-                <div className="flex justify-between items-center mb-4">
+                <div className="flex justify-between items-center mb-6">
                   <h2 className="section-title">Gestión de Productos</h2>
                   <div className="flex items-center gap-2">
                     <button onClick={() => setProductFilter('products')} className={`px-3 py-2 rounded-none border ${productFilter==='products' ? 'bg-black text-white border-black' : 'border-black text-black hover:bg-black hover:text-white'}`}>Productos</button>
@@ -365,35 +365,34 @@ const AdminStorePage: React.FC = () => {
                     {productFilter==='dresses' && (
                       <button onClick={seedDefaultDresses} className="px-3 py-2 rounded-none border border-black text-black hover:bg-black hover:text-white">Importar vestidos base</button>
                     )}
-                    <button onClick={() => { if (productFilter==='dresses') { setEditingDress(null); setDressEditorOpen(true); } else { setEditingProduct(null); setEditorOpen(true); } }} className="px-4 py-2 rounded-none border-2 border-black text-black hover:bg-black hover:text-white transition-colors">+ Agregar {productFilter==='dresses' ? 'Vestido' : 'Producto'}</button>
+                    <button onClick={() => { if (productFilter==='dresses') { setEditingDress(null); setDressEditorOpen(true); } else { setEditingProduct(null); setEditorOpen(true); } }} className="px-4 py-2 border-2 border-black text-black rounded-none hover:bg-black hover:text-white flex items-center gap-2">+ Nuevo</button>
                   </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                   {getFiltered().map(product => (
-                    <div key={product.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden h-full flex flex-col">
-                      <div className={`relative ${isDressCategory(product.category) ? 'aspect-[9/16]' : ''} w-full`}>
-                        <img loading="lazy" src={safeImageSrc(product.image_url)} alt={product.name} className={`${isDressCategory(product.category) ? 'absolute inset-0 w-full h-full' : 'w-full h-44'} object-cover`} />
+                    <div key={product.id} className="bg-white rounded-lg border border-gray-200 overflow-hidden aspect-square flex flex-col">
+                      <div className="relative flex-shrink-0 h-1/2">
+                        <img loading="lazy" src={safeImageSrc(product.image_url)} alt={product.name} className="w-full h-full object-cover" />
                         {(product as any).active === false && (
-                          <span className="absolute top-2 left-2 text-xs px-2 py-1 rounded bg-gray-200 text-gray-700">inactivo</span>
+                          <span className="absolute top-1 left-1 text-xs px-1.5 py-0.5 rounded bg-gray-200 text-gray-700">inactivo</span>
                         )}
                       </div>
-                      <div className="p-4 flex flex-col h-full">
-                        <div className="flex items-start justify-between gap-3">
-                          <h3 className="font-semibold">{product.name}</h3>
-                          {isDressCategory(product.category) ? (
-                            <span className="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded">Color: {Array.isArray((product as any).tags) && (product as any).tags.length ? String((product as any).tags[0]) : '-'}</span>
-                          ) : (
-                            <span className="text-primary font-bold">${Number(product.price).toFixed(0)}</span>
-                          )}
+                      <div className="p-2 flex flex-col flex-1 overflow-hidden justify-between">
+                        <div>
+                          <div className="flex items-start justify-between gap-1">
+                            <h4 className="font-semibold text-xs line-clamp-1">{product.name}</h4>
+                            {isDressCategory(product.category) ? (
+                              <span className="text-xs text-purple-700 flex-shrink-0 line-clamp-1">{Array.isArray((product as any).tags) && (product as any).tags.length ? String((product as any).tags[0]) : '-'}</span>
+                            ) : (
+                              <span className="text-primary font-bold text-xs flex-shrink-0">R$ {Number(product.price).toFixed(0)}</span>
+                            )}
+                          </div>
+                          <p className="text-gray-600 text-xs mt-0.5 line-clamp-1">{product.description || product.category}</p>
                         </div>
-                        <p className="text-gray-600 text-sm mt-1 line-clamp-2">{product.description}</p>
-                        <div className="mt-3 flex items-center gap-2 text-xs text-gray-600">
-                          <span className="px-2 py-1 bg-gray-100 rounded">{product.category || 'General'}</span>
-                        </div>
-                        <div className="mt-4 flex items-center gap-2 mt-auto">
-                          <button onClick={() => { if (isDressCategory(product.category)) { setEditingDress(product); setDressEditorOpen(true); } else { setEditingProduct(product); setEditorOpen(true); } }} className="flex-1 border-2 border-black text-black px-3 py-2 rounded-none hover:bg-black hover:text-white">Editar</button>
-                          <button onClick={() => handleDeactivate(product.id, (product as any).active === false ? true : false)} className={`flex-1 border-2 border-black px-3 py-2 rounded-none ${(product as any).active === false ? 'bg-white text-black hover:bg-black hover:text-white' : 'bg-black text-white hover:opacity-90'}`}>{(product as any).active === false ? 'Activar' : 'Desactivar'}</button>
-                          <button onClick={() => handleDeleteProduct(product.id)} className="border-2 border-black text-black px-3 py-2 rounded hover:bg-black hover:text-white"><Trash2 size={16} /></button>
+                        <div className="flex items-center gap-1">
+                          <button onClick={() => { if (isDressCategory(product.category)) { setEditingDress(product); setDressEditorOpen(true); } else { setEditingProduct(product); setEditorOpen(true); } }} className="flex-1 border border-black text-black px-1 py-1 rounded-none hover:bg-black hover:text-white flex items-center justify-center gap-0.5 text-xs">Editar</button>
+                          <button onClick={() => handleDeactivate(product.id, (product as any).active === false ? true : false)} className={`flex-1 border border-black px-1 py-1 rounded-none flex items-center justify-center gap-0.5 text-xs ${(product as any).active === false ? 'bg-white text-black hover:bg-black hover:text-white' : 'bg-black text-white hover:opacity-90'}`}>{(product as any).active === false ? 'Act.' : 'Des.'}</button>
+                          <button onClick={() => handleDeleteProduct(product.id)} className="border border-black text-black px-1 py-1 rounded hover:bg-black hover:text-white flex items-center justify-center"><Trash2 size={12} /></button>
                         </div>
                       </div>
                     </div>
