@@ -1,4 +1,4 @@
-import React, { Suspense } from 'react';
+import { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { CartProvider } from './contexts/CartContext';
 import { AuthProvider } from './contexts/AuthContext';
@@ -22,6 +22,8 @@ const ClientDashboardPage = safeLazy(() => import('./pages/ClientDashboardPage')
 import lazyWithRetry from './utils/lazyWithRetry';
 const PackagesAdminPage = safeLazy(() => import('./pages/PackagesAdminPage'));
 const AdminStorePage = lazyWithRetry(() => import('./pages/AdminStorePage'));
+const AdminContractPreviewPage = safeLazy(() => import('./pages/AdminContractPreviewPage'));
+const PhotoSharingPage = safeLazy(() => import('./pages/PhotoSharingPage'));
 import './styles/globals.css';
 import ErrorBoundary from './components/ui/ErrorBoundary';
 
@@ -46,6 +48,8 @@ function App() {
                   <Route path="/booking" element={<GuardedRoute page="booking"><BookingPage /></GuardedRoute>} />
                   <Route path="/store" element={<GuardedRoute page="store"><StorePage /></GuardedRoute>} />
                   <Route path="/admin" element={<AdminGuard><AdminStorePage /></AdminGuard>} />
+                  <Route path="/admin/contract-preview" element={<AdminGuard><AdminContractPreviewPage /></AdminGuard>} />
+                  <Route path="/photo-sharing/:contractId" element={<GuardedRoute page="booking"><PhotoSharingPage /></GuardedRoute>} />
                   <Route path="/dashboard" element={<GuardedRoute page="clientDashboard"><ClientDashboardPage /></GuardedRoute>} />
                   <Route path="/packages-admin" element={<GuardedRoute page="packagesAdmin"><PackagesAdminPage /></GuardedRoute>} />
                   <Route path="/admin-store" element={<GuardedRoute page="admin"><AdminStorePage /></GuardedRoute>} />

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Calendar, ExternalLink, Copy, CheckCircle, AlertCircle } from 'lucide-react';
+import { useState } from 'react';
+import { Calendar, ExternalLink, CheckCircle, AlertCircle } from 'lucide-react';
 
 const CalendarSetupInstructions: React.FC = () => {
   const [copied, setCopied] = useState(false);

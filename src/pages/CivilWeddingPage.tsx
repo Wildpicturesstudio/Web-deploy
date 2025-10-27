@@ -1,6 +1,4 @@
 import { useEffect, useState } from 'react';
-import { collection, getDocs } from 'firebase/firestore';
-import { db } from '../utils/firebaseClient';
 import { fetchPackages, DBPackage } from '../utils/packagesService';
 import { formatPrice, parsePrice } from '../utils/format';
 import { useCart } from '../contexts/CartContext';
@@ -17,7 +15,7 @@ const CivilWeddingPage = () => {
     (async () => {
       try {
         const data = await fetchPackages();
-        setDbEvents(data.filter(p => (p as any).active !== false && (((p.category || '').toLowerCase().includes('civil')) || p.id.startsWith('civil'))));
+        setDbEvents(data.filter(p => (p as any).active !== false && (((p as any).displayPage === 'civilWedding') || ((p.category || '').toLowerCase().includes('civil')) || p.id.startsWith('civil'))));
       } catch {
         setDbEvents([]);
       }

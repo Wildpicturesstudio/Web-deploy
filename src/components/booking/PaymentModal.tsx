@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { X, Calendar, CreditCard, Clock, CheckCircle, AlertCircle } from 'lucide-react';
+import { X, Calendar, CreditCard, CheckCircle, AlertCircle } from 'lucide-react';
 import { googleCalendar } from '../../utils/googleCalendar';
 import { initCheckout } from '../../utils/mp';
 import { mercadoPago } from '../../utils/mercadoPago';
@@ -77,7 +77,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, bookingDat
 
         // Create preference via Firebase Callable (mpCreatePreference) and open MP Checkout using SDK v2
         const resp = await mercadoPago.createPreference(bookingData);
-        const preferenceId = resp?.preferenceId || resp?.id || '';
+        const preferenceId = resp?.id || '';
         if (!preferenceId) throw new Error('Falha ao criar preferência de pagamento');
         await initCheckout(preferenceId, { autoOpen: true });
       } else {
@@ -170,7 +170,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, bookingDat
                   <span className="font-medium">Método de Pagamento</span>
                 </div>
                 <p className="text-sm text-blue-700">
-                  {bookingData.paymentMethod === 'pix' && 'PIX - Pagamento instant��neo'}
+                  {bookingData.paymentMethod === 'pix' && 'PIX - Pagamento instantâneo'}
                   {bookingData.paymentMethod === 'credit' && 'Cartão de Crédito - Parcelamento disponível'}
                   {bookingData.paymentMethod === 'cash' && 'Dinheiro - 5% de desconto aplicado'}
                 </p>

@@ -1,16 +1,19 @@
 import { useMemo } from 'react';
-import { CartItem, PaymentMethod } from '../../types/booking';
-import { MapPin, CreditCard, Wallet, QrCode, ChevronRight, AlertCircle } from 'lucide-react';
+import { PaymentMethod } from '../../types/booking';
+import { CreditCard, Wallet, QrCode } from 'lucide-react';
 import { formatPrice as formatBRL } from '../../utils/format';
+
+import { type DBCoupon, isItemApplicable, isCouponActiveNow, computeCouponDiscountForCart } from '../../utils/couponsService';
 
 interface BookingCartProps {
   cartItems: any[];
   travelCost: number;
   paymentMethod: PaymentMethod;
   formData?: any;
+  resolvedCoupons?: Record<number, DBCoupon | null>;
 }
 
-const BookingCart = ({ cartItems, travelCost, paymentMethod, formData = {} }: BookingCartProps) => {
+const BookingCart = ({ cartItems, travelCost, paymentMethod, formData = {}, resolvedCoupons = {} }: BookingCartProps) => {
   const calculateItemTotal = (item: any): number => {
     let price = formatPrice(item.price);
     
@@ -27,13 +30,12 @@ const BookingCart = ({ cartItems, travelCost, paymentMethod, formData = {} }: Bo
   const calculateTotal = (): { subtotal: number; discount: number; total: number; deposit: number; remaining: number; depositServices: number; depositStore: number } => {
     const itemsTotal = cartItems.reduce((sum, item, index) => {
       const itemTotal = calculateItemTotal(item);
-      const coupon = formData[`discountCoupon_${index}`];
-      
-      // Apply item-specific discount for FREE coupon on prewedding items (excluding teaser)
-      if (coupon === 'FREE' && item.id && item.id.includes('prewedding') && !item.id.includes('teaser')) {
-        return sum; // FREE coupon makes the item free (0 cost)
+      const rc = resolvedCoupons[index];
+      if (rc && isCouponActiveNow(rc) && isItemApplicable(rc.appliesTo as any, item)) {
+        const { discount } = computeCouponDiscountForCart(rc, [{ ...item }]);
+        const after = Math.max(0, itemTotal - discount);
+        return sum + after;
       }
-      
       return sum + itemTotal;
     }, 0);
     
@@ -47,9 +49,10 @@ const BookingCart = ({ cartItems, travelCost, paymentMethod, formData = {} }: Bo
     
     // Calculate total item discounts for display
     const itemDiscounts = cartItems.reduce((sum, item, index) => {
-      const coupon = formData[`discountCoupon_${index}`];
-      if (coupon === 'FREE' && item.id && item.id.includes('prewedding') && !item.id.includes('teaser')) {
-        return sum + calculateItemTotal(item);
+      const rc = resolvedCoupons[index];
+      if (rc && isCouponActiveNow(rc) && isItemApplicable(rc.appliesTo as any, item)) {
+        const { discount } = computeCouponDiscountForCart(rc, [{ ...item }]);
+        return sum + Math.min(discount, calculateItemTotal(item));
       }
       return sum;
     }, 0);
@@ -83,7 +86,7 @@ const BookingCart = ({ cartItems, travelCost, paymentMethod, formData = {} }: Bo
     };
   };
 
-  const { subtotal, discount, total, deposit, remaining, depositServices, depositStore } = calculateTotal();
+  const { discount, total, deposit, remaining, depositServices, depositStore } = calculateTotal();
 
   const paymentIcons = {
     cash: <Wallet className="w-4 h-4" />,
@@ -176,35 +179,32 @@ const BookingCart = ({ cartItems, travelCost, paymentMethod, formData = {} }: Bo
                         <span className="text-gray-900">Subtotal:</span>
                         <span className="text-gray-900">
                           {(() => {
-                            const coupon = formData[`discountCoupon_${index}`];
+                            const rc = resolvedCoupons[index];
                             const itemTotal = calculateItemTotal(item);
-                            const hasDiscount = coupon === 'FREE' && item.id && item.id.includes('prewedding') && !item.id.includes('teaser');
-
-                            if (hasDiscount) {
+                            if (rc && isCouponActiveNow(rc) && isItemApplicable(rc.appliesTo as any, item)) {
+                              const { discount } = computeCouponDiscountForCart(rc, [{ ...item }]);
+                              const after = Math.max(0, itemTotal - discount);
                               return (
                                 <span className="space-x-2">
                                   <span className="line-through text-gray-500">{formatBRL(itemTotal)}</span>
-                                  <span className="text-green-600 font-bold">{formatBRL(0)}</span>
+                                  <span className="text-green-600 font-bold">{formatBRL(after)}</span>
                                 </span>
                               );
                             }
-
                             return formatBRL(itemTotal);
                           })()}
                         </span>
                       </div>
                       {(() => {
-                        const coupon = formData[`discountCoupon_${index}`];
-                        const hasDiscount = coupon === 'FREE' && item.id && item.id.includes('prewedding') && !item.id.includes('teaser');
-
-                        if (hasDiscount) {
+                        const rc = resolvedCoupons[index];
+                        if (rc && isCouponActiveNow(rc) && isItemApplicable(rc.appliesTo as any, item)) {
+                          const label = rc.discountType === 'percentage' ? `${Math.round(Number(rc.discountValue||0))}%` : (rc.discountType === 'full' ? '100%' : `R$ ${Number(rc.discountValue||0).toFixed(2)}`);
                           return (
                             <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-center">
-                              <span className="text-green-600 text-sm font-medium">🎉 Cupom FREE aplicado!</span>
+                              <span className="text-green-600 text-sm font-medium">🎉 Cupom {rc.code} aplicado ({label})</span>
                             </div>
                           );
                         }
-
                         return null;
                       })()}
                     </div>

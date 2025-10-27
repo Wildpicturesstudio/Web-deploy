@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, Eye, EyeOff } from 'lucide-react';
+import { Menu, X, Eye } from 'lucide-react';
 import { signOut as firebaseSignOut } from 'firebase/auth';
 import { auth } from '../../utils/firebaseClient';
 import { useTranslation } from 'react-i18next';
@@ -61,12 +61,16 @@ const Header = () => {
           // Try refreshing claims in case they were just set
           await refreshClaims();
           if (authLoading) return;
-          const token = await auth.currentUser?.getIdTokenResult();
-          if (token?.claims?.admin) {
-            notifyAdminChange(true);
-            navigate('/admin');
-          } else {
-            // Prompt for email/password login to check admin claims
+          try {
+            const token = await auth.currentUser?.getIdTokenResult();
+            if (token?.claims?.admin) {
+              notifyAdminChange(true);
+              navigate('/admin');
+            } else {
+              setShowAdminEmailLogin(true);
+            }
+          } catch (e) {
+            console.warn('getIdTokenResult failed (network?)', e);
             setShowAdminEmailLogin(true);
           }
         }
@@ -83,15 +87,18 @@ const Header = () => {
   const checkAdminAfterLogin = async () => {
     try {
       await refreshClaims();
-      const token = await auth.currentUser?.getIdTokenResult(true);
-      const claims = token?.claims || {};
-      if (claims.admin) {
-        notifyAdminChange(true);
-        navigate('/admin');
-        return true;
-      } else {
-        return false;
+      try {
+        const token = await auth.currentUser?.getIdTokenResult(true);
+        const claims = token?.claims || {};
+        if (claims.admin) {
+          notifyAdminChange(true);
+          navigate('/admin');
+          return true;
+        }
+      } catch (e) {
+        console.warn('getIdTokenResult(true) failed (network?)', e);
       }
+      return false;
     } catch (e) {
       console.error('Error checking admin claims:', e);
       return false;
@@ -164,7 +171,7 @@ const Header = () => {
       { name: 'Serviços', action: scrollToServices },
       { name: t('nav.portfolio'), path: '/portfolio', key: 'portfolio' },
       { name: t('nav.store'), path: '/store', key: 'store' },
-      { name: t('nav.book'), action: handleBooking, key: 'booking' },
+      { name: t('nav.book'), action: scrollToServices, key: 'booking' },
       { name: t('nav.contact'), path: '/contact', key: 'contact' },
     ];
     // do not include a separate Admin link here; admin is toggled via the eye icon
@@ -264,16 +271,29 @@ const Header = () => {
           </div>
         </div>
 
-        <div className={`fixed top-0 bottom-0 right-4 bg-white z-40 md:hidden transform transition-transform duration-300 ease-in-out ${
-          mobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
-        }`} style={{ width: 'calc(100% - 64px)', borderRadius: 12 }}>
+        <div
+          className={`fixed top-0 bottom-0 right-4 bg-white z-40 md:hidden transform transition-transform duration-300 ease-in-out ${
+            mobileMenuOpen ? 'translate-x-0 pointer-events-auto' : 'translate-x-full pointer-events-none'
+          }`}
+          aria-hidden={!mobileMenuOpen}
+          style={{ width: 'calc(100% - 64px)', borderRadius: 12 }}
+        >
           <div className="flex flex-col h-full pt-24 px-6">
             <ul className="flex flex-col space-y-6 text-center">
+              <li>
+                <button
+                  onClick={() => { setMobileMenuOpen(false); toggleAdminFromHeader(); }}
+                  aria-label="Ir ao painel de administração"
+                  className="text-primary font-lato text-lg uppercase tracking-wide hover:text-secondary transition-colors flex items-center justify-center gap-2"
+                >
+                  <Eye size={18} /> Admin
+                </button>
+              </li>
               {navLinks.map((link) => (
                 <li key={link.name}>
                   {link.key === 'admin' ? (
                     <button
-                      onClick={toggleAdminFromHeader}
+                      onClick={() => { setMobileMenuOpen(false); toggleAdminFromHeader(); }}
                       className="text-primary font-lato text-lg uppercase tracking-wide hover:text-secondary transition-colors"
                     >
                       {link.name}

@@ -1,20 +1,49 @@
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { useState, useRef } from 'react';
+import { collection, getDocs } from 'firebase/firestore';
+import { withFirestoreRetry } from '../../utils/firestoreRetry';
+import { db } from '../../utils/firebaseClient';
+import type { DressOption } from '../../types/booking';
+import { useState, useRef, useEffect } from 'react';
 import { BookingFormData } from '../../types/booking';
 import { sessionPackages } from '../../data/sessionsData';
 import { eventPackages } from '../../data/eventsData';
 import { maternityPackages } from '../../data/maternityData';
-import { dressOptions } from '../../data/dressData';
 import SignaturePad from './SignaturePad';
 import Button from '../ui/Button';
 import { useFeatureFlags } from '../../contexts/FeatureFlagsContext';
-import { Camera, X, CheckCircle } from 'lucide-react';
+import { Camera, X, CheckCircle, AlertTriangle } from 'lucide-react';
 import { generatePDF } from '../../utils/pdf';
 import { saveContract, updateContractStatus } from '../../utils/contractService';
 import { getAuth, signInAnonymously } from 'firebase/auth';
 import PaymentModal from './PaymentModal';
+import { sendConfirmationEmail } from '../../utils/email';
 import { gcalUpsertBooking, parseDurationToMinutes } from '../../utils/calendar';
+
+// Resolve local dress images stored as repo paths to proper URLs using Vite asset handling
+const DRESS_ASSETS: Record<string, string> = import.meta.glob('/src/utils/fotos/vestidos/*', { eager: true, as: 'url' }) as any;
+const norm = (s: string) => s.normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase().replace(/\s+/g,' ').trim();
+function resolveDressByName(name?: string): string {
+  const n = norm(String(name || ''));
+  if (!n) return '';
+  const entry = Object.entries(DRESS_ASSETS).find(([k]) => {
+    const fname = k.split('/').pop() || '';
+    const nf = norm(fname.replace(/\.[a-z0-9]+$/i,''));
+    return nf === n || nf.includes(n) || n.includes(nf);
+  });
+  return entry ? String(entry[1]) : '';
+}
+function resolveDressImage(u?: string, name?: string): string {
+  const val = String(u || '');
+  if (!val) return resolveDressByName(name);
+  if (/^https?:\/\//i.test(val)) return val;
+  if (val.startsWith('gs://')) return val;
+  const withSlash = val.startsWith('/') ? val : `/${val}`;
+  if (DRESS_ASSETS[withSlash]) return DRESS_ASSETS[withSlash];
+  const fname = withSlash.split('/').pop()?.toLowerCase();
+  const found = Object.entries(DRESS_ASSETS).find(([k]) => k.split('/').pop()?.toLowerCase() === fname);
+  return found ? String(found[1]) : resolveDressByName(name);
+}
 
 function parseBRL(value: string): number {
   if (!value) return 0;
@@ -36,11 +65,37 @@ const ContractPreview = ({ data, onConfirm, onBack }: ContractPreviewProps) => {
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [dresses, setDresses] = useState<DressOption[]>([]);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [pendingApproval, setPendingApproval] = useState<boolean>(false);
+  const [showPendingModal, setShowPendingModal] = useState<boolean>(false);
   const contractRef = useRef<HTMLDivElement>(null);
   const { flags } = useFeatureFlags();
 
   const photographerSignature = 'https://i.imgur.com/QqWZGHc.png';
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const snap = await withFirestoreRetry(() => getDocs(collection(db, 'products')));
+        const list: DressOption[] = snap.docs
+          .map(d => ({ id: d.id, ...(d.data() as any) }))
+          .filter(p => {
+            const c = String((p as any).category || '').toLowerCase();
+            return c.includes('vestid') || c.includes('dress');
+          })
+          .map((p: any) => ({
+            id: p.id,
+            name: p.name || 'Vestido',
+            color: Array.isArray(p.tags) && p.tags.length ? String(p.tags[0]) : '',
+            image: p.image_url || p.image || resolveDressByName(p.name)
+          }));
+        setDresses(list);
+      } catch (e) {
+        setDresses([]);
+      }
+    })();
+  }, []);
 
   const allPackages = [...sessionPackages, ...eventPackages, ...maternityPackages];
   const selectedPackage = allPackages.find(pkg => pkg.id === data.packageId);
@@ -60,11 +115,8 @@ const ContractPreview = ({ data, onConfirm, onBack }: ContractPreviewProps) => {
 
     window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
 
-    if (flags.payments?.mpEnabled !== false) {
-      setShowPaymentModal(true);
-    } else {
-      await handlePaymentSuccess();
-    }
+    // Directly finalize: generate PDF and confirmations
+    await handlePaymentSuccess();
   };
 
   const handlePaymentSuccess = async () => {
@@ -83,7 +135,10 @@ const ContractPreview = ({ data, onConfirm, onBack }: ContractPreviewProps) => {
       const currentUid = auth.currentUser?.uid || 'anonymous';
 
       // Save contract data to Firestore early including userUid
-      const contractId = await saveContract(data, currentUid);
+      const saveRes = await saveContract(data, currentUid);
+      const contractId = typeof saveRes === 'string' ? saveRes : saveRes.id;
+      const isPending = typeof saveRes === 'object' ? Boolean((saveRes as any).pendingApproval || (saveRes as any).status === 'pending_approval') : false;
+      setPendingApproval(isPending);
 
       // Optional Calendar scheduling (if enabled)
       if (flags.payments?.calendarEnabled !== false) {
@@ -171,7 +226,18 @@ const ContractPreview = ({ data, onConfirm, onBack }: ContractPreviewProps) => {
         alert('Error al generar/descargar el contrato. Tente novamente.');
       }
 
-      setShowSuccessModal(true);
+      // Send confirmation emails (client and studio)
+      try {
+        const summary = { name: data.name, email: data.email, total, deposit, remaining };
+        await Promise.all([
+          sendConfirmationEmail({ to: data.email, subject: 'Confirmação de Reserva – Wild Pictures Studio', data: summary }),
+          sendConfirmationEmail({ to: 'wildpicturesstudio@gmail.com', subject: 'Nova Reserva Confirmada', data: { ...summary, when: new Date().toISOString() } })
+        ]);
+      } catch (e) {
+        console.warn('Confirmation email failed', e);
+      }
+
+      if (pendingApproval || isPending) setShowPendingModal(true); else setShowSuccessModal(true);
     } catch (error: any) {
       console.error('Error finalizing contract:', error);
       const msg = error?.message || String(error);
@@ -188,7 +254,9 @@ const ContractPreview = ({ data, onConfirm, onBack }: ContractPreviewProps) => {
   };
 
   const formatDate = (dateStr: string) => {
-    return format(new Date(dateStr), "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+    const [y, m, d] = String(dateStr || '').split('-').map(Number);
+    const localDate = (y && m && d) ? new Date(y, (m - 1), d) : new Date();
+    return format(localDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
   };
 
   const formatTime = (timeStr: string) => {
@@ -277,14 +345,17 @@ const ContractPreview = ({ data, onConfirm, onBack }: ContractPreviewProps) => {
   const payments = calculatePayments();
   const { deposit, remaining } = payments;
 
-  const selectedDresses = data.selectedDresses?.map(dressId => 
-    dressOptions.find(dress => dress.id === dressId)
-  ).filter(Boolean) || [];
+  const selectedDresses = (data.selectedDresses || [])
+    .map(dressId => dresses.find(dress => dress.id === dressId))
+    .filter(Boolean) as DressOption[];
 
   return (
     <>
       <div className="min-h-screen bg-gray-50 py-12 pt-32">
       <div ref={contractRef} className="max-w-4xl mx-auto bg-white shadow-xl rounded-lg overflow-hidden">
+        {(pendingApproval || Boolean((data as any).pendingApproval)) && (
+          <div className="bg-yellow-100 text-yellow-900 text-sm px-4 py-2 text-center">Sua reserva está pendente de aprovação. O administrador entrará em contato para confirmar a data e horário do seu evento.</div>
+        )}
         {/* Header */}
         <div className="bg-primary text-white p-8 text-center relative">
           <div className="absolute top-4 left-4">
@@ -330,41 +401,39 @@ const ContractPreview = ({ data, onConfirm, onBack }: ContractPreviewProps) => {
               </section>
 
               {/* Cláusula 3 */}
-              <section>
-                <h3 className="text-lg font-medium text-primary mb-4 pb-2 border-b border-secondary">
-                  CLÁUSULA 3ª – DA ENTREGA E DIREITOS AUTORAIS
-                </h3>
-                <div className="space-y-3 text-sm text-gray-700">
-                  <p>3.1. As fotografias serão entregues em formato digital através de galeria online privada.</p>
-                  <p>3.2. Os direitos autorais das fotografias pertencem ao fotógrafo, sendo concedido ao contratante o direito de uso pessoal.</p>
-                  <p>3.3. É vedada a reprodu��ão comercial das imagens sem autorização expressa da contratada.</p>
-                  <p>3.4. A contratada poderá utilizar as imagens para fins de divulgação de seu trabalho.</p>
-                </div>
-              </section>
+                  <section className="contract-section">
+                    <h2 className="section-title">CLÁUSULA 3ª – DO ENSAIO PRÉ-WEDDING OU ENSAIO FOTOGRÁFICO</h2>
+                    <div className="space-y-4 text-gray-700">
+                      <p>No caso de contratação de ensaio pré-wedding ou ensaio fotográfico, o(a) CONTRATANTE deverá informar à CONTRATADA a data escolhida com, no mínimo, 3 (três) dias de antecedência, para que a equipe possa se organizar e enviar o formulário de agendamento.</p>
+                      <p>Quando se tratar de casamento, o ensaio pré-wedding deverá ser realizado até 3 (três) dias antes da data do evento.</p>
+                      <p><strong>Parágrafo único – Reagendamento de ensaios:</strong> Em caso de condições climáticas desfavoráveis no dia do ensaio, o reagendamento poderá ser realizado sem qualquer custo adicional. O(a) CONTRATANTE terá direito a 1 (uma) remarcação gratuita por outros motivos pessoais, desde que avise com pelo menos 3 (três) dias de antecedência. A partir da segunda remarcação por motivos pessoais, será necessário efetuar novo pagamento do valor da reserva (20%) para garantir a nova data.</p>
+<p><strong>Exceção:</strong> Situações imprevisíveis e de força maior, tais como acidentes, doenças súbitas ou emergências comprovadas, não serão consideradas como remarcação pessoal e poderão ser reagendadas sem custo adicional, mediante comunicação imediata à <strong>CONTRATADA</strong>.</p>
+                    </div>
+                  </section>
 
               {/* Cláusula 4 */}
               <section>
                 <h3 className="text-lg font-medium text-primary mb-4 pb-2 border-b border-secondary">
-                  CLÁUSULA 4ª – DO CANCELAMENTO E REAGENDAMENTO
+                  CLÁUSULA 4ª – DAS HORAS EXTRAS E ATRASOS
                 </h3>
                 <div className="space-y-3 text-sm text-gray-700">
-                  <p>4.1. Em caso de cancelamento pela contratante com mais de 30 dias de antecedência, será devolvido 50% do valor pago.</p>
-                  <p>4.2. Cancelamentos com menos de 30 dias não terão devolução do valor pago.</p>
-                  <p>4.3. Reagendamentos estão sujeitos à disponibilidade da agenda da contratada.</p>
-                  <p>4.4. Casos de força maior serão analisados individualmente.</p>
+                  <p>O(a) CONTRATANTE reconhece que os horários contratados são previamente definidos por ele(a) e que devem ser rigorosamente cumpridos.</p>
+                  <p>A CONTRATADA não se responsabiliza por atrasos de terceiros (como cerimônias religiosas, buffets, maquiadores, etc.) que impactem na realização do evento e demandem horas extras.</p>
+                  <p>A contratação de horas extras no dia do evento estará sujeita à disponibilidade da agenda da CONTRATADA, que se reserva o direito de aceitar ou recusar tal solicitação.</p>
                 </div>
               </section>
 
               {/* Cláusula 5 */}
               <section>
                 <h3 className="text-lg font-medium text-primary mb-4 pb-2 border-b border-secondary">
-                  CLÁUSULA 5ª – DAS DISPOSIÇÕES GERAIS
+                  CLÁUSULA 5ª – DA RESCISÃO E MUDANÇA DE DATA
                 </h3>
                 <div className="space-y-3 text-sm text-gray-700">
-                  <p>5.1. Este contrato é regido pelas leis brasileiras.</p>
-                  <p>5.2. Eventuais conflitos serão resolvidos preferencialmente por mediação.</p>
-                  <p>5.3. As partes elegem o foro da comarca de Curitiba/PR para dirimir questões oriundas deste contrato.</p>
-                  <p>5.4. Este contrato entra em vigor na data de sua assinatura.</p>
+                  <p>O contrato poderá ser rescindido por qualquer das partes mediante aviso prévio por escrito de, no mínimo, 30 (trinta) dias.</p>
+                  <p>Em caso de desistência injustificada pelo(a) CONTRATANTE, o valor pago a título de reserva de data (20%) não será devolvido.</p>
+                  <p>Se a rescisão ocorrer por parte da CONTRATADA sem justa causa, esta deverá restituir integralmente os valores pagos, acrescidos de multa de 1/3 (um terço) sobre o valor já pago.</p>
+                  <p>Em caso de mudança de data do evento, o(a) CONTRATANTE deverá informar à CONTRATADA com antecedência mínima de 30 (trinta) dias, ficando a alteração condicionada à disponibilidade da agenda.</p>
+                  <p><strong>Parágrafo único – Sessões fotográficas:</strong> O reagendamento de ensaios deve ser solicitado com, no mínimo, 3 (três) dias de antecedência. Caso a solicitação ocorra fora deste prazo, a remarcação estará sujeita à cobrança de nova reserva de data (20%). Se a nova data não estiver disponível, aplicam-se as disposições de rescisão previstas nos itens anteriores.</p>
                 </div>
               </section>
 
@@ -476,14 +545,14 @@ const ContractPreview = ({ data, onConfirm, onBack }: ContractPreviewProps) => {
                           </div>
                         </div>
 
-                        {item.type === 'maternity' && selectedDresses.length > 0 && (
+                        {selectedDresses.length > 0 && (/matern|gestant|pregnan/i.test(String(item?.type || data.serviceType || '')) ) && (
                           <div className="mt-4" data-pdf-block>
                             <h5 className="font-medium text-primary mb-2">Vestidos Selecionados</h5>
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                               {selectedDresses.map((dress) => (
                                 <div key={dress.id} className="text-center">
-                                  <div className="aspect-square overflow-hidden rounded-lg mb-2">
-                                    <img loading="lazy" src={dress.image} alt={dress.name} className="w-full h-full object-cover" />
+                                  <div className="relative aspect-[9/16] overflow-hidden rounded-lg mb-2">
+                                    <img loading="eager" src={resolveDressImage(dress.image, dress.name)} alt={dress.name} className="absolute inset-0 w-full h-full object-cover" />
                                   </div>
                                   <p className="text-sm font-medium text-gray-900">{dress.name}</p>
                                   <p className="text-xs text-gray-600">{dress.color}</p>
@@ -789,6 +858,33 @@ const ContractPreview = ({ data, onConfirm, onBack }: ContractPreviewProps) => {
       </div>
       </div>
 
+      {/* Pending Approval Modal */}
+      {showPendingModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 relative">
+            <button onClick={()=> { setShowPendingModal(false); onConfirm(); }} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+              <X size={24} />
+            </button>
+            <div className="text-center">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100 mb-4">
+                <AlertTriangle className="h-8 w-8 text-yellow-600" />
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Reserva pendente de aprovação</h3>
+              <div className="space-y-3 text-sm text-gray-700 mb-6">
+                <p>Sua reserva está pendente de aprovação. Entre em contato com o estúdio para confirmar a data e horário do seu evento.</p>
+                <p>Em caso de aprovação, este mesmo contrato será válido sem necessidade de um novo envio.</p>
+              </div>
+              <div className="grid grid-cols-1 gap-3">
+                {pdfUrl && (
+                  <a href={pdfUrl} target="_blank" rel="noopener noreferrer" className="w-full bg-secondary text-black py-2 px-4 rounded-md hover:bg-opacity-90 transition-colors text-center">Baixar PDF novamente</a>
+                )}
+                <button onClick={()=> { setShowPendingModal(false); onConfirm(); }} className="w-full bg-primary text-white py-2 px-4 rounded-md hover:bg-opacity-90 transition-colors">Entendi</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Success Modal */}
       {showSuccessModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
@@ -812,7 +908,7 @@ const ContractPreview = ({ data, onConfirm, onBack }: ContractPreviewProps) => {
               <div className="space-y-3 text-sm text-gray-600 mb-6">
                 <div className="flex items-center justify-center space-x-2">
                   <CheckCircle className="h-4 w-4 text-green-600" />
-                  <span>C��pia enviada para o estúdio</span>
+                  <span>Copia enviada para o estúdio</span>
                 </div>
                 <div className="flex items-center justify-center space-x-2">
                   <CheckCircle className="h-4 w-4 text-green-600" />

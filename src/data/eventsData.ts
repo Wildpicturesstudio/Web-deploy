@@ -6,6 +6,7 @@ export interface EventPackageType {
   description: string;
   features: string[];
   image: string;
+  recommended?: boolean;
 }
 
 export const eventPackages: EventPackageType[] = [

@@ -22,7 +22,29 @@
   body {
     @apply font-lato text-primary bg-background;
     overflow-x: hidden;
+    overflow-y: auto;
     max-width: 100vw;
+  }
+
+  /* Hide scrollbar on mobile, keep on desktop */
+  @media (max-width: 768px) {
+    html {
+      scrollbar-width: none; /* Firefox */
+      -ms-overflow-style: none; /* IE and Edge */
+    }
+
+    html::-webkit-scrollbar {
+      display: none; /* Chrome, Safari and Opera */
+    }
+
+    body {
+      scrollbar-width: none; /* Firefox */
+      -ms-overflow-style: none; /* IE and Edge */
+    }
+
+    body::-webkit-scrollbar {
+      display: none; /* Chrome, Safari and Opera */
+    }
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -262,4 +284,10 @@ button {
   visibility: visible !important;
   opacity: 1 !important;
   pointer-events: all !important;
+}
+
+/* Admin dark mode */
+.admin-dark {
+  background-color: #1a1a1a;
+  color: #ffffff;
 }

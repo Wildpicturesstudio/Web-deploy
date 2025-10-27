@@ -350,7 +350,7 @@ const AddToCartModal: React.FC<AddToCartModalProps> = ({ isOpen, onClose, produc
 
           {canAudio && (
             <div>
-              <label className="block text-sm text-gray-700 mb-1">Áudio (MP3, WAV, OGG) �� máx. 25MB</label>
+              <label className="block text-sm text-gray-700 mb-1">Áudio (MP3, WAV, OGG) – máx. 25MB</label>
               <div className="flex items-center gap-2 flex-wrap">
                 {!recording ? (
                   <button onClick={startRecording} className="px-3 py-2 border rounded-md inline-flex items-center gap-2">

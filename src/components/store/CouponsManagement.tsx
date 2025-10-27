@@ -141,7 +141,7 @@ const CouponsManagement: React.FC = () => {
           combinable: Boolean(form.combinable),
           validFrom: form.validFrom || null,
           validTo: form.validTo || null,
-          usageLimit: form.usageLimit != null ? Number(form.usageLimit) : null,
+          usageLimit: form.usageLimit != null ? Number(form.usageLimit) : undefined,
           status: Boolean(form.status),
         });
       } else {
@@ -155,7 +155,7 @@ const CouponsManagement: React.FC = () => {
           combinable: Boolean(form.combinable),
           validFrom: form.validFrom || null,
           validTo: form.validTo || null,
-          usageLimit: form.usageLimit != null ? Number(form.usageLimit) : null,
+          usageLimit: form.usageLimit != null ? Number(form.usageLimit) : undefined,
           usedCount: 0,
           status: Boolean(form.status),
           created_at: undefined,

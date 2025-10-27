@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Calendar, PlugZap } from 'lucide-react';
 import { googleCalendar } from '../../utils/googleCalendar';
 

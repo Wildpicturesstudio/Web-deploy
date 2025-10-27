@@ -59,29 +59,35 @@ const StoreSettings: React.FC = () => {
         <div className="bg-white rounded-xl border border-gray-200 p-4">
           <h3 className="font-medium mb-3">Pagamentos e Agendamento</h3>
           <div className="space-y-4">
-            <label className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                checked={mpEnabledLocal}
-                onChange={async (e) => {
-                  setMpEnabledLocal(e.target.checked);
-                  await setPaymentEnabled(e.target.checked);
-                }}
-              />
+            <div className="flex items-center justify-between gap-3">
               <span className="text-sm">Ativar pagamento com Mercado Pago</span>
-            </label>
-
-            <label className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                checked={calendarEnabledLocal}
-                onChange={async (e) => {
-                  setCalendarEnabledLocal(e.target.checked);
-                  await setCalendarEnabled(e.target.checked);
+              <button
+                type="button"
+                onClick={async () => {
+                  const next = !mpEnabledLocal;
+                  setMpEnabledLocal(next);
+                  await setPaymentEnabled(next);
                 }}
-              />
+                className={`${mpEnabledLocal ? 'bg-green-600 text-white' : 'bg-black text-white'} px-3 py-1 rounded`}
+              >
+                {mpEnabledLocal ? 'Activado' : 'Activar'}
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between gap-3">
               <span className="text-sm">Ativar agendamento no Google Calendar</span>
-            </label>
+              <button
+                type="button"
+                onClick={async () => {
+                  const next = !calendarEnabledLocal;
+                  setCalendarEnabledLocal(next);
+                  await setCalendarEnabled(next);
+                }}
+                className={`${calendarEnabledLocal ? 'bg-green-600 text-white' : 'bg-black text-white'} px-3 py-1 rounded`}
+              >
+                {calendarEnabledLocal ? 'Activado' : 'Activar'}
+              </button>
+            </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Mercado Pago</label>

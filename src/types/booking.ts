@@ -55,3 +55,10 @@ export interface StoreCartItem {
 }
 
 export type PaymentMethod = 'cash' | 'credit' | 'pix';
+
+export interface DressOption {
+  id: string;
+  name: string;
+  color: string;
+  image: string;
+}

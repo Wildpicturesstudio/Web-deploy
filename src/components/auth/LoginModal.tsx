@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, Eye, EyeOff, Mail, Lock, User, Phone, CreditCard } from 'lucide-react';
-import app, { auth, db, storage } from '../../utils/firebaseClient'; // <-- import corregido
+import { X, Eye, EyeOff, Mail, Lock } from 'lucide-react';
+//
 import { useAuth } from '../../contexts/AuthContext';
 
 interface LoginModalProps {
@@ -8,7 +8,7 @@ interface LoginModalProps {
   onClose: () => void;
   initialMode?: 'login' | 'register';
   adminOnly?: boolean; // if true, only show email/password login
-  onSuccess?: () => void; // callback invoked after successful login
+  onSuccess?: () => Promise<boolean | void> | boolean | void; // callback invoked after successful login
 }
 
 const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, initialMode = 'login', adminOnly = false, onSuccess }) => {
@@ -87,7 +87,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, initialMode = 
           if (onSuccess) {
             try {
               const ok = await onSuccess();
-              if (!ok) {
+              if (ok === false) {
                 setMessage('No tienes permisos de administrador.');
                 setLoading(false);
                 return;

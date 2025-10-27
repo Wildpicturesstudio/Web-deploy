@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import AddToCartModal from '../components/store/AddToCartModal';
 import type { Product as StoreProductType } from '../types/store';
 import { db } from '../utils/firebaseClient';
@@ -26,7 +27,9 @@ interface StoreProduct {
 }
 
 const StorePage: React.FC = () => {
-  const { addToCart } = useCart();
+  const { addToCart, items } = useCart();
+  const location = useLocation() as any;
+  const navigate = useNavigate();
   const [products, setProducts] = useState<StoreProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [coupons, setCoupons] = useState<DBCoupon[]>([]);
@@ -34,6 +37,15 @@ const StorePage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [selected, setSelected] = useState<StoreProduct | null>(null);
+  const [showFinalizeBar, setShowFinalizeBar] = useState(false);
+
+  const fromBooking = Boolean(location?.state?.fromCart);
+  const hasStoreItems = Array.isArray(items) && items.some(i => i.type === 'store');
+
+  const isDressCategory = (cat?: string) => {
+    const c = String(cat || '').toLowerCase();
+    return c.includes('vestid') || c.includes('dress');
+  };
 
   const fetchProducts = async () => {
     try {
@@ -59,7 +71,15 @@ const StorePage: React.FC = () => {
         variantes: Array.isArray(p.variantes) ? p.variantes : undefined,
         variants: Array.isArray(p.variants) ? p.variants : undefined,
       }));
-      setProducts(normalized);
+      const cleaned = normalized.filter(p => !isDressCategory(p.category));
+      const seen = new Set<string>();
+      const unique = cleaned.filter(p => {
+        const key = `${p.name.trim().toLowerCase()}|${Number(p.price)||0}|${String(p.category||'').trim().toLowerCase()}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+      setProducts(unique);
     } catch (err) {
       console.error('fetchProducts error:', err);
       setProducts([]);
@@ -69,6 +89,15 @@ const StorePage: React.FC = () => {
   };
 
   useEffect(() => { fetchProducts(); }, []);
+
+  useEffect(() => {
+    if (fromBooking && !hasStoreItems) {
+      const t = setTimeout(() => setShowFinalizeBar(true), 50);
+      return () => clearTimeout(t);
+    } else {
+      setShowFinalizeBar(false);
+    }
+  }, [fromBooking, hasStoreItems]);
 
   useEffect(() => {
     (async () => {
@@ -93,6 +122,7 @@ const StorePage: React.FC = () => {
     return products
       .filter((p) => p.active !== false)
       .filter((p) => selectedCategory === 'all' ? true : (p.category || 'General') === selectedCategory)
+      .filter((p) => !isDressCategory(p.category))
       .filter((p) => {
         const s = search.trim().toLowerCase();
         if (!s) return true;
@@ -105,7 +135,7 @@ const StorePage: React.FC = () => {
     setModalOpen(true);
   };
 
-  const bestForProduct = (p: StoreProduct) => {
+  const getVariantPricing = (p: StoreProduct) => {
     const base = Number(p.price || 0);
     const variants: { label: string; price: number }[] = [];
     if (Array.isArray(p.variantes) && p.variantes.length) {
@@ -117,6 +147,11 @@ const StorePage: React.FC = () => {
       }
     }
     if (variants.length === 0) variants.push({ label: '', price: base });
+    return variants;
+  };
+
+  const bestForProduct = (p: StoreProduct) => {
+    const variants = getVariantPricing(p);
     let best = { coupon: null as DBCoupon | null, discount: 0, label: '' };
     for (const opt of variants) {
       const item = { id: String(p.id), name: p.name, type: 'store', price: opt.price, variantName: opt.label } as any;
@@ -124,6 +159,26 @@ const StorePage: React.FC = () => {
       if (r.discount > best.discount) best = { coupon: r.coupon, discount: r.discount, label: '' };
     }
     return best;
+  };
+
+  const variantDiscountCount = (p: StoreProduct) => {
+    const variants = getVariantPricing(p);
+    let count = 0;
+    for (const opt of variants) {
+      const item = { id: String(p.id), name: p.name, type: 'store', price: opt.price, variantName: opt.label } as any;
+      const r = bestCouponForItem(coupons, item);
+      if (r.discount > 0) count++;
+    }
+    return count;
+  };
+
+  const discountBadgeText = (p: StoreProduct): string | null => {
+    const b = bestForProduct(p);
+    if (!b.coupon || b.discount <= 0) return null;
+    const t = b.coupon.discountType;
+    if (t === 'percentage') return `-${Number(b.coupon.discountValue || 0)}%`;
+    if (t === 'full') return '-100%';
+    return `-${formatPrice(b.discount)}`;
   };
 
   const handleAddFromModal = (payload: { id: string; name: string; priceNumber: number; image?: string; variantName?: string; customText?: string; customImageDataUrl?: string | null; customAudioDataUrl?: string | null; appliedCoupon?: { id: string; code: string; discount: number; discountType: 'percentage' | 'fixed' | 'full'; discountValue?: number }; }) => {
@@ -167,6 +222,7 @@ const StorePage: React.FC = () => {
           />
         </div>
 
+
         {loading ? (
           <div className="text-gray-500">Carregando...</div>
         ) : filtered.length === 0 ? (
@@ -176,15 +232,21 @@ const StorePage: React.FC = () => {
             {filtered.map((p) => (
               <div key={p.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden h-full flex flex-col">
                 <div className="relative">
-                  <img loading="lazy" src={p.image_url} alt={p.name} className="w-full h-44 object-cover" />
-                  {(() => { const b = bestForProduct(p); return (b.coupon && b.discount>0) ? (
-                    <span className="absolute top-2 left-2 bg-red-600 text-white text-[11px] px-2 py-1 rounded">-{formatPrice(b.discount)}</span>
+                  <img loading="lazy" src={p.image_url} alt={p.name} className="w-full h-48 object-cover" />
+                  {(() => { const b = bestForProduct(p); const dcount = variantDiscountCount(p); if (dcount > 1) {
+                    return (<span className="absolute top-2 left-2 bg-green-600 text-white text-[11px] px-2 py-1 rounded">com desconto</span>);
+                  }
+                  const txt = discountBadgeText(p);
+                  return txt ? (
+                    <span className="absolute top-2 left-2 bg-green-600 text-white text-[11px] px-2 py-1 rounded">{txt}</span>
                   ) : null; })()}
                 </div>
                 <div className="p-4 flex flex-col h-full">
                   <div className="flex items-start justify-between gap-3">
                     <h3 className="font-semibold">{p.name}</h3>
-                    <span className="text-primary font-bold">{formatPrice(p.price)}</span>
+                    {((Array.isArray(p.variantes) && p.variantes.length > 0) || (Array.isArray(p.variants) && p.variants.length > 0)) ? null : (
+                      <span className="text-primary font-bold">{formatPrice(p.price)}</span>
+                    )}
                   </div>
                   {p.description ? (
                     <p className="text-gray-600 text-sm mt-1 line-clamp-2">{p.description}</p>
@@ -201,6 +263,23 @@ const StorePage: React.FC = () => {
           </div>
         )}
       </div>
+
+      {(fromBooking && !hasStoreItems) && (
+        <div className={`fixed bottom-0 inset-x-0 z-[60] transition-transform duration-300 ease-out ${showFinalizeBar ? 'translate-y-0' : 'translate-y-full'}`}>
+          <div className="bg-black text-white">
+            <div className="container-custom py-3 flex items-center justify-between gap-3">
+              <div className="text-sm">Continuar sem comprar produtos da loja</div>
+              <button
+                onClick={() => navigate('/booking', { state: { skipStorePopup: true } })}
+                className="px-4 py-2 rounded-none border-2 border-orange-500 bg-orange-500 text-white hover:bg-orange-600 hover:border-orange-600"
+                aria-label="Finalizar e preencher o contrato"
+              >
+                Finalizar e preencher o contrato
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <AddToCartModal
         isOpen={modalOpen}

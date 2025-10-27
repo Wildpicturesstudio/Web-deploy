@@ -57,22 +57,27 @@ interface Contract {
 }
 
 const ClientDashboardPage: React.FC = () => {
-  const { user, userProfile, signOut } = useAuth();
+  const { user, userProfile, signOut, isAdmin } = useAuth();
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('contracts');
 
   useEffect(() => {
-    if (user && userProfile) {
+    // Firestore rules restrict reading contracts to admin only.
+    // Avoid querying when not admin to prevent permission errors.
+    if (user && userProfile && isAdmin) {
       fetchUserContracts();
+    } else {
+      setContracts([]);
+      setLoading(false);
     }
-  }, [user, userProfile]);
+  }, [user, userProfile, isAdmin]);
 
   const fetchUserContracts = async () => {
     try {
       setLoading(true);
-      
-      // Query contracts by client email
+
+      // Admin-only: read contracts ordered by creation date
       const contractsQuery = query(
         collection(db, 'contracts'),
         where('clientEmail', '==', user?.email || ''),
@@ -90,8 +95,14 @@ const ClientDashboardPage: React.FC = () => {
       });
 
       setContracts(contractsData);
-    } catch (error) {
-      console.error('Erro ao carregar contratos:', error);
+    } catch (error: any) {
+      // Silently handle permission errors to avoid breaking the client UI
+      const msg = String(error?.message || error || '');
+      if (msg.toLowerCase().includes('permission') || msg.toLowerCase().includes('insufficient')) {
+        setContracts([]);
+      } else {
+        console.error('Erro ao carregar contratos:', error);
+      }
     } finally {
       setLoading(false);
     }
@@ -200,8 +211,8 @@ const ClientDashboardPage: React.FC = () => {
       
       document.body.appendChild(contractElement);
       
-      const pdfUrl = await generatePDF(contractElement);
-      
+      const pdfUrl = String(await generatePDF(contractElement, { returnType: 'url' }));
+
       const link = document.createElement('a');
       link.href = pdfUrl;
       link.download = `contrato-wild-pictures-${contract.clientName.toLowerCase().replace(/\s+/g, '-')}.pdf`;

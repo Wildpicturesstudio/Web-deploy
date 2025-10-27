@@ -9,7 +9,6 @@ import { sessionPackages } from '../data/sessionsData';
 import { eventPackages } from '../data/eventsData';
 import { maternityPackages } from '../data/maternityData';
 import { useFeatureFlags } from '../contexts/FeatureFlagsContext';
-import { formatPrice } from '../utils/format';
 
 type BookingStep = 'contract' | 'form' | 'preview' | 'complete';
 

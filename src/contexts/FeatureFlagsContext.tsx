@@ -4,12 +4,11 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 export type PageKey = 'home' | 'portfolio' | 'portrait' | 'maternity' | 'events' | 'civilWedding' | 'contact' | 'store' | 'booking' | 'dashboard' | 'admin' | 'packagesAdmin' | 'clientDashboard';
 
+type PaymentsFlags = { mpEnabled: boolean; calendarEnabled: boolean };
+
 export interface FeatureFlags {
   pages: Record<PageKey, boolean>;
-  payments?: {
-    mpEnabled: boolean;
-    calendarEnabled: boolean;
-  };
+  payments: PaymentsFlags;
 }
 
 const DEFAULT_FLAGS: FeatureFlags = {
@@ -62,7 +61,7 @@ async function readFromFirestore(): Promise<FeatureFlags | null> {
       if (data && typeof data === 'object' && data.pages) {
         return {
           pages: { ...DEFAULT_FLAGS.pages, ...data.pages },
-          payments: { ...DEFAULT_FLAGS.payments, ...(data.payments || {}) },
+          payments: { ...DEFAULT_FLAGS.payments, ...(data.payments || {}) } as PaymentsFlags,
         } as FeatureFlags;
       }
     }
@@ -83,7 +82,7 @@ function readFromLocalStorage(): FeatureFlags | null {
     if (parsed && parsed.pages) {
       return {
         pages: { ...DEFAULT_FLAGS.pages, ...parsed.pages },
-        payments: { ...DEFAULT_FLAGS.payments, ...(parsed.payments || {}) },
+        payments: { ...DEFAULT_FLAGS.payments, ...(parsed.payments || {}) } as PaymentsFlags,
       } as FeatureFlags;
     }
   } catch (_) {}
@@ -106,17 +105,18 @@ export const FeatureFlagsProvider: React.FC<{ children: React.ReactNode }> = ({ 
         Promise.resolve(readFromLocalStorage()),
       ]);
 
+      const mergedPayments: PaymentsFlags = {
+        mpEnabled: Boolean((fromLs?.payments?.mpEnabled ?? fromDb?.payments?.mpEnabled ?? DEFAULT_FLAGS.payments.mpEnabled)),
+        calendarEnabled: Boolean((fromLs?.payments?.calendarEnabled ?? fromDb?.payments?.calendarEnabled ?? DEFAULT_FLAGS.payments.calendarEnabled)),
+      };
+
       const merged: FeatureFlags = {
         pages: {
           ...DEFAULT_FLAGS.pages,
           ...(fromDb?.pages || {}),
           ...(fromLs?.pages || {}), // LS overrides DB for admin local changes
         },
-        payments: {
-          ...DEFAULT_FLAGS.payments,
-          ...(fromDb?.payments || {}),
-          ...(fromLs?.payments || {}), // LS overrides DB to keep latest toggles
-        },
+        payments: mergedPayments,
       };
 
       setFlags(merged);
@@ -133,7 +133,10 @@ export const FeatureFlagsProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const setPageEnabled = async (key: PageKey, value: boolean) => {
     const next: FeatureFlags = {
       pages: { ...flags.pages, [key]: value },
-      payments: { ...DEFAULT_FLAGS.payments, ...(flags.payments || {}) },
+      payments: {
+        mpEnabled: Boolean(flags.payments?.mpEnabled ?? DEFAULT_FLAGS.payments.mpEnabled),
+        calendarEnabled: Boolean(flags.payments?.calendarEnabled ?? DEFAULT_FLAGS.payments.calendarEnabled),
+      },
     };
     setFlags(next);
     writeToLocalStorage(next);
@@ -147,7 +150,10 @@ export const FeatureFlagsProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const setPaymentEnabled = async (value: boolean) => {
     const next: FeatureFlags = {
       pages: { ...flags.pages },
-      payments: { ...DEFAULT_FLAGS.payments, ...(flags.payments || {}), mpEnabled: value },
+      payments: {
+        mpEnabled: Boolean(value),
+        calendarEnabled: Boolean(flags.payments?.calendarEnabled ?? DEFAULT_FLAGS.payments.calendarEnabled),
+      },
     };
     setFlags(next);
     writeToLocalStorage(next);
@@ -159,7 +165,10 @@ export const FeatureFlagsProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const setCalendarEnabled = async (value: boolean) => {
     const next: FeatureFlags = {
       pages: { ...flags.pages },
-      payments: { ...DEFAULT_FLAGS.payments, ...(flags.payments || {}), calendarEnabled: value },
+      payments: {
+        mpEnabled: Boolean(flags.payments?.mpEnabled ?? DEFAULT_FLAGS.payments.mpEnabled),
+        calendarEnabled: Boolean(value),
+      },
     };
     setFlags(next);
     writeToLocalStorage(next);

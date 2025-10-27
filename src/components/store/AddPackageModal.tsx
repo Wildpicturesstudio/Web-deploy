@@ -10,6 +10,8 @@ export interface PackageLike {
   image?: string;
   priceNumber: number;
   type: 'portrait' | 'maternity' | 'events';
+  features?: string[];
+  includes?: { label: string; quantity: number }[];
 }
 
 interface AddPackageModalProps {
@@ -63,13 +65,18 @@ const AddPackageModal: React.FC<AddPackageModalProps> = ({ isOpen, onClose, pkg,
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" role="dialog" aria-modal>
-      <div className="bg-white rounded-xl w-full max-w-xl overflow-hidden relative">
+      <div className="bg-white rounded-xl w-full max-w-lg md:max-w-xl max-h-[85vh] overflow-auto relative">
         <button onClick={onClose} className="absolute top-3 right-3 bg-white border rounded-full p-1 shadow hover:bg-gray-50" aria-label="Fechar">
           <X size={18} />
         </button>
         <div className="p-4 border-b">
           <h3 className="text-lg font-semibold">{pkg.title}</h3>
           {pkg.description && <p className="text-sm text-gray-600">{pkg.description}</p>}
+          {pkg.image && (
+            <div className="mt-3 rounded-lg overflow-hidden">
+              <img loading="lazy" src={pkg.image} alt={pkg.title} className="w-full h-40 md:h-48 object-cover" />
+            </div>
+          )}
         </div>
         <div className="p-4 space-y-4">
           <div className="flex items-center justify-between">
@@ -92,6 +99,26 @@ const AddPackageModal: React.FC<AddPackageModalProps> = ({ isOpen, onClose, pkg,
                   Total com desconto: <span className="font-semibold">{formatPrice(effectivePrice)}</span>
                 </div>
               )}
+            </div>
+          )}
+
+          {Array.isArray(pkg.features) && pkg.features.length > 0 && (
+            <div>
+              <div className="text-sm font-medium mb-2">O que inclui</div>
+              <ul className="list-disc pl-5 text-sm text-gray-700 space-y-1">
+                {pkg.features.map((f, i) => (<li key={i}>{f}</li>))}
+              </ul>
+            </div>
+          )}
+
+          {Array.isArray(pkg.includes) && pkg.includes.length > 0 && (
+            <div>
+              <div className="text-sm text-gray-600 mb-1">Produtos incluídos</div>
+              <ul className="list-disc pl-5 text-sm text-gray-700 space-y-1">
+                {pkg.includes.map((it, i) => (
+                  <li key={i}>{it.label} x{Number(it.quantity || 0)}</li>
+                ))}
+              </ul>
             </div>
           )}
         </div>

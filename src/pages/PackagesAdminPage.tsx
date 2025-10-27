@@ -171,7 +171,7 @@ const PackagesAdminPage = () => {
                   </select>
                   <input type="text" placeholder="Título" value={draft.title} onChange={(e) => setDraft(prev => ({ ...prev, title: e.target.value }))} className="px-4 py-2 border border-gray-300 rounded-lg" />
                   <input type="number" placeholder="Preço (R$)" value={draft.price} onChange={(e) => setDraft(prev => ({ ...prev, price: Number(e.target.value) }))} className="px-4 py-2 border border-gray-300 rounded-lg" />
-                  <input type="text" placeholder="Dura��ão" value={draft.duration} onChange={(e) => setDraft(prev => ({ ...prev, duration: e.target.value }))} className="px-4 py-2 border border-gray-300 rounded-lg" />
+                  <input type="text" placeholder="Duração" value={draft.duration} onChange={(e) => setDraft(prev => ({ ...prev, duration: e.target.value }))} className="px-4 py-2 border border-gray-300 rounded-lg" />
                   <input type="text" placeholder="Categoria (ex.: wedding, prewedding)" value={draft.category} onChange={(e) => setDraft(prev => ({ ...prev, category: e.target.value }))} className="px-4 py-2 border border-gray-300 rounded-lg" />
                   <input type="url" placeholder="URL da imagem" value={draft.image_url} onChange={(e) => setDraft(prev => ({ ...prev, image_url: e.target.value }))} className="px-4 py-2 border border-gray-300 rounded-lg md:col-span-2" />
                   <textarea placeholder="Descrição" value={draft.description} onChange={(e) => setDraft(prev => ({ ...prev, description: e.target.value }))} className="px-4 py-2 border border-gray-300 rounded-lg md:col-span-2" rows={3} />

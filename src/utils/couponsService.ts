@@ -10,9 +10,9 @@ import {
   serverTimestamp,
   updateDoc,
   where,
-  getDoc,
   increment,
 } from 'firebase/firestore';
+import { withFirestoreRetry } from './firestoreRetry';
 
 export type DiscountType = 'percentage' | 'fixed' | 'full';
 
@@ -59,7 +59,7 @@ export async function fetchCoupons(): Promise<DBCoupon[]> {
     const colRef = collection(db, 'coupons');
     let q = colRef as any;
     try { q = query(colRef, orderBy('created_at', 'desc')); } catch (_) {}
-    const snap = await getDocs(q);
+    const snap = await withFirestoreRetry(() => getDocs(q));
     return snap.docs.map((d) => coerceCoupon(d.id, d.data()));
   } catch (err) {
     console.error('fetchCoupons error:', err);
@@ -113,7 +113,7 @@ export async function findCouponByCode(code: string): Promise<DBCoupon | null> {
   if (!code) return null;
   const colRef = collection(db, 'coupons');
   const q = query(colRef, where('code', '==', code.trim()));
-  const snap = await getDocs(q);
+  const snap = await withFirestoreRetry(() => getDocs(q));
   const docSnap = snap.docs[0];
   return docSnap ? coerceCoupon(docSnap.id, docSnap.data()) : null;
 }
