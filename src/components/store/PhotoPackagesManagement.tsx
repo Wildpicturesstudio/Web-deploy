@@ -193,40 +193,39 @@ const PhotoPackagesManagement = () => {
           <h3 className="text-lg font-semibold mb-3 capitalize">{type === 'portrait' ? 'Retratos' : type === 'maternity' ? 'Gestantes' : 'Eventos'}</h3>
           <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             {grouped[type].map((p) => (
-              <div key={p.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                <div className="relative">
-                  <img loading="lazy" src={p.image_url} alt={p.title} className="w-full h-28 object-cover" data-pkg-id={p.id} />
+              <div key={p.id} className="bg-white rounded-lg border border-gray-200 overflow-hidden aspect-square flex flex-col">
+                <div className="relative flex-shrink-0 h-1/2">
+                  <img loading="lazy" src={p.image_url} alt={p.title} className="w-full h-full object-cover" data-pkg-id={p.id} />
                   {(p as any).active === false && (
-                    <span className="absolute top-2 left-2 text-xs px-2 py-1 rounded bg-gray-200 text-gray-700">inactivo</span>
+                    <span className="absolute top-1 left-1 text-xs px-1.5 py-0.5 rounded bg-gray-200 text-gray-700">inactivo</span>
                   )}
                 </div>
-                <div className="p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <h4 className="font-semibold">{p.title}</h4>
-                    <span className="text-primary font-bold">R$ {Number(p.price).toFixed(0)}</span>
+                <div className="p-2 flex flex-col flex-1 overflow-hidden">
+                  <div className="flex items-start justify-between gap-1">
+                    <h4 className="font-semibold text-xs line-clamp-1">{p.title}</h4>
+                    <span className="text-primary font-bold text-xs flex-shrink-0">R$ {Number(p.price).toFixed(0)}</span>
                   </div>
-                  <p className="text-gray-600 text-sm mt-1 line-clamp-2">{p.description}</p>
+                  <p className="text-gray-600 text-xs mt-0.5 line-clamp-1">{p.description}</p>
 
                   {(p as any).storeItemsIncluded && Array.isArray((p as any).storeItemsIncluded) && (p as any).storeItemsIncluded.length > 0 && (
-                    <div className="mt-3 p-3 bg-gray-50 rounded border border-gray-200">
-                      <div className="text-xs text-gray-600 mb-2">Productos incluidos</div>
-                      <ul className="grid grid-cols-1 gap-1">
+                    <div className="mt-1 p-1.5 bg-gray-50 rounded border border-gray-200 flex-1 overflow-hidden">
+                      <div className="text-xs text-gray-600 mb-1">Prod.</div>
+                      <ul className="grid grid-cols-1 gap-0.5 text-xs overflow-y-auto max-h-12">
                         {(p as any).storeItemsIncluded.map((it: any, idx: number) => (
-                          <li key={idx} className="text-sm text-gray-800 flex items-center justify-between">
+                          <li key={idx} className="text-xs text-gray-800 line-clamp-1">
                             {(() => { const isPkg = String(it.productId).startsWith('pkg:'); const pkgName = isPkg ? (packages.find(pk => `pkg:${pk.id}` === String(it.productId))?.title) : undefined; const baseName = pkgName || storeProducts[it.productId]?.name || String(it.productId); return (<span>{`${baseName}${it.variantName ? ` — ${it.variantName}` : ''}`}</span>); })()}
-                            <span className="text-gray-600">x{Number(it.quantity||0)}</span>
                           </li>
                         ))}
                       </ul>
                     </div>
                   )}
 
-                  <div className="mt-4 flex items-center gap-2">
-                    <button onClick={() => { setEditing(p); setEditorOpen(true); }} className="flex-1 border-2 border-black text-black px-3 py-2 rounded-none hover:bg-black hover:text-white flex items-center gap-2"><Edit size={14}/>Editar</button>
-                    <button onClick={() => handleToggle(p)} className={`flex-1 border-2 border-black px-3 py-2 rounded-none flex items-center justify-center gap-2 ${
+                  <div className="mt-1 flex items-center gap-1 flex-shrink-0">
+                    <button onClick={() => { setEditing(p); setEditorOpen(true); }} className="flex-1 border border-black text-black px-1 py-1 rounded-none hover:bg-black hover:text-white flex items-center justify-center gap-0.5 text-xs"><Edit size={12}/>Editar</button>
+                    <button onClick={() => handleToggle(p)} className={`flex-1 border border-black px-1 py-1 rounded-none flex items-center justify-center gap-0.5 text-xs ${
                       (p as any).active === false ? 'bg-white text-black hover:bg-black hover:text-white' : 'bg-black text-white hover:opacity-90'
-                    }`}>{(p as any).active === false ? (<><Eye size={14}/>Activar</>) : (<><EyeOff size={14}/>Desactivar</>)}</button>
-                    <button onClick={() => handleDelete(p)} className="border-2 border-black text-black px-3 py-2 rounded hover:bg-black hover:text-white"><Trash2 size={16} /></button>
+                    }`}>{(p as any).active === false ? (<Eye size={12}/>) : (<EyeOff size={12}/>)}</button>
+                    <button onClick={() => handleDelete(p)} className="border border-black text-black px-1 py-1 rounded hover:bg-black hover:text-white flex items-center justify-center"><Trash2 size={12} /></button>
                   </div>
                 </div>
               </div>
