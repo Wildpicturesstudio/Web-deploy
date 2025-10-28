@@ -623,7 +623,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
+      <div className="bg-white rounded-xl border border-gray-200 flex flex-col max-h-96 overflow-hidden">
         <div className="hidden md:grid grid-cols-12 p-3 text-xs font-medium border-b bg-gray-50">
           <div className="col-span-2">Fecha principal</div>
           <div className="col-span-3">Nombre del trabajo</div>
