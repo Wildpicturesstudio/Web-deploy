@@ -3,7 +3,7 @@ import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, where } 
 import { db } from '../utils/firebaseClient';
 import { useAuth } from '../contexts/AuthContext';
 import { Plus, Edit2, Trash2, TrendingUp, AlertCircle, DollarSign, Target, Eye, EyeOff } from 'lucide-react';
-import { PieChart, Pie, Cell, Legend, Tooltip, ResponsiveContainer } from 'recharts';
+import { PieChart, Pie, Cell, Legend, Tooltip, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
 
 interface IncomeItem {
   id: string;
