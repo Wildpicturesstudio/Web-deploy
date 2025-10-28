@@ -37,10 +37,11 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // Contracts: creación abierta, lectura/actualización/borrado solo admin
+    // Contracts: creación abierta, lectura pública, actualización/borrado solo admin
     match /contracts/{contractId} {
       allow create: if true;
-      allow read, update, delete: if request.auth != null && request.auth.token.email == "wildpicturesstudio@gmail.com";
+      allow read: if true;
+      allow update, delete: if request.auth != null && request.auth.token.email == "wildpicturesstudio@gmail.com";
     }
 
     // Orders: creación abierta, lectura/actualización/borrado solo admin
