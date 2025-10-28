@@ -24,23 +24,21 @@ const PhotoSharingPage = () => {
 
         // If there's a contractId, it's an admin view
         if (contractId) {
-          // Try to load the contract
-          const contractsQuery = query(
-            collection(db, 'contracts'),
-            where('__name__', '==', contractId)
-          );
-          const snapshot = await getDocs(contractsQuery);
+          // Try to load the contract directly by ID
+          const contractRef = doc(db, 'contracts', contractId);
+          const snapshot = await getDoc(contractRef);
 
-          if (!snapshot.empty) {
+          if (snapshot.exists()) {
             const contractData = {
-              id: snapshot.docs[0].id,
-              ...snapshot.docs[0].data(),
+              id: snapshot.id,
+              ...snapshot.data(),
             };
             setContract(contractData);
             setIsAdmin(true);
           } else {
+            console.error('Contrato no encontrado:', contractId);
             alert('Contrato no encontrado');
-            navigate('/');
+            navigate('/admin');
           }
         } else {
           alert('URL inválida');
