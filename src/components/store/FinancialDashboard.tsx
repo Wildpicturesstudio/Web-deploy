@@ -362,7 +362,7 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ onNavigate, dar
           <div className={`${cardBg} rounded-lg border ${borderColor} p-6 shadow-sm`}>
             <h3 className={`font-semibold mb-4 ${darkMode ? 'text-gray-100' : 'text-gray-800'}`}>Rentabilidad Mensual</h3>
             <div className="h-64">
-              <Suspense fallback={<div className="h-64 flex items-center justify-center text-gray-500">Cargando gráfico...</div>}>
+              <Suspense fallback={<div className={`h-64 flex items-center justify-center ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Cargando gráfico...</div>}>
                 <ChartPerformance
                   data={metrics.monthlyData}
                   products={[]}
