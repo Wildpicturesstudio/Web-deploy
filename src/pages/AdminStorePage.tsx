@@ -224,7 +224,7 @@ const AdminStorePage: React.FC = () => {
     <section className={`overflow-hidden h-screen w-screen flex flex-col ${adminDark ? 'admin-dark' : ''}`}>
       {/* Header Bar - All Pages */}
       {!adminFullscreen && (
-        <div className="bg-white border-b border-gray-200 flex flex-col flex-shrink-0">
+        <div className="sticky top-0 z-50 bg-white border-b border-gray-200 flex flex-col flex-shrink-0">
           {/* Title and Action Buttons */}
           <div className="px-4 py-2 flex items-center justify-between">
             <h1 className="text-xl font-semibold text-black">{getPageTitle()}</h1>
