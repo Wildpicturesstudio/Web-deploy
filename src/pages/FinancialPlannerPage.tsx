@@ -337,20 +337,45 @@ const FinancialPlannerPage: React.FC = () => {
           <h2 className={`text-2xl font-bold ${textColor}`}>Mis Finanzas</h2>
           
           {/* KPI Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className={`${bgColor} rounded-lg border ${borderColor} p-6 shadow-sm`}>
-              <p className={`text-sm font-medium ${labelColor} mb-2`}>Ingresos Totales</p>
-              <p className={`text-3xl font-bold ${totalIncome >= 0 ? 'text-green-600' : 'text-red-600'}`}>R$ {totalIncome.toFixed(2)}</p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className={`${bgColor} rounded border ${borderColor} p-2 shadow-sm hover:shadow-md transition-shadow`}>
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className={`text-xs font-medium ${labelColor} truncate`}>Ingresos Totales</p>
+                  <p className={`text-base font-bold ${totalIncome >= 0 ? 'text-green-600' : 'text-red-600'} leading-tight`}>R$ {totalIncome.toFixed(2)}</p>
+                </div>
+                <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                  <DollarSign className="text-green-600" size={14} />
+                </div>
+              </div>
             </div>
-            
-            <div className={`${bgColor} rounded-lg border ${borderColor} p-6 shadow-sm`}>
-              <p className={`text-sm font-medium ${labelColor} mb-2`}>Total de Gastos</p>
-              <p className={`text-3xl font-bold text-red-600`}>R$ {totalExpenses.toFixed(2)}</p>
+
+            <div className={`${bgColor} rounded border ${borderColor} p-2 shadow-sm hover:shadow-md transition-shadow`}>
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className={`text-xs font-medium ${labelColor} truncate`}>Total de Gastos</p>
+                  <p className="text-base font-bold text-orange-600 leading-tight">R$ {totalExpenses.toFixed(2)}</p>
+                </div>
+                <div className="w-6 h-6 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
+                  <TrendingUp className="text-orange-600" size={14} />
+                </div>
+              </div>
             </div>
-            
-            <div className={`${bgColor} rounded-lg border ${borderColor} p-6 shadow-sm`}>
-              <p className={`text-sm font-medium ${labelColor} mb-2`}>Disponible al Final de Mes</p>
-              <p className={`text-3xl font-bold ${availableCash >= 0 ? 'text-green-600' : 'text-red-600'}`}>R$ {availableCash.toFixed(2)}</p>
+
+            <div className={`${bgColor} rounded border ${borderColor} p-2 shadow-sm hover:shadow-md transition-shadow`}>
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className={`text-xs font-medium ${labelColor} truncate`}>Disponible</p>
+                  <p className={`text-base font-bold ${availableCash >= 0 ? 'text-green-600' : 'text-red-600'} leading-tight`}>R$ {availableCash.toFixed(2)}</p>
+                </div>
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${availableCash >= 0 ? 'bg-green-100' : 'bg-red-100'}`}>
+                  {availableCash >= 0 ? (
+                    <TrendingUp className="text-green-600" size={14} />
+                  ) : (
+                    <AlertCircle className="text-red-600" size={14} />
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 
