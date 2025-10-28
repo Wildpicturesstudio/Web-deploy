@@ -339,10 +339,10 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ onNavigate, dar
           </div>
 
           {/* Saldo de Caja Actual */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
+          <div className={`${cardBg} rounded-lg border ${borderColor} p-6 shadow-sm hover:shadow-md transition-shadow`}>
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-gray-600 text-sm font-medium">Saldo de Caja Actual</p>
+                <p className={`text-sm font-medium ${labelColor}`}>Saldo de Caja Actual</p>
                 <p className="text-3xl font-bold text-indigo-600 mt-2">
                   R$ {metrics.currentCashBalance.toFixed(0)}
                 </p>
