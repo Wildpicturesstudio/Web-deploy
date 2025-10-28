@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { db } from '../utils/firebaseClient';
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import AdminPhotoLibrary from '../components/store/AdminPhotoLibrary';
 import ClientPhotoGallery from '../components/store/ClientPhotoGallery';
 
