@@ -213,7 +213,7 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ onNavigate, dar
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <p className="text-gray-600">Cargando datos financieros...</p>
+        <p className={darkMode ? 'text-gray-400' : 'text-gray-600'}>Cargando datos financieros...</p>
       </div>
     );
   }
