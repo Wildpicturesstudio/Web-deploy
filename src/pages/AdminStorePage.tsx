@@ -221,7 +221,7 @@ const AdminStorePage: React.FC = () => {
   };
 
   return (
-    <section className={`overflow-hidden h-screen w-screen flex flex-col ${adminDark ? 'admin-dark' : ''}`}>
+    <section className={`h-screen w-screen flex flex-col ${adminDark ? 'admin-dark' : ''}`}>
       {/* Header Bar - All Pages */}
       {!adminFullscreen && (
         <div className="sticky top-0 z-50 bg-white border-b border-gray-200 flex flex-col flex-shrink-0">
