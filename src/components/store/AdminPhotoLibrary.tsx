@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
-import { db } from '../../utils/firebaseClient';
-import { collection, addDoc, getDocs, query, where, deleteDoc, doc } from 'firebase/firestore';
+import { db, storage } from '../../utils/firebaseClient';
+import { collection, addDoc, getDocs, query, where } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, listAll, deleteObject } from 'firebase/storage';
-import { storage } from '../../utils/firebaseClient';
 import { Upload, Trash2, Link as LinkIcon, Copy, Check } from 'lucide-react';
 
 interface Photo {
