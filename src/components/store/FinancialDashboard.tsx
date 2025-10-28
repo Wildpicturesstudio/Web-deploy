@@ -507,7 +507,6 @@ function computeMonthlyData(contracts: Contract[], investmentInstallments: any[]
     months[m].income += amount;
     if (c.depositPaid || c.finalPaymentPaid) {
       months[m].earned += paidAmount;
-      months[m].profit += paidAmount;
     } else {
       const isFuture = d.getTime() >= today.getTime();
       if (isFuture) {
@@ -524,7 +523,11 @@ function computeMonthlyData(contracts: Contract[], investmentInstallments: any[]
     const m = d.getMonth();
     const amount = Number(inst.amount || 0);
     months[m].expenses += amount;
-    months[m].profit -= amount;
+  }
+
+  for (let i = 0; i < months.length; i++) {
+    months[i].netProfit = months[i].earned - months[i].expenses;
+    months[i].profit = months[i].netProfit;
   }
 
   return months;
