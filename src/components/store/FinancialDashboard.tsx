@@ -57,7 +57,7 @@ interface FinancialDashboardProps {
   darkMode?: boolean;
 }
 
-const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ onNavigate }) => {
+const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ onNavigate, darkMode = false }) => {
   const [period, setPeriod] = useState<{ type: 'all' | 'year' | 'month' | 'custom'; start?: string; end?: string }>({ type: 'month' });
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
