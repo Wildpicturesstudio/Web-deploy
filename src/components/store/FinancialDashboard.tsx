@@ -329,7 +329,7 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ onNavigate, dar
                 </p>
                 <div className="flex items-center gap-1 mt-2 text-sm">
                   <ArrowUpRight className="text-blue-600" size={16} />
-                  <span className="text-gray-600">Desde el período anterior</span>
+                  <span className={labelColor}>Desde el período anterior</span>
                 </div>
               </div>
               <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
