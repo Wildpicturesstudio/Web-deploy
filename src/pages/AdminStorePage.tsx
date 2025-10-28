@@ -129,6 +129,18 @@ const AdminStorePage: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    const handler = (e: any) => {
+      const detail = e?.detail || {};
+      const clientName = detail.clientName || 'Cliente';
+      const eventType = detail.eventType || 'evento';
+      const message = `✓ Nuevo contrato de ${clientName} — ${eventType}`;
+      showNotice(message, 'success');
+    };
+    window.addEventListener('newContractCreated', handler as EventListener);
+    return () => window.removeEventListener('newContractCreated', handler as EventListener);
+  }, []);
+
+  useEffect(() => {
     const openHandler = (e: any) => {
       const id = String(e?.detail?.id || '');
       if (!id) return;
