@@ -392,41 +392,6 @@ const BudgetPlanner: React.FC<BudgetPlannerProps> = ({ onNavigate, darkMode = fa
         </div>
       </div>
 
-      {/* Add Income Modal */}
-      {showIncomeModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className={`${bgColor} rounded-lg p-6 max-w-sm w-full border ${borderColor}`}>
-            <h3 className={`text-xl font-bold ${textColor} mb-4`}>Añadir Ingreso</h3>
-            <div className="space-y-4">
-              <div>
-                <label className={`block text-sm font-medium ${labelColor} mb-1`}>Monto (R$)</label>
-                <input
-                  type="number"
-                  value={incomeAmount}
-                  onChange={e => setIncomeAmount(e.target.value)}
-                  placeholder="0.00"
-                  className={`w-full px-3 py-2 border rounded-lg ${darkMode ? 'bg-gray-800 border-gray-600 text-gray-100' : 'bg-white border-gray-300'}`}
-                />
-              </div>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowIncomeModal(false)}
-                  className={`flex-1 px-4 py-2 rounded-lg border ${borderColor} ${textColor} hover:${darkMode ? 'bg-gray-800' : 'bg-gray-50'} transition-colors`}
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleAddIncome}
-                  className="flex-1 px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white transition-colors font-medium"
-                >
-                  Añadir
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Add Expense Modal */}
       {showExpenseModal && selectedEnvelope && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
