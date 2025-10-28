@@ -396,24 +396,50 @@ const FinancialPlannerPage: React.FC = () => {
               )}
             </div>
 
-            {/* Savings Goals Summary */}
+            {/* Savings Goals Chart */}
             <div className={`${bgColor} rounded-lg border ${borderColor} p-6 shadow-sm`}>
               <h3 className={`text-lg font-semibold ${textColor} mb-4`}>Resumen de tus Ahorros</h3>
-              <div className="space-y-2">
-                {goals.length > 0 ? (
-                  goals.map(goal => {
-                    const required = calculateRequiredMonthlySavings(goal.targetAmount, goal.currentSavings, goal.monthsToSave, goal.interestRate);
-                    return (
-                      <div key={goal.id} className="text-sm">
-                        <p className={`font-medium ${textColor}`}>{goal.name}</p>
-                        <p className={labelColor}>R$ {required.toFixed(2)}/mes</p>
-                      </div>
-                    );
-                  })
-                ) : (
-                  <p className={labelColor}>Sin metas de ahorro</p>
-                )}
-              </div>
+              {goals.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart
+                    data={goals.map((goal, idx) => ({
+                      name: goal.name,
+                      amount: goal.currentSavings
+                    }))}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#374151' : '#e5e7eb'} />
+                    <XAxis
+                      dataKey="name"
+                      stroke={labelColor}
+                      style={{ fontSize: '12px' }}
+                    />
+                    <YAxis
+                      stroke={labelColor}
+                      style={{ fontSize: '12px' }}
+                      formatter={(value) => `R$ ${value}`}
+                    />
+                    <Tooltip
+                      formatter={(value) => `R$ ${Number(value).toFixed(2)}`}
+                      contentStyle={{
+                        backgroundColor: bgColor,
+                        border: `1px solid ${borderColor}`,
+                        borderRadius: '4px'
+                      }}
+                      labelStyle={{ color: textColor }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="amount"
+                      stroke="#10b981"
+                      strokeWidth={2}
+                      dot={{ fill: '#10b981', r: 4 }}
+                      activeDot={{ r: 6 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <p className={labelColor}>Sin metas de ahorro</p>
+              )}
             </div>
 
             {/* Ant Expenses Alert */}
