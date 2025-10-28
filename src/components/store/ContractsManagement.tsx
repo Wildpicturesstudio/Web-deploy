@@ -156,7 +156,63 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
     }
   };
 
-  useEffect(() => { fetchContracts(); }, []);
+  useEffect(() => {
+    fetchContracts();
+
+    let unsubscribe: (() => void) | null = null;
+
+    const setupRealtimeListener = async () => {
+      try {
+        const q = query(collection(db, 'contracts'), orderBy('createdAt', 'desc'));
+
+        unsubscribe = onSnapshot(q, (snapshot) => {
+          const newItems: ContractItem[] = [];
+          const currentIds = new Set<string>();
+          const newContractIds = new Set<string>();
+
+          snapshot.docs.forEach(d => {
+            const id = d.id;
+            currentIds.add(id);
+            newItems.push({ id, ...(d.data() as any) });
+
+            if (!seenContractIds.has(id)) {
+              newContractIds.add(id);
+            }
+          });
+
+          setContracts(newItems);
+
+          if (newContractIds.size > 0 && seenContractIds.size > 0) {
+            newContractIds.forEach(id => {
+              const newContract = newItems.find(c => c.id === id);
+              if (newContract) {
+                window.dispatchEvent(new CustomEvent('newContractCreated', {
+                  detail: {
+                    contractId: id,
+                    clientName: newContract.clientName,
+                    eventType: newContract.eventType,
+                    eventDate: newContract.eventDate
+                  }
+                }));
+              }
+            });
+          }
+
+          setSeenContractIds(currentIds);
+        }, (error) => {
+          console.error('Error setting up real-time listener:', error);
+        });
+      } catch (e) {
+        console.warn('Could not setup real-time listener:', e);
+      }
+    };
+
+    setupRealtimeListener();
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [seenContractIds]);
 
   useEffect(() => {
     if (!openContractId) return;
@@ -1094,7 +1150,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
                         </div>
                       </div>
                     ))}
-                    <button onClick={()=> setTplEditing(v=> v? { ...v, categories: [...v.categories, { id: uid(), name: 'Nueva categor��a', tasks: [] }] }: v)} className="border px-3 py-2 rounded-none inline-flex items-center gap-2"><Plus size={14}/> Añadir categoría</button>
+                    <button onClick={()=> setTplEditing(v=> v? { ...v, categories: [...v.categories, { id: uid(), name: 'Nueva categoría', tasks: [] }] }: v)} className="border px-3 py-2 rounded-none inline-flex items-center gap-2"><Plus size={14}/> Añadir categoría</button>
                   </div>
                   <div className="flex items-center gap-2">
                     <button onClick={async()=>{
