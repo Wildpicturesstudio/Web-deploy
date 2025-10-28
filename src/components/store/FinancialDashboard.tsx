@@ -260,53 +260,73 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ onNavigate, dar
       {/* KPI Cards Row */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
         {/* Ingresos Totales */}
-        <div className={`${cardBg} rounded border ${borderColor} p-1.5 shadow-sm hover:shadow-md transition-shadow`}>
-          <p className={`text-xs font-medium ${labelColor} truncate`}>Ingresos</p>
-          <p className="text-sm font-bold text-green-600">R$ {metrics.currentMonthRevenue.toFixed(0)}</p>
-          <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center mt-0.5">
-            <DollarSign className="text-green-600" size={12} />
+        <div className={`${cardBg} rounded border ${borderColor} p-2 shadow-sm hover:shadow-md transition-shadow`}>
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <p className={`text-xs font-medium ${labelColor} truncate`}>Ingresos</p>
+              <p className="text-base font-bold text-green-600 leading-tight">R$ {metrics.currentMonthRevenue.toFixed(0)}</p>
+            </div>
+            <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+              <DollarSign className="text-green-600" size={14} />
+            </div>
           </div>
         </div>
 
         {/* Gastos del Mes */}
-        <div className={`${cardBg} rounded border ${borderColor} p-1.5 shadow-sm hover:shadow-md transition-shadow`}>
-          <p className={`text-xs font-medium ${labelColor} truncate`}>Gastos</p>
-          <p className="text-sm font-bold text-orange-600">R$ {metrics.currentMonthExpenses.toFixed(0)}</p>
-          <div className="w-5 h-5 rounded-full bg-orange-100 flex items-center justify-center mt-0.5">
-            <ArrowDownLeft className="text-orange-600" size={12} />
+        <div className={`${cardBg} rounded border ${borderColor} p-2 shadow-sm hover:shadow-md transition-shadow`}>
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <p className={`text-xs font-medium ${labelColor} truncate`}>Gastos</p>
+              <p className="text-base font-bold text-orange-600 leading-tight">R$ {metrics.currentMonthExpenses.toFixed(0)}</p>
+            </div>
+            <div className="w-6 h-6 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
+              <ArrowDownLeft className="text-orange-600" size={14} />
+            </div>
           </div>
         </div>
 
         {/* Utilidad Neta */}
-        <div className={`rounded border p-1.5 shadow-sm hover:shadow-md transition-shadow ${cardBg} ${borderColor}`}>
-          <p className={`text-xs font-medium ${labelColor} truncate`}>Utilidad</p>
-          <p className={`text-sm font-bold ${metrics.currentMonthNetProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-            R$ {metrics.currentMonthNetProfit.toFixed(0)}
-          </p>
-          <div className={`w-5 h-5 rounded-full flex items-center justify-center mt-0.5 ${metrics.currentMonthNetProfit >= 0 ? 'bg-green-100' : 'bg-red-100'}`}>
-            {metrics.currentMonthNetProfit >= 0 ? (
-              <TrendingUp className={metrics.currentMonthNetProfit >= 0 ? 'text-green-600' : 'text-red-600'} size={12} />
-            ) : (
-              <TrendingDown className="text-red-600" size={12} />
-            )}
+        <div className={`rounded border p-2 shadow-sm hover:shadow-md transition-shadow ${cardBg} ${borderColor}`}>
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <p className={`text-xs font-medium ${labelColor} truncate`}>Utilidad</p>
+              <p className={`text-base font-bold leading-tight ${metrics.currentMonthNetProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                R$ {metrics.currentMonthNetProfit.toFixed(0)}
+              </p>
+            </div>
+            <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${metrics.currentMonthNetProfit >= 0 ? 'bg-green-100' : 'bg-red-100'}`}>
+              {metrics.currentMonthNetProfit >= 0 ? (
+                <TrendingUp className={metrics.currentMonthNetProfit >= 0 ? 'text-green-600' : 'text-red-600'} size={14} />
+              ) : (
+                <TrendingDown className="text-red-600" size={14} />
+              )}
+            </div>
           </div>
         </div>
 
         {/* Margen de Utilidad */}
-        <div className={`${cardBg} rounded border ${borderColor} p-1.5 shadow-sm hover:shadow-md transition-shadow`}>
-          <p className={`text-xs font-medium ${labelColor} truncate`}>Margen</p>
-          <p className="text-sm font-bold text-blue-600">{metrics.profitMargin.toFixed(1)}%</p>
-          <div className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center mt-0.5">
-            <Package className="text-blue-600" size={12} />
+        <div className={`${cardBg} rounded border ${borderColor} p-2 shadow-sm hover:shadow-md transition-shadow`}>
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <p className={`text-xs font-medium ${labelColor} truncate`}>Margen</p>
+              <p className="text-base font-bold text-blue-600 leading-tight">{metrics.profitMargin.toFixed(1)}%</p>
+            </div>
+            <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+              <Package className="text-blue-600" size={14} />
+            </div>
           </div>
         </div>
 
         {/* Saldo de Caja Actual */}
-        <div className={`${cardBg} rounded border ${borderColor} p-1.5 shadow-sm hover:shadow-md transition-shadow`}>
-          <p className={`text-xs font-medium ${labelColor} truncate`}>Saldo</p>
-          <p className="text-sm font-bold text-indigo-600">R$ {metrics.currentCashBalance.toFixed(0)}</p>
-          <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center mt-0.5">
-            <DollarSign className="text-indigo-600" size={12} />
+        <div className={`${cardBg} rounded border ${borderColor} p-2 shadow-sm hover:shadow-md transition-shadow`}>
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <p className={`text-xs font-medium ${labelColor} truncate`}>Saldo</p>
+              <p className="text-base font-bold text-indigo-600 leading-tight">R$ {metrics.currentCashBalance.toFixed(0)}</p>
+            </div>
+            <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
+              <DollarSign className="text-indigo-600" size={14} />
+            </div>
           </div>
         </div>
       </div>
