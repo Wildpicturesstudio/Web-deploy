@@ -30,9 +30,35 @@ interface Installment {
 const baseCategories: string[] = ['publicidad', 'equipo', 'software', 'otros'];
 
 const InvestmentsManagement: React.FC = () => {
-  const [items, setItems] = useState<Investment[]>([]);
-  const [installments, setInstallments] = useState<Installment[]>([]);
+  const getCachedInvestments = () => {
+    try {
+      const cached = localStorage.getItem('investments_management_cache');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const getCachedInstallments = () => {
+    try {
+      const cached = localStorage.getItem('installments_management_cache');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const [items, setItems] = useState(() => getCachedInvestments());
+  const [installments, setInstallments] = useState(() => getCachedInstallments());
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem('investments_management_cache', JSON.stringify(items));
+  }, [items]);
+
+  useEffect(() => {
+    localStorage.setItem('installments_management_cache', JSON.stringify(installments));
+  }, [installments]);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Investment | null>(null);
