@@ -271,8 +271,19 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ onNavigate, dar
           <option value="all">Global</option>
           <option value="year">Este año</option>
           <option value="month">Este mes</option>
+          <option value="quincena">Quincena</option>
           <option value="custom">Personalizado</option>
         </select>
+        {period.type === 'quincena' && (
+          <select
+            value={period.quinceType || "1"}
+            onChange={e => setPeriod(p => ({ ...p, quinceType: e.target.value as any }))}
+            className={`px-3 py-2 border rounded-md text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-gray-100' : 'bg-white border-gray-300 text-gray-900'}`}
+          >
+            <option value="1">Primera Quincena (1-15)</option>
+            <option value="2">Segunda Quincena (16-31)</option>
+          </select>
+        )}
         {period.type === 'custom' && (
           <>
             <input
