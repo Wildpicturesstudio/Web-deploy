@@ -436,14 +436,14 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ onNavigate, dar
                   </div>
                 ))
               ) : (
-                <p className="text-gray-500 text-sm text-center py-4">Sin facturas pendientes</p>
+                <p className={`text-sm text-center py-4 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Sin facturas pendientes</p>
               )}
             </div>
           </div>
 
           {/* Top 5 Clientes del Mes */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
-            <h3 className="font-semibold text-gray-800 mb-4">Top 5 Clientes del Período</h3>
+          <div className={`${cardBg} rounded-lg border ${borderColor} p-6 shadow-sm`}>
+            <h3 className={`font-semibold mb-4 ${darkMode ? 'text-gray-100' : 'text-gray-800'}`}>Top 5 Clientes del Período</h3>
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {metrics.topClients.length > 0 ? (
                 metrics.topClients.map((client, idx) => (
