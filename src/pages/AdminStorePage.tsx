@@ -253,7 +253,7 @@ const AdminStorePage: React.FC = () => {
 
       {/* Mobile Dropdown */}
       {!adminFullscreen && (
-        <div className="sticky top-16 z-50 md:hidden px-2 py-2 space-y-2 flex-shrink-0 bg-white border-b border-gray-200">
+        <div className="sticky top-0 z-40 md:hidden px-2 py-2 space-y-2 flex-shrink-0 bg-white border-b border-gray-200">
           <select
             value={adminView}
             onChange={(e) => setAdminView(e.target.value as any)}
