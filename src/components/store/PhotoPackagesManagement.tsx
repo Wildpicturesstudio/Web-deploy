@@ -14,8 +14,21 @@ function parsePrice(value: string): number {
 }
 
 const PhotoPackagesManagement = () => {
-  const [packages, setPackages] = useState<DBPackage[]>([]);
+  const getCachedPackages = () => {
+    try {
+      const cached = localStorage.getItem('packages_management_cache');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const [packages, setPackages] = useState(() => getCachedPackages());
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem('packages_management_cache', JSON.stringify(packages));
+  }, [packages]);
   const [error, setError] = useState<string | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
   const [editing, setEditing] = useState<DBPackage | null>(null);
