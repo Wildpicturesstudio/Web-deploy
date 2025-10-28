@@ -59,7 +59,7 @@ const ClientPhotoGallery = ({ shareToken }: { shareToken: string }) => {
       );
       const contractsSnap = await getDocs(contractsQuery);
 
-      if (!contractsSnap.empty) {
+      if (contractsSnap.docs.length > 0) {
         const contractData = {
           id: contractsSnap.docs[0].id,
           ...contractsSnap.docs[0].data(),
