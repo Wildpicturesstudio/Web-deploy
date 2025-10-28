@@ -367,7 +367,7 @@ const AdminStorePage: React.FC = () => {
               </div>
             </div>
 
-            {adminView === 'dashboard' && <FinancialDashboard onNavigate={v => setAdminView(v)} />}
+            {adminView === 'dashboard' && <FinancialDashboard onNavigate={v => setAdminView(v)} darkMode={adminDark} />}
             {adminView === 'products' && (
               <div>
                 <div className="flex justify-between items-center mb-6">
