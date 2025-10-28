@@ -74,39 +74,37 @@ const ClientPhotoGallery = ({ shareToken }: { shareToken: string }) => {
         setMaxPhotosInPackage(estimatedPhotos);
       }
 
-      // Load photos from storage
+      // Load photos from Firestore
       try {
-        const photosRef = ref(storage, `photo-libraries/${contractId}`);
+        const libraryDoc = await getDocs(query(
+          collection(db, 'photo-libraries'),
+          where('__name__', '==', contractId)
+        ));
 
-        try {
-          const fileList = await listAll(photosRef);
+        const photosList: Photo[] = [];
 
-          const photosList: Photo[] = [];
-          for (const file of fileList.items) {
+        if (!libraryDoc.empty) {
+          const libraryData = libraryDoc.docs[0].data() as any;
+          const photoNames = libraryData.photos || [];
+
+          for (const photoName of photoNames) {
             try {
-              const url = await getDownloadURL(file);
+              const storageRef = ref(storage, `photo-libraries/${contractId}/${photoName}`);
+              const url = await getDownloadURL(storageRef);
               photosList.push({
-                id: file.name,
-                name: file.name,
+                id: photoName,
+                name: photoName,
                 url: url,
               });
             } catch (urlError) {
-              console.warn(`Error getting URL for ${file.name}:`, urlError);
+              console.warn(`Error getting URL for ${photoName}:`, urlError);
             }
           }
-
-          setPhotos(photosList);
-        } catch (listError: any) {
-          // If directory doesn't exist or timeout, show empty
-          if (listError?.code === 'storage/invalid-root-operation' || listError?.code === 'storage/retry-limit-exceeded') {
-            console.log('Photo directory not ready yet');
-            setPhotos([]);
-          } else {
-            throw listError;
-          }
         }
-      } catch (storageError: any) {
-        console.warn('Error loading photos from storage:', storageError);
+
+        setPhotos(photosList);
+      } catch (error: any) {
+        console.warn('Error loading photos from firestore:', error);
         setPhotos([]);
       }
     } catch (error) {
