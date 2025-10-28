@@ -74,25 +74,15 @@ const AdminStoreDashboard: React.FC<AdminProps> = ({ onNavigate }) => {
     }
   };
 
-  const [stats, setStats] = useState({ products: 0, orders: 0, income: 0, customers: 0 });
-  const [recentOrders, setRecentOrders] = useState<OrderItem[]>([]);
-  const [allOrders, setAllOrders] = useState<OrderItem[]>([]);
-  const [products, setProducts] = useState<ProductLite[]>([]);
-  const [contracts, setContracts] = useState<any[]>([]);
-  const [investmentInstallments, setInvestmentInstallments] = useState<any[]>([]);
+  const [stats, setStats] = useState(getCachedStats);
+  const [recentOrders, setRecentOrders] = useState(getCachedOrders);
+  const [allOrders, setAllOrders] = useState(getCachedOrders);
+  const [products, setProducts] = useState(getCachedProducts);
+  const [contracts, setContracts] = useState(getCachedContracts);
+  const [investmentInstallments, setInvestmentInstallments] = useState(getCachedInstallments);
   const [period, setPeriod] = useState<{ type: 'all' | 'year' | 'month' | 'custom'; start?: string; end?: string }>({ type: 'all' });
   const [metric, setMetric] = useState<'revenue' | 'contracts'>('revenue');
   const { flags, setPageEnabled } = useFeatureFlags();
-
-  // Initialize with cache
-  useEffect(() => {
-    setStats(getCachedStats());
-    setRecentOrders(getCachedOrders());
-    setAllOrders(getCachedOrders());
-    setContracts(getCachedContracts());
-    setProducts(getCachedProducts());
-    setInvestmentInstallments(getCachedInstallments());
-  }, []);
 
   useEffect(() => {
     (async () => {
