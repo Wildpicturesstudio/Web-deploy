@@ -1,8 +1,7 @@
-import { useState, useEffect, useMemo } from 'react';
-import { db } from '../../utils/firebaseClient';
+import { useState, useEffect } from 'react';
+import { db, storage } from '../../utils/firebaseClient';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { ref, listAll, getDownloadURL } from 'firebase/storage';
-import { storage } from '../../utils/firebaseClient';
 import { ArrowLeft, Heart, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
