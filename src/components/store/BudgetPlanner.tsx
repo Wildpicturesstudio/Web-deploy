@@ -63,10 +63,8 @@ const BudgetPlanner: React.FC<BudgetPlannerProps> = ({ onNavigate, darkMode = fa
     paidContracts: [],
   });
   const [loading, setLoading] = useState(true);
-  const [showIncomeModal, setShowIncomeModal] = useState(false);
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const [selectedEnvelope, setSelectedEnvelope] = useState<string | null>(null);
-  const [incomeAmount, setIncomeAmount] = useState('');
   const [expenseData, setExpenseData] = useState({ amount: '', description: '' });
 
   const currentMonth = new Date().toLocaleString('es', { month: 'long', year: 'numeric' });
