@@ -24,6 +24,7 @@ const PackagesAdminPage = safeLazy(() => import('./pages/PackagesAdminPage'));
 const AdminStorePage = lazyWithRetry(() => import('./pages/AdminStorePage'));
 const AdminContractPreviewPage = safeLazy(() => import('./pages/AdminContractPreviewPage'));
 const PhotoSharingPage = safeLazy(() => import('./pages/PhotoSharingPage'));
+const FinancialPlannerPage = safeLazy(() => import('./pages/FinancialPlannerPage'));
 import './styles/globals.css';
 import ErrorBoundary from './components/ui/ErrorBoundary';
 
