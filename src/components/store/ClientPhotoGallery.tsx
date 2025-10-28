@@ -77,28 +77,36 @@ const ClientPhotoGallery = ({ shareToken }: { shareToken: string }) => {
       // Load photos from storage
       try {
         const photosRef = ref(storage, `photo-libraries/${contractId}`);
-        const fileList = await listAll(photosRef);
 
-        const photosList: Photo[] = [];
-        for (const file of fileList.items) {
-          try {
-            const url = await getDownloadURL(file);
-            photosList.push({
-              id: file.name,
-              name: file.name,
-              url: url,
-            });
-          } catch (urlError) {
-            console.warn(`Error getting URL for ${file.name}:`, urlError);
+        try {
+          const fileList = await listAll(photosRef);
+
+          const photosList: Photo[] = [];
+          for (const file of fileList.items) {
+            try {
+              const url = await getDownloadURL(file);
+              photosList.push({
+                id: file.name,
+                name: file.name,
+                url: url,
+              });
+            } catch (urlError) {
+              console.warn(`Error getting URL for ${file.name}:`, urlError);
+            }
+          }
+
+          setPhotos(photosList);
+        } catch (listError: any) {
+          // If directory doesn't exist or timeout, show empty
+          if (listError?.code === 'storage/invalid-root-operation' || listError?.code === 'storage/retry-limit-exceeded') {
+            console.log('Photo directory not ready yet');
+            setPhotos([]);
+          } else {
+            throw listError;
           }
         }
-
-        setPhotos(photosList);
       } catch (storageError: any) {
-        // If directory doesn't exist, just show empty
-        if (storageError.code !== 'storage/invalid-root-operation') {
-          console.warn('Error loading photos from storage:', storageError);
-        }
+        console.warn('Error loading photos from storage:', storageError);
         setPhotos([]);
       }
     } catch (error) {
