@@ -254,7 +254,7 @@ const AdminStoreDashboard: React.FC<AdminProps> = ({ onNavigate }) => {
   return (
     <div className="space-y-4 md:space-y-6">
       {/* Period Filter at the top */}
-      <div className="bg-white rounded-xl border border-gray-200 p-3 md:p-4 flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
+      <div className="bg-white rounded-xl border border-gray-200 py-1 px-4 flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
         <label className="text-sm font-medium text-gray-700">Periodo:</label>
         <select value={period.type} onChange={e=> setPeriod({ type: e.target.value as any })} className="px-3 py-2 border rounded-none">
           <option value="all">Global</option>
