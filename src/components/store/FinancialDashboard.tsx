@@ -265,16 +265,16 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ onNavigate, dar
           <h2 className={`text-lg font-semibold px-2 ${darkMode ? 'text-gray-100' : 'text-gray-800'}`}>Indicadores Clave</h2>
 
           {/* Ingresos Totales */}
-          <div className={`${cardBg} rounded-lg border ${borderColor} p-6 shadow-sm hover:shadow-md transition-shadow`}>
+          <div className={`${cardBg} rounded-lg border ${borderColor} p-3 shadow-sm hover:shadow-md transition-shadow`}>
             <div className="flex items-start justify-between">
               <div>
-                <p className={`text-sm font-medium ${labelColor}`}>Ingresos Totales</p>
-                <p className="text-3xl font-bold text-green-600 mt-2">
+                <p className={`text-xs font-medium ${labelColor}`}>Ingresos Totales</p>
+                <p className="text-xl font-bold text-green-600 mt-1">
                   R$ {metrics.currentMonthRevenue.toFixed(0)}
                 </p>
               </div>
-              <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
-                <DollarSign className="text-green-600" size={24} />
+              <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                <DollarSign className="text-green-600" size={16} />
               </div>
             </div>
           </div>
