@@ -442,19 +442,27 @@ const FinancialPlannerPage: React.FC = () => {
               )}
             </div>
 
-            {/* Ant Expenses Alert */}
+            {/* Expense Breakdown by Category */}
             <div className={`${bgColor} rounded-lg border ${borderColor} p-6 shadow-sm`}>
-              <h3 className={`text-lg font-semibold ${textColor} mb-4`}>Gastos Hormiga 🐜</h3>
-              <div className={`p-4 rounded-lg ${antExpensesTotal > antExpensesBudget ? 'bg-red-100 border border-red-300' : 'bg-green-100 border border-green-300'}`}>
-                <p className={`text-sm font-medium ${antExpensesTotal > antExpensesBudget ? 'text-red-700' : 'text-green-700'}`}>
-                  {antExpensesTotal > antExpensesBudget
-                    ? `¡Cuidado! Has excedido tu presupuesto de gastos hormiga en R$ ${(antExpensesTotal - antExpensesBudget).toFixed(2)}`
-                    : `Vas bien. Presupuesto disponible: R$ ${(antExpensesBudget - antExpensesTotal).toFixed(2)}`}
-                </p>
-                <p className={`text-xs mt-2 ${antExpensesTotal > antExpensesBudget ? 'text-red-600' : 'text-green-600'}`}>
-                  Gastado: R$ {antExpensesTotal.toFixed(2)} de R$ {antExpensesBudget.toFixed(2)}
-                </p>
-              </div>
+              <h3 className={`text-lg font-semibold ${textColor} mb-4`}>Desglose de gastos</h3>
+              {expenses.length > 0 ? (
+                <div className="overflow-y-auto max-h-64">
+                  <div className="space-y-2">
+                    {expenseBreakdown.map((expense, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-2 rounded border-b" style={{borderColor: borderColor}}>
+                        <span className={textColor}>{expense.category}</span>
+                        <span className="font-semibold text-green-600">R$ {expense.amount.toFixed(2)}</span>
+                      </div>
+                    ))}
+                    <div className="flex items-center justify-between p-3 rounded-lg mt-4 font-bold" style={{backgroundColor: darkMode ? '#1f2937' : '#f3f4f6'}}>
+                      <span className={textColor}>Total Gastos</span>
+                      <span className="text-red-600">R$ {totalExpenses.toFixed(2)}</span>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <p className={labelColor}>Sin gastos registrados</p>
+              )}
             </div>
           </div>
         </section>
