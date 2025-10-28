@@ -4,7 +4,6 @@ import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, orderBy, query, se
 import { ChevronDown, ChevronUp, CheckCircle, Clock, FileText, Loader, Mail, MapPin, Phone, Settings, Trash2, User, DollarSign, Link as LinkIcon, Calendar, Pencil, Plus, X, Trash, Image } from 'lucide-react';
 import { defaultWorkflow, categoryColors, WorkflowTemplate } from './_contractsWorkflowHelper';
 import { generatePDF } from '../../utils/pdf';
-import { useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { WorkflowStatusButtons } from './WorkflowStatusButtons';
 
@@ -925,7 +924,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
               <div className="mt-4 flex flex-wrap gap-2">
                 {wfEditMode && (
                   <button onClick={()=>{
-                    setWorkflow(w=>{ const n = w? [...w]:[]; n.push({ id: uid(), name: 'Nueva categor��a', tasks: [] }); return n;});
+                    setWorkflow(w=>{ const n = w? [...w]:[]; n.push({ id: uid(), name: 'Nueva categoría', tasks: [] }); return n;});
                   }} className="border-2 border-black text-black px-3 py-2 rounded-none hover:bg-black hover:text-white inline-flex items-center gap-2"><Plus size={14}/> Añadir categoría</button>
                 )}
                 <button onClick={saveWorkflow} disabled={savingWf} className="border-2 border-black bg-black text-white px-3 py-2 rounded-none hover:opacity-90 disabled:opacity-50">Guardar</button>
