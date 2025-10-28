@@ -28,6 +28,52 @@ interface ProductLite { id: string; name: string }
 
 interface AdminProps { onNavigate?: (view: 'dashboard' | 'products' | 'orders' | 'contracts' | 'calendar') => void }
 const AdminStoreDashboard: React.FC<AdminProps> = ({ onNavigate }) => {
+  // Load from cache first
+  const getCachedStats = () => {
+    try {
+      const cached = localStorage.getItem('dashboard_stats_cache');
+      return cached ? JSON.parse(cached) : { products: 0, orders: 0, income: 0, customers: 0 };
+    } catch {
+      return { products: 0, orders: 0, income: 0, customers: 0 };
+    }
+  };
+
+  const getCachedOrders = () => {
+    try {
+      const cached = localStorage.getItem('dashboard_orders_cache');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const getCachedContracts = () => {
+    try {
+      const cached = localStorage.getItem('dashboard_contracts_cache');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const getCachedProducts = () => {
+    try {
+      const cached = localStorage.getItem('dashboard_products_cache');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const getCachedInstallments = () => {
+    try {
+      const cached = localStorage.getItem('dashboard_installments_cache');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  };
+
   const [stats, setStats] = useState({ products: 0, orders: 0, income: 0, customers: 0 });
   const [recentOrders, setRecentOrders] = useState<OrderItem[]>([]);
   const [allOrders, setAllOrders] = useState<OrderItem[]>([]);
@@ -37,6 +83,16 @@ const AdminStoreDashboard: React.FC<AdminProps> = ({ onNavigate }) => {
   const [period, setPeriod] = useState<{ type: 'all' | 'year' | 'month' | 'custom'; start?: string; end?: string }>({ type: 'all' });
   const [metric, setMetric] = useState<'revenue' | 'contracts'>('revenue');
   const { flags, setPageEnabled } = useFeatureFlags();
+
+  // Initialize with cache
+  useEffect(() => {
+    setStats(getCachedStats());
+    setRecentOrders(getCachedOrders());
+    setAllOrders(getCachedOrders());
+    setContracts(getCachedContracts());
+    setProducts(getCachedProducts());
+    setInvestmentInstallments(getCachedInstallments());
+  }, []);
 
   useEffect(() => {
     (async () => {
