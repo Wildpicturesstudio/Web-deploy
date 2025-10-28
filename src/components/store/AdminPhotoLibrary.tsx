@@ -98,15 +98,27 @@ const AdminPhotoLibrary = ({ contractId, clientName }: { contractId: string; cli
         const file = files[i];
         const timestamp = Date.now();
         const fileName = `${timestamp}_${file.name}`;
-        const storageRef = ref(storage, `photo-libraries/${contractId}/${fileName}`);
 
-        await uploadBytes(storageRef, file);
+        try {
+          const storageRef = ref(storage, `photo-libraries/${contractId}/${fileName}`);
+          console.log('Uploading to:', `photo-libraries/${contractId}/${fileName}`);
+
+          const result = await uploadBytes(storageRef, file, {
+            contentType: file.type,
+          });
+          console.log('Upload successful:', result.metadata.name);
+        } catch (uploadError: any) {
+          console.error(`Error uploading ${file.name}:`, uploadError);
+          throw uploadError;
+        }
       }
 
+      // Wait a moment then reload
+      await new Promise(resolve => setTimeout(resolve, 1000));
       await loadPhotos();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error uploading photos:', error);
-      alert('Error al subir fotos');
+      alert(`Error al subir fotos: ${error?.message || error}`);
     } finally {
       setUploading(false);
     }
