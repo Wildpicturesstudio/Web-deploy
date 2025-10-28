@@ -302,7 +302,6 @@ const FinancialPlannerPage: React.FC = () => {
       <div className={`sticky top-0 z-50 ${bgColor} border-b ${borderColor} shadow-sm`}>
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex justify-between items-center mb-4">
-            <h1 className={`text-3xl font-bold ${textColor}`}>Planificador Financiero</h1>
             <button onClick={() => setDarkMode(!darkMode)} className="p-2">
               {darkMode ? <Eye size={20} /> : <EyeOff size={20} />}
             </button>
