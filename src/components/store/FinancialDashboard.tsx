@@ -165,6 +165,12 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ onNavigate, dar
     return paid;
   };
 
+  const isShortPeriod = period.type === 'quincena' || (period.type === 'custom' && period.start && period.end && (() => {
+    const start = new Date(period.start);
+    const end = new Date(period.end);
+    return (end.getTime() - start.getTime()) <= (15 * 24 * 60 * 60 * 1000);
+  })());
+
   const filteredContracts = useMemo(() => {
     return contracts.filter((c: Contract) => isInPeriod(c.contractDate || c.eventDate || c.createdAt));
   }, [contracts, period]);
