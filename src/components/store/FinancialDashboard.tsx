@@ -232,11 +232,6 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ onNavigate, dar
     const cashBalance = completedRevenue;
 
     const monthlyData = computeMonthlyData(filteredContracts, investmentInstallments, period);
-    const isShortPeriod = period.type === 'quincena' || (period.type === 'custom' && period.start && period.end && (() => {
-      const start = new Date(period.start);
-      const end = new Date(period.end);
-      return (end.getTime() - start.getTime()) <= (15 * 24 * 60 * 60 * 1000);
-    })());
     const expensesByCategory = [
       { category: 'Inversiones', amount: expenses },
       { category: 'Otros Gastos', amount: Math.max(0, completedRevenue * 0.1) }
