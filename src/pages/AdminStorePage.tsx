@@ -27,7 +27,7 @@ const AdminStorePage: React.FC = () => {
     setIsCartOpen(false);
   }, [setIsCartOpen]);
 
-  const [adminView, setAdminView] = useState<'dashboard' | 'products' | 'orders' | 'contracts' | 'packages' | 'coupons' | 'settings' | 'calendar' | 'investments'>(() => {
+  const [adminView, setAdminView] = useState<'dashboard' | 'products' | 'orders' | 'contracts' | 'packages' | 'coupons' | 'settings' | 'calendar' | 'investments' | 'planner'>(() => {
     try { return (localStorage.getItem('admin_view') as any) || 'dashboard'; } catch { return 'dashboard'; }
   });
   const [adminFullscreen, setAdminFullscreen] = useState<boolean>(() => {
