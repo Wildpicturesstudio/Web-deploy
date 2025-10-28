@@ -243,27 +243,30 @@ const BudgetPlanner: React.FC<BudgetPlannerProps> = ({ onNavigate, darkMode = fa
     <div className={`space-y-6 ${darkMode ? 'bg-black' : ''}`}>
       {/* Header Section */}
       <div className={`${bgColor} rounded-lg border ${borderColor} p-6 shadow-sm`}>
-        <h1 className={`text-2xl font-bold ${textColor} mb-6`}>Planificador - {currentMonth.charAt(0).toUpperCase() + currentMonth.slice(1)}</h1>
+        <h1 className={`text-2xl font-bold ${textColor} mb-4`}>Planificador - {currentMonth.charAt(0).toUpperCase() + currentMonth.slice(1)}</h1>
 
-        {/* Income from Paid Contracts */}
-        <div className={`rounded-lg border ${borderColor} p-4 ${darkMode ? 'bg-gray-800' : 'bg-gray-50'} mb-4`}>
-          <p className={`text-sm font-medium ${labelColor} mb-1`}>Ingresos (de Contratos Pagados)</p>
-          <p className="text-3xl font-bold text-green-600">R$ {budgetData.totalIncome.toFixed(2)}</p>
-          <p className={`text-xs ${labelColor} mt-2`}>{budgetData.paidContracts.length} contrato(s) pagado(s)</p>
-        </div>
+        {/* Cards Grid - Side by Side and Smaller */}
+        <div className="grid grid-cols-2 gap-3">
+          {/* Income from Paid Contracts */}
+          <div className={`rounded-lg border ${borderColor} p-2 ${darkMode ? 'bg-gray-800' : 'bg-gray-50'}`}>
+            <p className={`text-xs font-medium ${labelColor} mb-0.5`}>Ingresos (de Contratos Pagados)</p>
+            <p className="text-lg font-bold text-green-600">R$ {budgetData.totalIncome.toFixed(2)}</p>
+            <p className={`text-xs ${labelColor} mt-1`}>{budgetData.paidContracts.length} contrato(s) pagado(s)</p>
+          </div>
 
-        {/* Available Income Card */}
-        <div className={`rounded-lg border ${borderColor} p-4 ${darkMode ? 'bg-gray-800' : 'bg-gray-50'}`}>
-          <p className={`text-sm font-medium ${labelColor} mb-1`}>Ingresos Disponibles (Saldo)</p>
-          <p className="text-4xl font-bold text-blue-600">R$ {budgetData.totalAvailable.toFixed(2)}</p>
-          <div className="flex gap-6 mt-3 text-sm">
-            <div>
-              <p className={labelColor}>Total Asignado a Sobres</p>
-              <p className={`font-semibold ${textColor}`}>R$ {budgetData.totalAllocated.toFixed(2)}</p>
-            </div>
-            <div>
-              <p className={labelColor}>Total Gastado</p>
-              <p className={`font-semibold ${textColor}`}>R$ {budgetData.totalSpent.toFixed(2)}</p>
+          {/* Available Income Card */}
+          <div className={`rounded-lg border ${borderColor} p-2 ${darkMode ? 'bg-gray-800' : 'bg-gray-50'}`}>
+            <p className={`text-xs font-medium ${labelColor} mb-0.5`}>Ingresos Disponibles (Saldo)</p>
+            <p className="text-lg font-bold text-blue-600">R$ {budgetData.totalAvailable.toFixed(2)}</p>
+            <div className="mt-2 text-xs space-y-0.5">
+              <div className="flex justify-between">
+                <span className={labelColor}>Asignado:</span>
+                <span className={`font-semibold ${textColor}`}>R$ {budgetData.totalAllocated.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className={labelColor}>Gastado:</span>
+                <span className={`font-semibold ${textColor}`}>R$ {budgetData.totalSpent.toFixed(2)}</span>
+              </div>
             </div>
           </div>
         </div>
