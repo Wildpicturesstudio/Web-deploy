@@ -110,6 +110,11 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
   const navigate = useNavigate();
   const [templates, setTemplates] = useState<WorkflowTemplate[]>([]);
   const [tplEditing, setTplEditing] = useState<WorkflowTemplate | null>(null);
+
+  // Cache contracts whenever they change
+  useEffect(() => {
+    localStorage.setItem('contracts_management_cache', JSON.stringify(contracts));
+  }, [contracts]);
   const [defaults, setDefaults] = useState<{ packages?: string; products?: string }>({});
   const [packagesList, setPackagesList] = useState<{ id: string; title: string; duration?: string; price?: number }[]>([]);
   const [productsList, setProductsList] = useState<any[]>([]);
