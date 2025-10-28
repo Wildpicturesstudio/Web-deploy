@@ -175,14 +175,14 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
             currentIds.add(id);
             newItems.push({ id, ...(d.data() as any) });
 
-            if (!seenContractIds.has(id)) {
+            if (!seenContractIdsRef.current.has(id)) {
               newContractIds.add(id);
             }
           });
 
           setContracts(newItems);
 
-          if (newContractIds.size > 0 && seenContractIds.size > 0) {
+          if (newContractIds.size > 0 && seenContractIdsRef.current.size > 0) {
             newContractIds.forEach(id => {
               const newContract = newItems.find(c => c.id === id);
               if (newContract) {
@@ -198,7 +198,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
             });
           }
 
-          setSeenContractIds(currentIds);
+          seenContractIdsRef.current = currentIds;
         }, (error) => {
           console.error('Error setting up real-time listener:', error);
         });
@@ -212,7 +212,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
     return () => {
       if (unsubscribe) unsubscribe();
     };
-  }, [seenContractIds]);
+  }, []);
 
   useEffect(() => {
     if (!openContractId) return;
@@ -1362,7 +1362,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
               <input value={createForm.clientRG} onChange={e => setCreateForm((f: any) => ({ ...f, clientRG: e.target.value }))} className="w-full px-3 py-2 border rounded-none" />
             </div>
             <div className="md:col-span-2">
-              <label className="text-xs text-gray-600">Endere��o</label>
+              <label className="text-xs text-gray-600">Endereço</label>
               <input value={createForm.clientAddress} onChange={e => setCreateForm((f: any) => ({ ...f, clientAddress: e.target.value }))} className="w-full px-3 py-2 border rounded-none" />
             </div>
             <div>
