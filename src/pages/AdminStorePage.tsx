@@ -340,6 +340,7 @@ const AdminStorePage: React.FC = () => {
         {adminView === 'packages' && <PhotoPackagesManagement />}
         {adminView === 'coupons' && <CouponsManagement />}
         {adminView === 'investments' && <InvestmentsManagement />}
+        {adminView === 'planner' && <BudgetPlanner onNavigate={(v) => setAdminView(v)} darkMode={adminDark} />}
         {adminView === 'settings' && <StoreSettings />}
       </div>
 
