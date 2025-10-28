@@ -257,153 +257,110 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ onNavigate, dar
         )}
       </div>
 
-      {/* 3-Column Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-        {/* COLUMN 1: KPIs */}
-        <div className="space-y-4">
-          <h2 className={`text-lg font-semibold px-2 ${darkMode ? 'text-gray-100' : 'text-gray-800'}`}>Indicadores Clave</h2>
-
-          {/* Ingresos Totales */}
-          <div className={`${cardBg} rounded-lg border ${borderColor} p-3 shadow-sm hover:shadow-md transition-shadow`}>
-            <div className="flex items-start justify-between">
-              <div>
-                <p className={`text-xs font-medium ${labelColor}`}>Ingresos Totales</p>
-                <p className="text-xl font-bold text-green-600 mt-1">
-                  R$ {metrics.currentMonthRevenue.toFixed(0)}
-                </p>
-              </div>
-              <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
-                <DollarSign className="text-green-600" size={16} />
-              </div>
-            </div>
-          </div>
-
-          {/* Gastos del Mes */}
-          <div className={`${cardBg} rounded-lg border ${borderColor} p-3 shadow-sm hover:shadow-md transition-shadow`}>
-            <div className="flex items-start justify-between">
-              <div>
-                <p className={`text-xs font-medium ${labelColor}`}>Gastos del Mes</p>
-                <p className="text-xl font-bold text-orange-600 mt-1">
-                  R$ {metrics.currentMonthExpenses.toFixed(0)}
-                </p>
-              </div>
-              <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center">
-                <ArrowDownLeft className="text-orange-600" size={16} />
-              </div>
-            </div>
-          </div>
-
-          {/* Utilidad Neta */}
-          <div className={`rounded-lg border p-3 shadow-sm hover:shadow-md transition-shadow ${cardBg} ${borderColor}`}>
-            <div className="flex items-start justify-between">
-              <div>
-                <p className={`text-xs font-medium ${labelColor}`}>Utilidad Neta</p>
-                <p className={`text-xl font-bold mt-1 ${
-                  metrics.currentMonthNetProfit >= 0 ? 'text-green-600' : 'text-red-600'
-                }`}>
-                  R$ {metrics.currentMonthNetProfit.toFixed(0)}
-                </p>
-              </div>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                metrics.currentMonthNetProfit >= 0
-                  ? 'bg-green-100'
-                  : 'bg-red-100'
-              }`}>
-                {metrics.currentMonthNetProfit >= 0 ? (
-                  <TrendingUp className={metrics.currentMonthNetProfit >= 0 ? 'text-green-600' : 'text-red-600'} size={16} />
-                ) : (
-                  <TrendingDown className="text-red-600" size={16} />
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Margen de Utilidad */}
-          <div className={`${cardBg} rounded-lg border ${borderColor} p-3 shadow-sm hover:shadow-md transition-shadow`}>
-            <div className="flex items-start justify-between">
-              <div>
-                <p className={`text-xs font-medium ${labelColor}`}>Margen de Utilidad</p>
-                <p className="text-xl font-bold text-blue-600 mt-1">
-                  {metrics.profitMargin.toFixed(1)}%
-                </p>
-              </div>
-              <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                <Package className="text-blue-600" size={16} />
-              </div>
-            </div>
-          </div>
-
-          {/* Saldo de Caja Actual */}
-          <div className={`${cardBg} rounded-lg border ${borderColor} p-3 shadow-sm hover:shadow-md transition-shadow`}>
-            <div className="flex items-start justify-between">
-              <div>
-                <p className={`text-xs font-medium ${labelColor}`}>Saldo de Caja Actual</p>
-                <p className="text-xl font-bold text-indigo-600 mt-1">
-                  R$ {metrics.currentCashBalance.toFixed(0)}
-                </p>
-              </div>
-              <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center">
-                <DollarSign className="text-indigo-600" size={16} />
-              </div>
-            </div>
+      {/* KPI Cards Row */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+        {/* Ingresos Totales */}
+        <div className={`${cardBg} rounded border ${borderColor} p-1.5 shadow-sm hover:shadow-md transition-shadow`}>
+          <p className={`text-2xs font-medium ${labelColor} truncate`}>Ingresos</p>
+          <p className="text-sm font-bold text-green-600">R$ {metrics.currentMonthRevenue.toFixed(0)}</p>
+          <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center mt-0.5">
+            <DollarSign className="text-green-600" size={12} />
           </div>
         </div>
 
-        {/* COLUMN 2: Visual Analytics */}
-        <div className="space-y-4">
-          <h2 className={`text-lg font-semibold px-2 ${darkMode ? 'text-gray-100' : 'text-gray-800'}`}>Análisis Visual</h2>
-
-          {/* Line Chart - Rentabilidad Mensual */}
-          <div className={`${cardBg} rounded-lg border ${borderColor} p-6 shadow-sm`}>
-            <h3 className={`font-semibold mb-4 ${darkMode ? 'text-gray-100' : 'text-gray-800'}`}>Rentabilidad Mensual</h3>
-            <div className="h-64">
-              <Suspense fallback={<div className={`h-64 flex items-center justify-center ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Cargando gráfico...</div>}>
-                <ChartPerformance
-                  data={metrics.monthlyData}
-                  products={[]}
-                  selectedProductId="all"
-                  selectedProductIdB="none"
-                  mode="financial"
-                />
-              </Suspense>
-            </div>
+        {/* Gastos del Mes */}
+        <div className={`${cardBg} rounded border ${borderColor} p-1.5 shadow-sm hover:shadow-md transition-shadow`}>
+          <p className={`text-2xs font-medium ${labelColor} truncate`}>Gastos</p>
+          <p className="text-sm font-bold text-orange-600">R$ {metrics.currentMonthExpenses.toFixed(0)}</p>
+          <div className="w-5 h-5 rounded-full bg-orange-100 flex items-center justify-center mt-0.5">
+            <ArrowDownLeft className="text-orange-600" size={12} />
           </div>
+        </div>
 
-          {/* Pie Chart - Desglose de Gastos */}
-          <div className={`${cardBg} rounded-lg border ${borderColor} p-6 shadow-sm`}>
-            <h3 className={`font-semibold mb-4 ${darkMode ? 'text-gray-100' : 'text-gray-800'}`}>Desglose de Gastos</h3>
-            <div className="space-y-3">
-              {metrics.expensesByCategory.length > 0 ? (
-                metrics.expensesByCategory.map((cat, idx) => {
-                  const total = metrics.expensesByCategory.reduce((sum, c) => sum + c.amount, 0);
-                  const percentage = total > 0 ? (cat.amount / total) * 100 : 0;
-                  const colors = ['bg-orange-500', 'bg-red-500', 'bg-yellow-500'];
-                  return (
-                    <div key={idx} className="flex items-center gap-3">
-                      <div className={`w-4 h-4 rounded-full ${colors[idx % colors.length]}`}></div>
-                      <div className="flex-1">
-                        <div className="flex justify-between items-center mb-1">
-                          <span className={`text-sm font-medium ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>{cat.category}</span>
-                          <span className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>R$ {cat.amount.toFixed(0)}</span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div
-                            className={`h-2 rounded-full ${colors[idx % colors.length]}`}
-                            style={{ width: `${percentage}%` }}
-                          ></div>
-                        </div>
+        {/* Utilidad Neta */}
+        <div className={`rounded border p-1.5 shadow-sm hover:shadow-md transition-shadow ${cardBg} ${borderColor}`}>
+          <p className={`text-2xs font-medium ${labelColor} truncate`}>Utilidad</p>
+          <p className={`text-sm font-bold ${metrics.currentMonthNetProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            R$ {metrics.currentMonthNetProfit.toFixed(0)}
+          </p>
+          <div className={`w-5 h-5 rounded-full flex items-center justify-center mt-0.5 ${metrics.currentMonthNetProfit >= 0 ? 'bg-green-100' : 'bg-red-100'}`}>
+            {metrics.currentMonthNetProfit >= 0 ? (
+              <TrendingUp className={metrics.currentMonthNetProfit >= 0 ? 'text-green-600' : 'text-red-600'} size={12} />
+            ) : (
+              <TrendingDown className="text-red-600" size={12} />
+            )}
+          </div>
+        </div>
+
+        {/* Margen de Utilidad */}
+        <div className={`${cardBg} rounded border ${borderColor} p-1.5 shadow-sm hover:shadow-md transition-shadow`}>
+          <p className={`text-2xs font-medium ${labelColor} truncate`}>Margen</p>
+          <p className="text-sm font-bold text-blue-600">{metrics.profitMargin.toFixed(1)}%</p>
+          <div className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center mt-0.5">
+            <Package className="text-blue-600" size={12} />
+          </div>
+        </div>
+
+        {/* Saldo de Caja Actual */}
+        <div className={`${cardBg} rounded border ${borderColor} p-1.5 shadow-sm hover:shadow-md transition-shadow`}>
+          <p className={`text-2xs font-medium ${labelColor} truncate`}>Saldo</p>
+          <p className="text-sm font-bold text-indigo-600">R$ {metrics.currentCashBalance.toFixed(0)}</p>
+          <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center mt-0.5">
+            <DollarSign className="text-indigo-600" size={12} />
+          </div>
+        </div>
+      </div>
+
+      {/* Charts Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Line Chart - Rentabilidad Mensual */}
+        <div className={`${cardBg} rounded-lg border ${borderColor} p-6 shadow-sm`}>
+          <h3 className={`font-semibold mb-4 ${darkMode ? 'text-gray-100' : 'text-gray-800'}`}>Rentabilidad Mensual</h3>
+          <div className="h-64">
+            <Suspense fallback={<div className={`h-64 flex items-center justify-center ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Cargando gráfico...</div>}>
+              <ChartPerformance
+                data={metrics.monthlyData}
+                products={[]}
+                selectedProductId="all"
+                selectedProductIdB="none"
+                mode="financial"
+              />
+            </Suspense>
+          </div>
+        </div>
+
+        {/* Pie Chart - Desglose de Gastos */}
+        <div className={`${cardBg} rounded-lg border ${borderColor} p-6 shadow-sm`}>
+          <h3 className={`font-semibold mb-4 ${darkMode ? 'text-gray-100' : 'text-gray-800'}`}>Desglose de Gastos</h3>
+          <div className="space-y-3">
+            {metrics.expensesByCategory.length > 0 ? (
+              metrics.expensesByCategory.map((cat, idx) => {
+                const total = metrics.expensesByCategory.reduce((sum, c) => sum + c.amount, 0);
+                const percentage = total > 0 ? (cat.amount / total) * 100 : 0;
+                const colors = ['bg-orange-500', 'bg-red-500', 'bg-yellow-500'];
+                return (
+                  <div key={idx} className="flex items-center gap-3">
+                    <div className={`w-4 h-4 rounded-full ${colors[idx % colors.length]}`}></div>
+                    <div className="flex-1">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className={`text-sm font-medium ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>{cat.category}</span>
+                        <span className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>R$ {cat.amount.toFixed(0)}</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className={`h-2 rounded-full ${colors[idx % colors.length]}`}
+                          style={{ width: `${percentage}%` }}
+                        ></div>
                       </div>
                     </div>
-                  );
-                })
-              ) : (
-                <p className={`text-sm text-center py-4 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Sin gastos en este período</p>
-              )}
-            </div>
+                  </div>
+                );
+              })
+            ) : (
+              <p className={`text-sm text-center py-4 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Sin gastos en este período</p>
+            )}
           </div>
         </div>
-
       </div>
     </div>
   );
