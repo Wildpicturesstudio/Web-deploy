@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import FinancialDashboard from '../components/store/FinancialDashboard';
 import AdminStoreDashboard from '../components/store/AdminStoreDashboard';
 import OrdersManagement from '../components/store/OrdersManagement';
 import ContractsManagement from '../components/store/ContractsManagement';
