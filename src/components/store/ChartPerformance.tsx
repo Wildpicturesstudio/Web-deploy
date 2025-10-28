@@ -35,9 +35,9 @@ const ChartPerformance: React.FC<Props> = ({ data, products, selectedProductId, 
         <Legend />
         {mode === 'financial' ? (
           <>
-            <Line type="monotone" dataKey="income" name="Ingresos" stroke="#10b981" strokeWidth={2} dot={false} />
+            <Line type="monotone" dataKey="earned" name="Ingresos" stroke="#10b981" strokeWidth={2} dot={false} />
             <Line type="monotone" dataKey="expenses" name="Gastos" stroke="#f97316" strokeWidth={2} dot={false} />
-            <Line type="monotone" dataKey="profit" name="Utilidad" stroke="#3b82f6" strokeWidth={2} dot={false} />
+            <Line type="monotone" dataKey="netProfit" name="Utilidad" stroke="#3b82f6" strokeWidth={2} dot={false} />
           </>
         ) : (
           <>
