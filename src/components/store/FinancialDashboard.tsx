@@ -261,7 +261,7 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ onNavigate, dar
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
         {/* Ingresos Totales */}
         <div className={`${cardBg} rounded border ${borderColor} p-1.5 shadow-sm hover:shadow-md transition-shadow`}>
-          <p className={`text-2xs font-medium ${labelColor} truncate`}>Ingresos</p>
+          <p className={`text-xs font-medium ${labelColor} truncate`}>Ingresos</p>
           <p className="text-sm font-bold text-green-600">R$ {metrics.currentMonthRevenue.toFixed(0)}</p>
           <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center mt-0.5">
             <DollarSign className="text-green-600" size={12} />
@@ -270,7 +270,7 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ onNavigate, dar
 
         {/* Gastos del Mes */}
         <div className={`${cardBg} rounded border ${borderColor} p-1.5 shadow-sm hover:shadow-md transition-shadow`}>
-          <p className={`text-2xs font-medium ${labelColor} truncate`}>Gastos</p>
+          <p className={`text-xs font-medium ${labelColor} truncate`}>Gastos</p>
           <p className="text-sm font-bold text-orange-600">R$ {metrics.currentMonthExpenses.toFixed(0)}</p>
           <div className="w-5 h-5 rounded-full bg-orange-100 flex items-center justify-center mt-0.5">
             <ArrowDownLeft className="text-orange-600" size={12} />
@@ -279,7 +279,7 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ onNavigate, dar
 
         {/* Utilidad Neta */}
         <div className={`rounded border p-1.5 shadow-sm hover:shadow-md transition-shadow ${cardBg} ${borderColor}`}>
-          <p className={`text-2xs font-medium ${labelColor} truncate`}>Utilidad</p>
+          <p className={`text-xs font-medium ${labelColor} truncate`}>Utilidad</p>
           <p className={`text-sm font-bold ${metrics.currentMonthNetProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
             R$ {metrics.currentMonthNetProfit.toFixed(0)}
           </p>
@@ -294,7 +294,7 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ onNavigate, dar
 
         {/* Margen de Utilidad */}
         <div className={`${cardBg} rounded border ${borderColor} p-1.5 shadow-sm hover:shadow-md transition-shadow`}>
-          <p className={`text-2xs font-medium ${labelColor} truncate`}>Margen</p>
+          <p className={`text-xs font-medium ${labelColor} truncate`}>Margen</p>
           <p className="text-sm font-bold text-blue-600">{metrics.profitMargin.toFixed(1)}%</p>
           <div className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center mt-0.5">
             <Package className="text-blue-600" size={12} />
@@ -303,7 +303,7 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ onNavigate, dar
 
         {/* Saldo de Caja Actual */}
         <div className={`${cardBg} rounded border ${borderColor} p-1.5 shadow-sm hover:shadow-md transition-shadow`}>
-          <p className={`text-2xs font-medium ${labelColor} truncate`}>Saldo</p>
+          <p className={`text-xs font-medium ${labelColor} truncate`}>Saldo</p>
           <p className="text-sm font-bold text-indigo-600">R$ {metrics.currentCashBalance.toFixed(0)}</p>
           <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center mt-0.5">
             <DollarSign className="text-indigo-600" size={12} />
