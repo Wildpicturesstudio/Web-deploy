@@ -27,46 +27,37 @@ const AdminPhotoLibrary = ({ contractId, clientName }: { contractId: string; cli
   const loadPhotos = async () => {
     try {
       setLoading(true);
-      const photosRef = ref(storage, `photo-libraries/${contractId}`);
 
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+      // Load photo list from Firestore instead of Storage
+      const libraryDocRef = doc(db, 'photo-libraries', contractId);
+      const libraryDoc = await getDocs(query(collection(db, 'photo-libraries'), where('__name__', '==', contractId)));
 
-      try {
-        const fileList = await listAll(photosRef);
-        clearTimeout(timeoutId);
+      const photosList: Photo[] = [];
 
-        const photosList: Photo[] = [];
+      if (!libraryDoc.empty) {
+        const libraryData = libraryDoc.docs[0].data() as any;
+        const photoNames = libraryData.photos || [];
 
-        for (const file of fileList.items) {
+        for (const photoName of photoNames) {
           try {
-            const url = await getDownloadURL(file);
+            const storageRef = ref(storage, `photo-libraries/${contractId}/${photoName}`);
+            const url = await getDownloadURL(storageRef);
             photosList.push({
-              id: file.name,
-              name: file.name,
+              id: photoName,
+              name: photoName,
               url: url,
               uploadedAt: new Date().toISOString(),
             });
           } catch (urlError) {
-            console.warn(`Error getting URL for ${file.name}:`, urlError);
+            console.warn(`Error getting URL for ${photoName}:`, urlError);
           }
         }
-
-        setPhotos(photosList);
-      } catch (listError: any) {
-        clearTimeout(timeoutId);
-        console.error('Storage error:', listError?.code);
-
-        // If directory doesn't exist yet or timeout, just show empty
-        if (listError?.code === 'storage/invalid-root-operation' || listError?.code === 'storage/retry-limit-exceeded') {
-          console.log('Photo directory not ready yet or timeout - showing empty gallery');
-          setPhotos([]);
-        } else {
-          throw listError;
-        }
       }
+
+      setPhotos(photosList);
     } catch (error) {
       console.error('Error loading photos:', error);
+      setPhotos([]);
     } finally {
       setLoading(false);
     }
