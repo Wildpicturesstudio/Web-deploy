@@ -365,7 +365,7 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ onNavigate }) =
                   products={[]}
                   selectedProductId="all"
                   selectedProductIdB="none"
-                  mode="revenue"
+                  mode="financial"
                 />
               </Suspense>
             </div>
