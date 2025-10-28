@@ -431,9 +431,16 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
 
             {(eventsByDay.get(expandedDay) || []).length > 0 ? (
               <div className="space-y-4">
-                {(eventsByDay.get(expandedDay) || []).map((ev, idx) => (
+                {(eventsByDay.get(expandedDay) || []).map((ev, idx) => {
+                  const eventStatus = getEventStatus(ev);
+                  return (
                   <div key={ev.id} className={`border rounded-lg p-4 transition-colors ${darkMode ? 'bg-black border-gray-700' : 'bg-transparent border-gray-300'}`}>
-                    <div className={`font-semibold text-lg transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{idx + 1}. {ev.clientName || 'Evento sin nombre'}</div>
+                    <div className="flex items-center justify-between gap-2 mb-3">
+                      <div className={`font-semibold text-lg transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{idx + 1}. {ev.clientName || 'Evento sin nombre'}</div>
+                      {eventStatus === 'completed' && (
+                        <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${darkMode ? 'bg-green-900/30 text-green-400' : 'bg-green-100 text-green-600'}`}>✓ Evento completado</div>
+                      )}
+                    </div>
                     <div className="grid grid-cols-2 gap-3 text-sm mt-3">
                       <div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Hora:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{ev.eventTime || '-'}</span></div>
                       <div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Tipo:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{ev.eventType || '-'}</span></div>
@@ -483,7 +490,8 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
                       </div>
                     </div>
                   </div>
-                ))}
+                );
+                })}
 
                 <div className="flex gap-2 mt-6">
                   <button onClick={() => {
