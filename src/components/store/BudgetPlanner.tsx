@@ -273,24 +273,22 @@ const BudgetPlanner: React.FC<BudgetPlannerProps> = ({ onNavigate, darkMode = fa
     <div className={`space-y-6 ${darkMode ? 'bg-black' : ''}`}>
       {/* Header Section */}
       <div className={`${bgColor} rounded-lg border ${borderColor} p-6 shadow-sm`}>
-        <div className="flex items-center justify-between mb-4">
-          <h1 className={`text-2xl font-bold ${textColor}`}>Planificador - {currentMonth.charAt(0).toUpperCase() + currentMonth.slice(1)}</h1>
-          <button
-            onClick={() => setShowIncomeModal(true)}
-            className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
-          >
-            <Plus size={20} />
-            AÑADIR INGRESO
-          </button>
+        <h1 className={`text-2xl font-bold ${textColor} mb-6`}>Planificador - {currentMonth.charAt(0).toUpperCase() + currentMonth.slice(1)}</h1>
+
+        {/* Income from Paid Contracts */}
+        <div className={`rounded-lg border ${borderColor} p-4 ${darkMode ? 'bg-gray-800' : 'bg-gray-50'} mb-4`}>
+          <p className={`text-sm font-medium ${labelColor} mb-1`}>Ingresos (de Contratos Pagados)</p>
+          <p className="text-3xl font-bold text-green-600">R$ {budgetData.totalIncome.toFixed(2)}</p>
+          <p className={`text-xs ${labelColor} mt-2`}>{budgetData.paidContracts.length} contrato(s) pagado(s)</p>
         </div>
 
         {/* Available Income Card */}
         <div className={`rounded-lg border ${borderColor} p-4 ${darkMode ? 'bg-gray-800' : 'bg-gray-50'}`}>
-          <p className={`text-sm font-medium ${labelColor} mb-1`}>Ingresos Disponibles</p>
-          <p className="text-4xl font-bold text-green-600">R$ {budgetData.totalAvailable.toFixed(2)}</p>
+          <p className={`text-sm font-medium ${labelColor} mb-1`}>Ingresos Disponibles (Saldo)</p>
+          <p className="text-4xl font-bold text-blue-600">R$ {budgetData.totalAvailable.toFixed(2)}</p>
           <div className="flex gap-6 mt-3 text-sm">
             <div>
-              <p className={labelColor}>Total Ingresado</p>
+              <p className={labelColor}>Total Asignado a Sobres</p>
               <p className={`font-semibold ${textColor}`}>R$ {budgetData.totalAllocated.toFixed(2)}</p>
             </div>
             <div>
