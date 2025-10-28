@@ -216,6 +216,25 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
     return map;
   }, [filteredEvents]);
 
+  const eventSummary = useMemo(() => {
+    let pending = 0;
+    let completed = 0;
+    filteredEvents.forEach(ev => {
+      const status = (() => {
+        if (ev.status) return ev.status;
+        if (ev.eventCompleted && ev.finalPaymentPaid) return 'delivered' as const;
+        if (ev.depositPaid === false) return 'pending_payment' as const;
+        return 'booked' as const;
+      })();
+      if (status === 'delivered' || status === 'released') {
+        completed++;
+      } else {
+        pending++;
+      }
+    });
+    return { pending, completed, total: pending + completed };
+  }, [filteredEvents]);
+
   const goToday = () => { const t = new Date(); setCurrent({ y: t.getFullYear(), m: t.getMonth() }); setFilterMonth(t.getMonth()); setFilterYear(t.getFullYear()); };
   const prevMonth = () => setCurrent(c => { const y = c.m === 0 ? c.y - 1 : c.y; const m = c.m === 0 ? 11 : c.m - 1; return { y, m }; });
   const nextMonth = () => setCurrent(c => { const y = c.m === 11 ? c.y + 1 : c.y; const m = c.m === 11 ? 0 : c.m + 1; return { y, m }; });
