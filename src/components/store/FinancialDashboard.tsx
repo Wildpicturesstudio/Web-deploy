@@ -320,10 +320,10 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ onNavigate, dar
           </div>
 
           {/* Margen de Utilidad */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
+          <div className={`${cardBg} rounded-lg border ${borderColor} p-6 shadow-sm hover:shadow-md transition-shadow`}>
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-gray-600 text-sm font-medium">Margen de Utilidad</p>
+                <p className={`text-sm font-medium ${labelColor}`}>Margen de Utilidad</p>
                 <p className="text-3xl font-bold text-blue-600 mt-2">
                   {metrics.profitMargin.toFixed(1)}%
                 </p>
