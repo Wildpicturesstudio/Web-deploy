@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { db } from '../../utils/firebaseClient';
-import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, orderBy, query, setDoc, updateDoc } from 'firebase/firestore';
+import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, orderBy, query, setDoc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { ChevronDown, ChevronUp, CheckCircle, Clock, FileText, Loader, Mail, MapPin, Phone, Settings, Trash2, User, DollarSign, Link as LinkIcon, Calendar, Pencil, Plus, X, Trash, Image } from 'lucide-react';
 import { defaultWorkflow, categoryColors, WorkflowTemplate } from './_contractsWorkflowHelper';
 import { generatePDF } from '../../utils/pdf';
