@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { db, storage } from '../../utils/firebaseClient';
-import { collection, addDoc, getDocs, query, where, updateDoc, doc, setDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, where, doc, setDoc, getDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { Upload, Trash2, Link as LinkIcon, Copy, Check } from 'lucide-react';
 
