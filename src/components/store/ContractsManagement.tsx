@@ -93,7 +93,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
   const [savingWf, setSavingWf] = useState(false);
   const [wfEditMode, setWfEditMode] = useState(false);
   const [contractsTab, setContractsTab] = useState<'events' | 'finished' | 'pending'>('events');
-  const [seenContractIds, setSeenContractIds] = useState<Set<string>>(new Set());
+  const seenContractIdsRef = useRef<Set<string>>(new Set());
 
   const [templatesOpen, setTemplatesOpen] = useState(false);
   const pdfRef = useRef<HTMLDivElement | null>(null);
@@ -1362,7 +1362,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
               <input value={createForm.clientRG} onChange={e => setCreateForm((f: any) => ({ ...f, clientRG: e.target.value }))} className="w-full px-3 py-2 border rounded-none" />
             </div>
             <div className="md:col-span-2">
-              <label className="text-xs text-gray-600">Endereço</label>
+              <label className="text-xs text-gray-600">Endere��o</label>
               <input value={createForm.clientAddress} onChange={e => setCreateForm((f: any) => ({ ...f, clientAddress: e.target.value }))} className="w-full px-3 py-2 border rounded-none" />
             </div>
             <div>
