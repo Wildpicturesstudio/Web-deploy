@@ -85,6 +85,8 @@ const AdminPhotoLibrary = ({ contractId, clientName }: { contractId: string; cli
 
     setUploading(true);
     try {
+      const uploadedFileNames: string[] = [];
+
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         const timestamp = Date.now();
@@ -98,14 +100,31 @@ const AdminPhotoLibrary = ({ contractId, clientName }: { contractId: string; cli
             contentType: file.type,
           });
           console.log('Upload successful:', result.metadata.name);
+          uploadedFileNames.push(fileName);
         } catch (uploadError: any) {
           console.error(`Error uploading ${file.name}:`, uploadError);
           throw uploadError;
         }
       }
 
-      // Wait a moment then reload
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Update Firestore with the new photo names
+      if (uploadedFileNames.length > 0) {
+        try {
+          const libraryRef = doc(db, 'photo-libraries', contractId);
+          const existingPhotos = photos.map(p => p.id);
+          const allPhotos = [...existingPhotos, ...uploadedFileNames];
+
+          await setDoc(libraryRef, {
+            contractId,
+            photos: allPhotos,
+            updatedAt: new Date(),
+          }, { merge: true });
+        } catch (firestoreError) {
+          console.error('Error updating Firestore:', firestoreError);
+        }
+      }
+
+      // Reload photos
       await loadPhotos();
     } catch (error: any) {
       console.error('Error uploading photos:', error);
