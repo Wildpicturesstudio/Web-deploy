@@ -190,7 +190,7 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ onNavigate, dar
     for (const c of filteredContracts) {
       const amount = contractAmounts(c).total;
       const paidAmount = calculatePaidAmount(c);
-      const dateStr = c.contractDate || c.eventDate || c.createdAt || '';
+      const dateStr = c.eventDate || c.contractDate || c.createdAt || '';
       const d = dateStr ? new Date(dateStr) : null;
       const isFuture = d && d.getTime() >= today.getTime();
 
