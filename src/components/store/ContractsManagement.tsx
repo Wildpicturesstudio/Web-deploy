@@ -227,6 +227,48 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
   }, [openContractId, contracts, loading]);
 
   useEffect(() => {
+    if (loading || hasShownPageNotification) return;
+    if (contracts.length === 0) return;
+
+    const lastVisitTimestamp = localStorage.getItem('lastContractsPageVisit');
+    const lastVisitTime = lastVisitTimestamp ? parseInt(lastVisitTimestamp, 10) : 0;
+    const currentTime = Date.now();
+
+    const newContracts = contracts.filter(c => {
+      if (!c.createdAt) return false;
+      const contractTime = new Date(c.createdAt).getTime();
+      return contractTime > lastVisitTime;
+    });
+
+    const pendingContracts = contracts.filter(c => String((c as any).status || '') === 'pending_approval');
+
+    if (newContracts.length > 0 || pendingContracts.length > 0) {
+      const messages: string[] = [];
+
+      if (newContracts.length > 0) {
+        const pluralWord = newContracts.length === 1 ? 'contrato' : 'contratos';
+        messages.push(`Se han rellenado ${newContracts.length} ${pluralWord} nuevo${newContracts.length === 1 ? '' : 's'}`);
+      }
+
+      if (pendingContracts.length > 0) {
+        const pluralWord = pendingContracts.length === 1 ? 'contrato' : 'contratos';
+        messages.push(`${pendingContracts.length} ${pluralWord} pendiente${pendingContracts.length === 1 ? '' : 's'} de aprobación`);
+      }
+
+      const notificationMessage = messages.join(' • ');
+      window.dispatchEvent(new CustomEvent('adminToast', {
+        detail: {
+          message: notificationMessage,
+          type: 'info'
+        }
+      }));
+    }
+
+    localStorage.setItem('lastContractsPageVisit', currentTime.toString());
+    setHasShownPageNotification(true);
+  }, [loading, hasShownPageNotification, contracts]);
+
+  useEffect(() => {
     const loadDresses = async () => {
       try {
         const snap = await getDocs(collection(db, 'products'));
