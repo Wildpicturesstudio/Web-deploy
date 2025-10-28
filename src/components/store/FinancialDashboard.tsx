@@ -570,7 +570,7 @@ function computeMonthlyData(contracts: Contract[], investmentInstallments: any[]
     if (!dateStr || !isInPeriod(dateStr)) continue;
     const d = new Date(dateStr);
     if (isNaN(d.getTime())) continue;
-    const m = d.getMonth();
+
     const amount = contractAmounts(c).total;
     const paidAmount = (() => {
       const { services, storeTotal, total } = contractAmounts(c);
@@ -588,13 +588,23 @@ function computeMonthlyData(contracts: Contract[], investmentInstallments: any[]
       return paid;
     })();
 
-    months[m].income += amount;
-    if (c.depositPaid || c.finalPaymentPaid) {
-      months[m].earned += paidAmount;
+    let dataPoint;
+    if (isShortPeriod) {
+      dataPoint = dataPoints.find(dp => dp.date === d.toISOString().split('T')[0]);
     } else {
-      const isFuture = d.getTime() >= today.getTime();
-      if (isFuture) {
-        months[m].forecast += amount;
+      const m = d.getMonth();
+      dataPoint = dataPoints[m];
+    }
+
+    if (dataPoint) {
+      dataPoint.income += amount;
+      if (c.depositPaid || c.finalPaymentPaid) {
+        dataPoint.earned += paidAmount;
+      } else {
+        const isFuture = d.getTime() >= today.getTime();
+        if (isFuture) {
+          dataPoint.forecast += amount;
+        }
       }
     }
   }
@@ -604,17 +614,27 @@ function computeMonthlyData(contracts: Contract[], investmentInstallments: any[]
     if (!dateStr || !isInPeriod(dateStr)) continue;
     const d = new Date(dateStr);
     if (isNaN(d.getTime())) continue;
-    const m = d.getMonth();
     const amount = Number(inst.amount || 0);
-    months[m].expenses += amount;
+
+    let dataPoint;
+    if (isShortPeriod) {
+      dataPoint = dataPoints.find(dp => dp.date === d.toISOString().split('T')[0]);
+    } else {
+      const m = d.getMonth();
+      dataPoint = dataPoints[m];
+    }
+
+    if (dataPoint) {
+      dataPoint.expenses += amount;
+    }
   }
 
-  for (let i = 0; i < months.length; i++) {
-    months[i].netProfit = months[i].earned - months[i].expenses;
-    months[i].profit = months[i].netProfit;
+  for (let i = 0; i < dataPoints.length; i++) {
+    dataPoints[i].netProfit = dataPoints[i].earned - dataPoints[i].expenses;
+    dataPoints[i].profit = dataPoints[i].netProfit;
   }
 
-  return months;
+  return dataPoints;
 }
 
 export default FinancialDashboard;
