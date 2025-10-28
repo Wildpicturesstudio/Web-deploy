@@ -243,6 +243,7 @@ const AdminStorePage: React.FC = () => {
             <button onClick={() => setAdminView('coupons')} className={`px-4 py-2 rounded-none border-2 text-sm ${adminView==='coupons' ? 'bg-black text-white border-black' : 'border-black text-black hover:bg-black hover:text-white'}`}>Cupones</button>
             <button onClick={() => setAdminView('settings')} className={`px-4 py-2 rounded-none border-2 text-sm ${adminView==='settings' ? 'bg-black text-white border-black' : 'border-black text-black hover:bg-black hover:text-white'}`}>Ajustes</button>
             <button onClick={() => setAdminView('investments')} className={`px-4 py-2 rounded-none border-2 text-sm ${adminView==='investments' ? 'bg-black text-white border-black' : 'border-black text-black hover:bg-black hover:text-white'}`}>Inversiones</button>
+            <button onClick={() => setAdminView('planner')} className={`px-4 py-2 rounded-none border-2 text-sm ${adminView==='planner' ? 'bg-black text-white border-black' : 'border-black text-black hover:bg-black hover:text-white'}`}>Planificador</button>
             <div className="ml-auto flex items-center gap-2" />
           </div>
         </div>
