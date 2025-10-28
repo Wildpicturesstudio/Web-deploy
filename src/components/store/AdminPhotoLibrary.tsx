@@ -29,13 +29,13 @@ const AdminPhotoLibrary = ({ contractId, clientName }: { contractId: string; cli
       setLoading(true);
 
       // Load photo list from Firestore instead of Storage
-      const libraryDocRef = doc(db, 'photo-libraries', contractId);
-      const libraryDoc = await getDocs(query(collection(db, 'photo-libraries'), where('__name__', '==', contractId)));
+      const libraryRef = doc(db, 'photo-libraries', contractId);
+      const librarySnapshot = await getDoc(libraryRef);
 
       const photosList: Photo[] = [];
 
-      if (!libraryDoc.empty) {
-        const libraryData = libraryDoc.docs[0].data() as any;
+      if (librarySnapshot.exists()) {
+        const libraryData = librarySnapshot.data() as any;
         const photoNames = libraryData.photos || [];
 
         for (const photoName of photoNames) {
