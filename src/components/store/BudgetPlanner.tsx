@@ -79,6 +79,21 @@ const BudgetPlanner: React.FC<BudgetPlannerProps> = ({ onNavigate, darkMode = fa
     loadBudgetData();
   }, []);
 
+  const contractAmounts = (c: Contract) => {
+    const svcList: any[] = Array.isArray(c.services) && c.services.length ? c.services : (Array.isArray(c.formSnapshot?.cartItems) ? c.formSnapshot.cartItems : []);
+    const servicesTotalRaw = svcList.reduce((sum, it: any) => {
+      const qty = Number(it?.quantity ?? 1);
+      const price = Number(String(it?.price || '').replace(/[^0-9]/g, ''));
+      return sum + (price * qty);
+    }, 0);
+    const storeTotal = (Array.isArray(c.storeItems) ? c.storeItems : []).reduce((sum: number, it: any) => sum + (Number(it.price) * Number(it.quantity || 1)), 0);
+    const travel = Number(c.travelFee || 0);
+    const totalFromDoc = Number(c.totalAmount || 0);
+    const services = servicesTotalRaw > 0 ? servicesTotalRaw : Math.max(0, totalFromDoc - storeTotal - travel);
+    const total = Math.round(services + storeTotal + travel);
+    return total;
+  };
+
   const loadBudgetData = async () => {
     try {
       setLoading(true);
@@ -89,6 +104,21 @@ const BudgetPlanner: React.FC<BudgetPlannerProps> = ({ onNavigate, darkMode = fa
 
       let envelopes: Envelope[] = [];
       let transactions: Transaction[] = [];
+      let paidContracts: Contract[] = [];
+      let totalIncome = 0;
+
+      try {
+        const contractsSnap = await getDocs(collection(db, 'contracts'));
+        const allContracts = contractsSnap.docs.map(d => ({ id: d.id, ...d.data() } as Contract));
+
+        // Filter for paid contracts (either finalPaymentPaid or eventCompleted)
+        paidContracts = allContracts.filter(c => c.finalPaymentPaid === true || c.eventCompleted === true);
+
+        // Calculate total income from paid contracts
+        totalIncome = paidContracts.reduce((sum, c) => sum + contractAmounts(c), 0);
+      } catch (contractError) {
+        console.warn('Error loading contracts:', contractError);
+      }
 
       try {
         const envelopesSnap = await getDocs(collection(db, 'budget_envelopes'));
@@ -116,16 +146,16 @@ const BudgetPlanner: React.FC<BudgetPlannerProps> = ({ onNavigate, darkMode = fa
 
       const totalAllocated = envelopes.reduce((sum, e) => sum + e.allocated, 0);
       const totalSpent = envelopes.reduce((sum, e) => sum + e.spent, 0);
-      const incomeTransactions = transactions.filter(t => t.type === 'income');
-      const totalIncome = incomeTransactions.reduce((sum, t) => sum + t.amount, 0);
       const totalAvailable = totalIncome - totalSpent;
 
       setBudgetData({
+        totalIncome,
         totalAvailable,
         totalAllocated,
         totalSpent,
         envelopes,
         transactions,
+        paidContracts,
       });
     } catch (error) {
       console.error('Error loading budget data:', error);
