@@ -356,11 +356,11 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ onNavigate, dar
 
         {/* COLUMN 2: Visual Analytics */}
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-gray-800 px-2">Análisis Visual</h2>
+          <h2 className={`text-lg font-semibold px-2 ${darkMode ? 'text-gray-100' : 'text-gray-800'}`}>Análisis Visual</h2>
 
           {/* Line Chart - Rentabilidad Mensual */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
-            <h3 className="font-semibold text-gray-800 mb-4">Rentabilidad Mensual</h3>
+          <div className={`${cardBg} rounded-lg border ${borderColor} p-6 shadow-sm`}>
+            <h3 className={`font-semibold mb-4 ${darkMode ? 'text-gray-100' : 'text-gray-800'}`}>Rentabilidad Mensual</h3>
             <div className="h-64">
               <Suspense fallback={<div className="h-64 flex items-center justify-center text-gray-500">Cargando gráfico...</div>}>
                 <ChartPerformance
