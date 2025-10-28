@@ -280,75 +280,71 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ onNavigate, dar
           </div>
 
           {/* Gastos del Mes */}
-          <div className={`${cardBg} rounded-lg border ${borderColor} p-6 shadow-sm hover:shadow-md transition-shadow`}>
+          <div className={`${cardBg} rounded-lg border ${borderColor} p-3 shadow-sm hover:shadow-md transition-shadow`}>
             <div className="flex items-start justify-between">
               <div>
-                <p className={`text-sm font-medium ${labelColor}`}>Gastos del Mes</p>
-                <p className="text-3xl font-bold text-orange-600 mt-2">
+                <p className={`text-xs font-medium ${labelColor}`}>Gastos del Mes</p>
+                <p className="text-xl font-bold text-orange-600 mt-1">
                   R$ {metrics.currentMonthExpenses.toFixed(0)}
                 </p>
               </div>
-              <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center">
-                <ArrowDownLeft className="text-orange-600" size={24} />
+              <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center">
+                <ArrowDownLeft className="text-orange-600" size={16} />
               </div>
             </div>
           </div>
 
           {/* Utilidad Neta */}
-          <div className={`rounded-lg border p-6 shadow-sm hover:shadow-md transition-shadow ${cardBg} ${borderColor}`}>
+          <div className={`rounded-lg border p-3 shadow-sm hover:shadow-md transition-shadow ${cardBg} ${borderColor}`}>
             <div className="flex items-start justify-between">
               <div>
-                <p className={`text-sm font-medium ${labelColor}`}>Utilidad Neta</p>
-                <p className={`text-4xl font-bold mt-2 ${
+                <p className={`text-xs font-medium ${labelColor}`}>Utilidad Neta</p>
+                <p className={`text-xl font-bold mt-1 ${
                   metrics.currentMonthNetProfit >= 0 ? 'text-green-600' : 'text-red-600'
                 }`}>
                   R$ {metrics.currentMonthNetProfit.toFixed(0)}
                 </p>
               </div>
-              <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                metrics.currentMonthNetProfit >= 0 
-                  ? 'bg-green-100' 
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                metrics.currentMonthNetProfit >= 0
+                  ? 'bg-green-100'
                   : 'bg-red-100'
               }`}>
                 {metrics.currentMonthNetProfit >= 0 ? (
-                  <TrendingUp className={metrics.currentMonthNetProfit >= 0 ? 'text-green-600' : 'text-red-600'} size={24} />
+                  <TrendingUp className={metrics.currentMonthNetProfit >= 0 ? 'text-green-600' : 'text-red-600'} size={16} />
                 ) : (
-                  <TrendingDown className="text-red-600" size={24} />
+                  <TrendingDown className="text-red-600" size={16} />
                 )}
               </div>
             </div>
           </div>
 
           {/* Margen de Utilidad */}
-          <div className={`${cardBg} rounded-lg border ${borderColor} p-6 shadow-sm hover:shadow-md transition-shadow`}>
+          <div className={`${cardBg} rounded-lg border ${borderColor} p-3 shadow-sm hover:shadow-md transition-shadow`}>
             <div className="flex items-start justify-between">
               <div>
-                <p className={`text-sm font-medium ${labelColor}`}>Margen de Utilidad</p>
-                <p className="text-3xl font-bold text-blue-600 mt-2">
+                <p className={`text-xs font-medium ${labelColor}`}>Margen de Utilidad</p>
+                <p className="text-xl font-bold text-blue-600 mt-1">
                   {metrics.profitMargin.toFixed(1)}%
                 </p>
-                <div className="flex items-center gap-1 mt-2 text-sm">
-                  <ArrowUpRight className="text-blue-600" size={16} />
-                  <span className={labelColor}>Desde el período anterior</span>
-                </div>
               </div>
-              <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
-                <Package className="text-blue-600" size={24} />
+              <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                <Package className="text-blue-600" size={16} />
               </div>
             </div>
           </div>
 
           {/* Saldo de Caja Actual */}
-          <div className={`${cardBg} rounded-lg border ${borderColor} p-6 shadow-sm hover:shadow-md transition-shadow`}>
+          <div className={`${cardBg} rounded-lg border ${borderColor} p-3 shadow-sm hover:shadow-md transition-shadow`}>
             <div className="flex items-start justify-between">
               <div>
-                <p className={`text-sm font-medium ${labelColor}`}>Saldo de Caja Actual</p>
-                <p className="text-3xl font-bold text-indigo-600 mt-2">
+                <p className={`text-xs font-medium ${labelColor}`}>Saldo de Caja Actual</p>
+                <p className="text-xl font-bold text-indigo-600 mt-1">
                   R$ {metrics.currentCashBalance.toFixed(0)}
                 </p>
               </div>
-              <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center">
-                <DollarSign className="text-indigo-600" size={24} />
+              <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center">
+                <DollarSign className="text-indigo-600" size={16} />
               </div>
             </div>
           </div>
@@ -402,7 +398,7 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ onNavigate, dar
                   );
                 })
               ) : (
-                <p className={`text-sm text-center py-4 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Sin gastos en este período</p>
+                <p className={`text-sm text-center py-4 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Sin gastos en este per��odo</p>
               )}
             </div>
           </div>
