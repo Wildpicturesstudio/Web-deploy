@@ -11,8 +11,21 @@ const discountTypeOptions = [
 ] as const;
 
 const CouponsManagement: React.FC = () => {
-  const [coupons, setCoupons] = useState<DBCoupon[]>([]);
+  const getCachedCoupons = () => {
+    try {
+      const cached = localStorage.getItem('coupons_management_cache');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const [coupons, setCoupons] = useState(() => getCachedCoupons());
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem('coupons_management_cache', JSON.stringify(coupons));
+  }, [coupons]);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
