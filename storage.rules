@@ -1,8 +1,8 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    // Photo libraries: lectura pública, escritura/eliminación solo admin
-    match /photo-libraries/{contractId}/{fileName=**} {
+    // Photo libraries directory and files
+    match /photo-libraries/{allPaths=**} {
       allow read: if true;
       allow write: if request.auth != null && request.auth.token.email == "wildpicturesstudio@gmail.com";
       allow delete: if request.auth != null && request.auth.token.email == "wildpicturesstudio@gmail.com";
