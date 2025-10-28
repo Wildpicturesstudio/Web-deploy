@@ -266,6 +266,7 @@ const AdminStorePage: React.FC = () => {
             <option value="coupons">Cupones</option>
             <option value="settings">Ajustes</option>
             <option value="investments">Inversiones</option>
+            <option value="planner">Planificador</option>
           </select>
         </div>
       )}
