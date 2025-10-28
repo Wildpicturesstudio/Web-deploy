@@ -84,6 +84,31 @@ const AdminStoreDashboard: React.FC<AdminProps> = ({ onNavigate }) => {
   const [metric, setMetric] = useState<'revenue' | 'contracts'>('revenue');
   const { flags, setPageEnabled } = useFeatureFlags();
 
+  // Cache stats whenever they change
+  useEffect(() => {
+    localStorage.setItem('dashboard_stats_cache', JSON.stringify(stats));
+  }, [stats]);
+
+  // Cache orders whenever they change
+  useEffect(() => {
+    localStorage.setItem('dashboard_orders_cache', JSON.stringify(allOrders));
+  }, [allOrders]);
+
+  // Cache contracts whenever they change
+  useEffect(() => {
+    localStorage.setItem('dashboard_contracts_cache', JSON.stringify(contracts));
+  }, [contracts]);
+
+  // Cache products whenever they change
+  useEffect(() => {
+    localStorage.setItem('dashboard_products_cache', JSON.stringify(products));
+  }, [products]);
+
+  // Cache installments whenever they change
+  useEffect(() => {
+    localStorage.setItem('dashboard_installments_cache', JSON.stringify(investmentInstallments));
+  }, [investmentInstallments]);
+
   useEffect(() => {
     (async () => {
       try {
