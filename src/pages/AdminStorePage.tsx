@@ -8,6 +8,7 @@ import PhotoPackagesManagement from '../components/store/PhotoPackagesManagement
 import StoreSettings from '../components/store/StoreSettings';
 import CouponsManagement from '../components/store/CouponsManagement';
 import InvestmentsManagement from '../components/store/InvestmentsManagement';
+import BudgetPlanner from '../components/store/BudgetPlanner';
 import ProductEditorModal from '../components/store/ProductEditorModal';
 import DressEditorModal from '../components/store/DressEditorModal';
 import { db, storage } from '../utils/firebaseClient';
