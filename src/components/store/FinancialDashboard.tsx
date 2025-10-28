@@ -383,9 +383,9 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ onNavigate, dar
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        {/* Line Chart - Rentabilidad Mensual */}
+        {/* Line Chart - Rentabilidad Mensual/Semanal */}
         <div className={`${cardBg} rounded-lg border ${borderColor} p-6 shadow-sm lg:col-span-3`}>
-          <h3 className={`font-semibold mb-4 ${darkMode ? 'text-gray-100' : 'text-gray-800'}`}>Rentabilidad Mensual</h3>
+          <h3 className={`font-semibold mb-4 ${darkMode ? 'text-gray-100' : 'text-gray-800'}`}>{isShortPeriod ? 'Rentabilidad Semanal' : 'Rentabilidad Mensual'}</h3>
           <div className="h-64">
             <Suspense fallback={<div className={`h-64 flex items-center justify-center ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Cargando gráfico...</div>}>
               <ChartPerformance
