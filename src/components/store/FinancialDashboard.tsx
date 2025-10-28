@@ -183,6 +183,7 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ onNavigate, dar
     let totalRevenue = 0;
     let completedRevenue = 0;
     let futureRevenue = 0;
+    let pendingRevenue = 0;
     let expenses = 0;
     let invoices: Invoice[] = [];
     const clientMap = new Map<string, number>();
@@ -196,13 +197,30 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ onNavigate, dar
 
       totalRevenue += amount;
       completedRevenue += paidAmount;
-      if (!c.depositPaid && !c.finalPaymentPaid && isFuture) {
-        futureRevenue += amount;
+
+      const { services, storeTotal, total } = contractAmounts(c);
+      const servicesDeposit = Math.round(services * 0.2);
+      const storeDeposit = Math.round(storeTotal * 0.5);
+      const depositAmount = servicesDeposit + storeDeposit;
+      const remainingPayment = Math.max(0, total - depositAmount);
+
+      let unpaidAmount = 0;
+      if (!c.depositPaid) {
+        unpaidAmount = total;
+      } else if (!c.finalPaymentPaid) {
+        unpaidAmount = remainingPayment;
+      }
+
+      if (unpaidAmount > 0) {
+        pendingRevenue += unpaidAmount;
+        if (isFuture) {
+          futureRevenue += unpaidAmount;
+        }
         invoices.push({
           id: c.id,
           clientName: c.clientName || 'Cliente',
           dueDate: dateStr || new Date().toISOString().split('T')[0],
-          amount,
+          amount: unpaidAmount,
           status: 'Pendiente'
         });
       }
