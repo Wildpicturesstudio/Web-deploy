@@ -29,8 +29,13 @@ const AdminPhotoLibrary = ({ contractId, clientName }: { contractId: string; cli
       setLoading(true);
       const photosRef = ref(storage, `photo-libraries/${contractId}`);
 
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+
       try {
         const fileList = await listAll(photosRef);
+        clearTimeout(timeoutId);
+
         const photosList: Photo[] = [];
 
         for (const file of fileList.items) {
@@ -49,8 +54,12 @@ const AdminPhotoLibrary = ({ contractId, clientName }: { contractId: string; cli
 
         setPhotos(photosList);
       } catch (listError: any) {
-        // If directory doesn't exist yet, just show empty
-        if (listError.code === 'storage/invalid-root-operation') {
+        clearTimeout(timeoutId);
+        console.error('Storage error:', listError?.code);
+
+        // If directory doesn't exist yet or timeout, just show empty
+        if (listError?.code === 'storage/invalid-root-operation' || listError?.code === 'storage/retry-limit-exceeded') {
+          console.log('Photo directory not ready yet or timeout - showing empty gallery');
           setPhotos([]);
         } else {
           throw listError;
@@ -58,7 +67,6 @@ const AdminPhotoLibrary = ({ contractId, clientName }: { contractId: string; cli
       }
     } catch (error) {
       console.error('Error loading photos:', error);
-      alert('Error al cargar fotos. Verifica las reglas de Storage en Firebase.');
     } finally {
       setLoading(false);
     }
