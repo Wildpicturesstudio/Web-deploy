@@ -394,6 +394,8 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ onNavigate, dar
                 selectedProductId="all"
                 selectedProductIdB="none"
                 mode="financial"
+                isWeekly={isShortPeriod}
+                height={300}
               />
             </Suspense>
           </div>
