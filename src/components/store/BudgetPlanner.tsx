@@ -54,11 +54,13 @@ interface BudgetPlannerProps {
 
 const BudgetPlanner: React.FC<BudgetPlannerProps> = ({ onNavigate, darkMode = false }) => {
   const [budgetData, setBudgetData] = useState<BudgetData>({
+    totalIncome: 0,
     totalAvailable: 0,
     totalAllocated: 0,
     totalSpent: 0,
     envelopes: [],
     transactions: [],
+    paidContracts: [],
   });
   const [loading, setLoading] = useState(true);
   const [showIncomeModal, setShowIncomeModal] = useState(false);
