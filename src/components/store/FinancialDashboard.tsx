@@ -504,6 +504,18 @@ function computeMonthlyData(contracts: Contract[], investmentInstallments: any[]
       const now = new Date();
       return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
     }
+    if (period.type === 'quincena') {
+      const now = new Date();
+      const currentMonth = now.getMonth();
+      const currentYear = now.getFullYear();
+      const dateMonth = d.getMonth();
+      const dateYear = d.getFullYear();
+      if (dateYear !== currentYear || dateMonth !== currentMonth) return false;
+      const dateDay = d.getDate();
+      if (period.quinceType === '1') return dateDay <= 15;
+      if (period.quinceType === '2') return dateDay > 15;
+      return false;
+    }
     if (period.type === 'custom') {
       const start = period.start ? new Date(period.start) : null;
       const end = period.end ? new Date(period.end) : null;
