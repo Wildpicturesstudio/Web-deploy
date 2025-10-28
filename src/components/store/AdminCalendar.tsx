@@ -50,6 +50,16 @@ function getEventColor(c: ContractItem): string {
   return 'bg-yellow-500 text-black hover:opacity-90';
 }
 
+function getEventStatus(c: ContractItem): 'completed' | 'pending' {
+  const status = (() => {
+    if (c.status) return c.status;
+    if (c.eventCompleted && c.finalPaymentPaid) return 'delivered' as const;
+    if (c.depositPaid === false) return 'pending_payment' as const;
+    return 'booked' as const;
+  })();
+  return (status === 'delivered' || status === 'released') ? 'completed' : 'pending';
+}
+
 interface AdminCalendarProps {
   darkMode?: boolean;
 }
