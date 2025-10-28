@@ -336,6 +336,18 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
             className={`w-full px-3 py-2 border rounded-lg text-sm transition-colors ${darkMode ? 'border-gray-700 bg-gray-900 text-gray-300 placeholder-gray-600' : 'border-gray-300 bg-white text-gray-900 placeholder-gray-400'}`}
           />
         </div>
+
+        {/* Event Summary */}
+        <div className="grid grid-cols-2 gap-3 mb-4">
+          <div className={`p-3 rounded-lg border transition-colors ${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-gray-50 border-gray-200'}`}>
+            <div className={`text-xs transition-colors ${darkMode ? 'text-gray-500' : 'text-gray-600'}`}>Eventos Pendientes</div>
+            <div className={`text-2xl font-bold transition-colors ${darkMode ? 'text-blue-400' : 'text-blue-600'}`}>{eventSummary.pending}</div>
+          </div>
+          <div className={`p-3 rounded-lg border transition-colors ${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-gray-50 border-gray-200'}`}>
+            <div className={`text-xs transition-colors ${darkMode ? 'text-gray-500' : 'text-gray-600'}`}>Eventos Finalizados</div>
+            <div className={`text-2xl font-bold transition-colors ${darkMode ? 'text-green-400' : 'text-green-600'}`}>{eventSummary.completed}</div>
+          </div>
+        </div>
       </div>
 
       {/* Right Calendar Area */}
