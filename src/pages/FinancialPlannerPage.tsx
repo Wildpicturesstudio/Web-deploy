@@ -300,14 +300,8 @@ const FinancialPlannerPage: React.FC = () => {
     <div className={`${darkMode ? 'bg-black' : 'bg-gray-50'} min-h-screen`}>
       {/* Sticky Header */}
       <div className={`sticky top-0 z-50 ${bgColor} border-b ${borderColor} shadow-sm`}>
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex justify-between items-center mb-4">
-            <button onClick={() => setDarkMode(!darkMode)} className="p-2">
-              {darkMode ? <Eye size={20} /> : <EyeOff size={20} />}
-            </button>
-          </div>
-          
-          <div className="flex items-center gap-4">
+        <div className="max-w-7xl mx-auto px-4 py-1.5">
+          <div className="flex items-center justify-end gap-3.75">
             <select
               value={currentMonth}
               onChange={(e) => setCurrentMonth(Number(e.target.value))}
@@ -331,11 +325,9 @@ const FinancialPlannerPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
+      <div className="max-w-7xl mx-auto px-4 space-y-8" style={{padding: "0 16px 16px"}}>
         {/* SECTION 1: Dashboard Summary */}
         <section className="space-y-6">
-          <h2 className={`text-2xl font-bold ${textColor}`}>Mis Finanzas</h2>
-          
           {/* KPI Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className={`${bgColor} rounded border ${borderColor} p-2 shadow-sm hover:shadow-md transition-shadow`}>
@@ -438,12 +430,12 @@ const FinancialPlannerPage: React.FC = () => {
           </div>
         </section>
 
-        {/* SECTION 2: Detailed Budget */}
-        <section className="space-y-6">
-          <h2 className={`text-2xl font-bold ${textColor}`}>Presupuesto Detallado</h2>
+        <h2 className={`text-2xl font-bold ${textColor}`} style={{marginTop: "12px"}}>Presupuesto Detallado</h2>
 
+        {/* SECTION 2: Detailed Budget */}
+        <section className="space-y-6" style={{marginTop: "32px"}}>
           {/* Income Management */}
-          <div className={`${bgColor} rounded-lg border ${borderColor} p-6 shadow-sm`}>
+          <div className={`${bgColor} rounded-lg border ${borderColor} shadow-sm`} style={{padding: "10px 24px 24px"}}>
             <div className="flex justify-between items-center mb-4">
               <h3 className={`text-lg font-semibold ${textColor}`}>Ingresos Promedio Mensuales</h3>
               <button
