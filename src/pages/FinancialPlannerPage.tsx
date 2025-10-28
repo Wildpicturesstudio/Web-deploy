@@ -288,9 +288,12 @@ const FinancialPlannerPage: React.FC = () => {
   const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
 
   const bgColor = darkMode ? 'bg-gray-900' : 'bg-white';
-  const textColor = darkMode ? 'text-gray-100' : 'text-gray-900';
-  const labelColor = darkMode ? 'text-gray-400' : 'text-gray-600';
+  const textColor = darkMode ? 'text-white' : 'text-black';
+  const labelColor = darkMode ? 'text-white' : 'text-black';
   const borderColor = darkMode ? 'border-gray-700' : 'border-gray-200';
+  const buttonStyle = darkMode
+    ? 'border-2 border-white bg-gray-900 text-white hover:bg-white hover:text-black'
+    : 'border-2 border-black bg-black text-white hover:bg-white hover:text-black';
 
   if (loading) {
     return <div className="flex items-center justify-center h-screen"><p>Cargando...</p></div>;
