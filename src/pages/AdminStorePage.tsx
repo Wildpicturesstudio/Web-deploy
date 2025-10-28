@@ -214,7 +214,8 @@ const AdminStorePage: React.FC = () => {
       'packages': 'Paquetes',
       'coupons': 'Cupones',
       'settings': 'Ajustes',
-      'investments': 'Inversiones'
+      'investments': 'Inversiones',
+      'planner': 'Planificador'
     };
     return titles[adminView] || 'Dashboard';
   };
