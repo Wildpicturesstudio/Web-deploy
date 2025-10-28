@@ -259,10 +259,10 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ onNavigate, dar
 
       {/* 3-Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
+
         {/* COLUMN 1: KPIs */}
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-gray-800 px-2">Indicadores Clave</h2>
+          <h2 className={`text-lg font-semibold px-2 ${darkMode ? 'text-gray-100' : 'text-gray-800'}`}>Indicadores Clave</h2>
 
           {/* Ingresos Totales */}
           <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
