@@ -287,7 +287,7 @@ const AdminStoreDashboard: React.FC<AdminProps> = ({ onNavigate }) => {
 
 
       {/* Performance */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="bg-white rounded-xl border border-gray-200 p-6" style={{ marginTop: '10px' }}>
         <div className="flex items-center gap-2 mb-4">
           <h3 className="font-medium">Rendimiento</h3>
           <select value={metric} onChange={e=> setMetric(e.target.value as any)} className="px-3 py-2 border rounded-none">
