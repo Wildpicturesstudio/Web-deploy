@@ -186,9 +186,11 @@ const BudgetPlanner: React.FC<BudgetPlannerProps> = ({ onNavigate, darkMode = fa
   };
 
   const handleDeleteTransaction = async (id: string) => {
+    if (!confirm('¿Estás seguro de que deseas eliminar esta transacción?')) return;
+
     try {
       const transaction = budgetData.transactions.find(t => t.id === id);
-      if (transaction && transaction.envelopeId) {
+      if (transaction && transaction.envelopeId && transaction.type === 'expense') {
         const envelope = budgetData.envelopes.find(e => e.id === transaction.envelopeId);
         if (envelope) {
           const newSpent = Math.max(0, envelope.spent - transaction.amount);
@@ -200,6 +202,7 @@ const BudgetPlanner: React.FC<BudgetPlannerProps> = ({ onNavigate, darkMode = fa
       loadBudgetData();
     } catch (error) {
       console.error('Error deleting transaction:', error);
+      alert('Error al eliminar la transacción. Por favor, intenta de nuevo.');
     }
   };
 
