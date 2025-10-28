@@ -228,11 +228,11 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ onNavigate, dar
     <div className={`space-y-6 ${darkMode ? 'bg-black' : ''}`}>
       {/* Period Filter */}
       <div className={`${cardBg} rounded-lg border ${borderColor} py-3 px-4 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 shadow-sm`}>
-        <label className="text-sm font-medium text-gray-700">Período:</label>
-        <select 
-          value={period.type} 
-          onChange={e => setPeriod({ type: e.target.value as any })} 
-          className="px-3 py-2 border border-gray-300 rounded-md text-sm bg-white"
+        <label className={`text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Período:</label>
+        <select
+          value={period.type}
+          onChange={e => setPeriod({ type: e.target.value as any })}
+          className={`px-3 py-2 border rounded-md text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-gray-100' : 'bg-white border-gray-300 text-gray-900'}`}
         >
           <option value="all">Global</option>
           <option value="year">Este año</option>
@@ -241,17 +241,17 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ onNavigate, dar
         </select>
         {period.type === 'custom' && (
           <>
-            <input 
-              type="date" 
-              value={period.start || ''} 
-              onChange={e => setPeriod(p => ({ ...p, start: e.target.value }))} 
-              className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+            <input
+              type="date"
+              value={period.start || ''}
+              onChange={e => setPeriod(p => ({ ...p, start: e.target.value }))}
+              className={`px-3 py-2 border rounded-md text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-gray-100' : 'bg-white border-gray-300 text-gray-900'}`}
             />
-            <input 
-              type="date" 
-              value={period.end || ''} 
-              onChange={e => setPeriod(p => ({ ...p, end: e.target.value }))} 
-              className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+            <input
+              type="date"
+              value={period.end || ''}
+              onChange={e => setPeriod(p => ({ ...p, end: e.target.value }))}
+              className={`px-3 py-2 border rounded-md text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-gray-100' : 'bg-white border-gray-300 text-gray-900'}`}
             />
           </>
         )}
