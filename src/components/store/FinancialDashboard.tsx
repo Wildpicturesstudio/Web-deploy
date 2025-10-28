@@ -388,8 +388,8 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ onNavigate, dar
                       <div className={`w-4 h-4 rounded-full ${colors[idx % colors.length]}`}></div>
                       <div className="flex-1">
                         <div className="flex justify-between items-center mb-1">
-                          <span className="text-sm font-medium text-gray-700">{cat.category}</span>
-                          <span className="text-sm text-gray-600">R$ {cat.amount.toFixed(0)}</span>
+                          <span className={`text-sm font-medium ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>{cat.category}</span>
+                          <span className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>R$ {cat.amount.toFixed(0)}</span>
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-2">
                           <div
