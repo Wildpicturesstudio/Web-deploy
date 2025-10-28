@@ -398,65 +398,12 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ onNavigate, dar
                   );
                 })
               ) : (
-                <p className={`text-sm text-center py-4 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Sin gastos en este per��odo</p>
+                <p className={`text-sm text-center py-4 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Sin gastos en este período</p>
               )}
             </div>
           </div>
         </div>
 
-        {/* COLUMN 3: Operational & Management Details */}
-        <div className="space-y-4">
-          <h2 className={`text-lg font-semibold px-2 ${darkMode ? 'text-gray-100' : 'text-gray-800'}`}>Operaciones</h2>
-
-          {/* Facturas por Cobrar */}
-          <div className={`${cardBg} rounded-lg border ${borderColor} p-6 shadow-sm`}>
-            <h3 className={`font-semibold mb-4 ${darkMode ? 'text-gray-100' : 'text-gray-800'}`}>Facturas por Cobrar</h3>
-            <div className="space-y-2 max-h-64 overflow-y-auto">
-              {metrics.outstandingInvoices.length > 0 ? (
-                metrics.outstandingInvoices.map((invoice) => (
-                  <div key={invoice.id} className={`flex items-center justify-between p-3 rounded-md transition-colors ${darkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-gray-50 hover:bg-gray-100'}`}>
-                    <div className="flex-1 min-w-0">
-                      <p className={`font-medium text-sm truncate ${darkMode ? 'text-gray-100' : 'text-gray-800'}`}>{invoice.clientName}</p>
-                      <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Vencimiento: {new Date(invoice.dueDate).toLocaleDateString('es')}</p>
-                    </div>
-                    <div className="flex items-center gap-2 ml-2">
-                      <p className={`font-semibold whitespace-nowrap ${darkMode ? 'text-gray-100' : 'text-gray-900'}`}>R$ {invoice.amount.toFixed(0)}</p>
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full whitespace-nowrap ${
-                        invoice.status === 'Vencido' 
-                          ? 'bg-red-100 text-red-700' 
-                          : 'bg-yellow-100 text-yellow-700'
-                      }`}>
-                        {invoice.status}
-                      </span>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <p className={`text-sm text-center py-4 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Sin facturas pendientes</p>
-              )}
-            </div>
-          </div>
-
-          {/* Top 5 Clientes del Mes */}
-          <div className={`${cardBg} rounded-lg border ${borderColor} p-6 shadow-sm`}>
-            <h3 className={`font-semibold mb-4 ${darkMode ? 'text-gray-100' : 'text-gray-800'}`}>Top 5 Clientes del Período</h3>
-            <div className="space-y-2 max-h-64 overflow-y-auto">
-              {metrics.topClients.length > 0 ? (
-                metrics.topClients.map((client, idx) => (
-                  <div key={idx} className={`flex items-center justify-between p-3 rounded-md transition-colors ${darkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-gray-50 hover:bg-gray-100'}`}>
-                    <div className="flex-1">
-                      <p className={`font-medium text-sm ${darkMode ? 'text-gray-100' : 'text-gray-800'}`}>{client.clientName}</p>
-                      <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Valor contratado</p>
-                    </div>
-                    <p className={`font-semibold ${darkMode ? 'text-gray-100' : 'text-gray-900'}`}>R$ {client.totalValue.toFixed(0)}</p>
-                  </div>
-                ))
-              ) : (
-                <p className={`text-sm text-center py-4 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Sin datos de clientes</p>
-              )}
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );
