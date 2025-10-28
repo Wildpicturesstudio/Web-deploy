@@ -439,17 +439,12 @@ const FinancialPlannerPage: React.FC = () => {
             {/* Savings Goals Chart */}
             <div className={`${bgColor} rounded-lg border ${borderColor} p-6 shadow-sm`}>
               <h3 className={`text-lg font-semibold ${textColor} mb-4`}>Resumen de tus Ahorros</h3>
-              {goals.length > 0 ? (
+              {monthlySummaryData.length > 0 && (income.length > 0 || expenses.length > 0) ? (
                 <ResponsiveContainer width="100%" height={300}>
-                  <LineChart
-                    data={goals.map((goal, idx) => ({
-                      name: goal.name,
-                      amount: goal.currentSavings
-                    }))}
-                  >
+                  <LineChart data={monthlySummaryData}>
                     <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#374151' : '#e5e7eb'} />
                     <XAxis
-                      dataKey="name"
+                      dataKey="month"
                       stroke={labelColor}
                       style={{ fontSize: '12px' }}
                     />
@@ -467,18 +462,38 @@ const FinancialPlannerPage: React.FC = () => {
                       }}
                       labelStyle={{ color: textColor }}
                     />
+                    <Legend
+                      wrapperStyle={{ paddingTop: '16px' }}
+                      iconType="line"
+                    />
                     <Line
                       type="monotone"
-                      dataKey="amount"
+                      dataKey="Ingresos"
                       stroke="#10b981"
                       strokeWidth={2}
                       dot={{ fill: '#10b981', r: 4 }}
                       activeDot={{ r: 6 }}
                     />
+                    <Line
+                      type="monotone"
+                      dataKey="Gastos"
+                      stroke="#ef4444"
+                      strokeWidth={2}
+                      dot={{ fill: '#ef4444', r: 4 }}
+                      activeDot={{ r: 6 }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="Ahorros"
+                      stroke="#3b82f6"
+                      strokeWidth={2}
+                      dot={{ fill: '#3b82f6', r: 4 }}
+                      activeDot={{ r: 6 }}
+                    />
                   </LineChart>
                 </ResponsiveContainer>
               ) : (
-                <p className={labelColor}>Sin metas de ahorro</p>
+                <p className={labelColor}>Sin datos de ingresos o gastos</p>
               )}
             </div>
 
