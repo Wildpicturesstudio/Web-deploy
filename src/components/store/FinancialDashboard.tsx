@@ -11,6 +11,8 @@ interface Contract {
   createdAt?: string;
   totalAmount?: number;
   eventCompleted?: boolean;
+  depositPaid?: boolean;
+  finalPaymentPaid?: boolean;
   services?: any[];
   formSnapshot?: { cartItems?: any[] };
   storeItems?: any[];
