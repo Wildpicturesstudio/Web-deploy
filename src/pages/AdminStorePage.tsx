@@ -203,7 +203,7 @@ const AdminStorePage: React.FC = () => {
 
   const getPageTitle = () => {
     const titles: { [key: string]: string } = {
-      'dashboard': 'Panel',
+      'dashboard': 'Dashboard',
       'products': 'Productos',
       'orders': 'Órdenes',
       'contracts': 'Contratos',
@@ -213,7 +213,7 @@ const AdminStorePage: React.FC = () => {
       'settings': 'Ajustes',
       'investments': 'Inversiones'
     };
-    return titles[adminView] || 'Panel';
+    return titles[adminView] || 'Dashboard';
   };
 
   return (
