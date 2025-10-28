@@ -148,8 +148,17 @@ const BudgetPlanner: React.FC<BudgetPlannerProps> = ({ onNavigate, darkMode = fa
     if (!expenseData.amount || !selectedEnvelope || isNaN(Number(expenseData.amount))) return;
 
     try {
+      const amount = Number(expenseData.amount);
+      if (amount <= 0) {
+        alert('El monto debe ser mayor a 0');
+        return;
+      }
+
       const envelope = budgetData.envelopes.find(e => e.id === selectedEnvelope);
-      if (!envelope) return;
+      if (!envelope) {
+        alert('Sobre presupuestario no encontrado');
+        return;
+      }
 
       const now = new Date().toISOString().split('T')[0];
 
@@ -158,11 +167,12 @@ const BudgetPlanner: React.FC<BudgetPlannerProps> = ({ onNavigate, darkMode = fa
         description: expenseData.description || 'Gasto',
         category: envelope.name,
         type: 'expense',
-        amount: Number(expenseData.amount),
+        amount: amount,
         envelopeId: selectedEnvelope,
+        timestamp: new Date().toISOString(),
       });
 
-      const newSpent = envelope.spent + Number(expenseData.amount);
+      const newSpent = envelope.spent + amount;
       await updateDoc(doc(db, 'budget_envelopes', selectedEnvelope), { spent: newSpent });
 
       setExpenseData({ amount: '', description: '' });
@@ -171,6 +181,7 @@ const BudgetPlanner: React.FC<BudgetPlannerProps> = ({ onNavigate, darkMode = fa
       loadBudgetData();
     } catch (error) {
       console.error('Error adding expense:', error);
+      alert('Error al agregar gasto. Por favor, intenta de nuevo.');
     }
   };
 
