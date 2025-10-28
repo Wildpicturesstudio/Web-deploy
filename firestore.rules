@@ -86,6 +86,12 @@ service cloud.firestore {
       allow write: if request.auth != null && request.auth.token.email == "wildpicturesstudio@gmail.com";
     }
 
+    // Photo sharing links: lectura pública, escritura admin
+    match /photo-sharing-links/{linkId} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.token.email == "wildpicturesstudio@gmail.com";
+    }
+
     // Bloqueo por defecto para todo lo demás
     match /{document=**} {
       allow read, write: if false;
