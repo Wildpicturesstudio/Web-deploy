@@ -1014,7 +1014,8 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
             <div className="daily-list-print hidden">
               <h1 style={{ textAlign: 'center', marginBottom: '20px' }}>Eventos del día</h1>
               <p style={{ textAlign: 'center', marginBottom: '20px' }}>{new Date(showDailyList).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
-              <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px' }}>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px' }}>
                 <thead>
                   <tr style={{ borderBottom: '2px solid #000' }}>
                     <th style={{ textAlign: 'left', padding: '8px', borderBottom: '1px solid #000' }}>Hora</th>
@@ -1046,6 +1047,7 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
 
             <div className="daily-list-pdf hidden" style={{ padding: '20px', backgroundColor: '#fff' }}>
