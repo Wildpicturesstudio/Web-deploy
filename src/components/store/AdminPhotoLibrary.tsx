@@ -28,22 +28,37 @@ const AdminPhotoLibrary = ({ contractId, clientName }: { contractId: string; cli
     try {
       setLoading(true);
       const photosRef = ref(storage, `photo-libraries/${contractId}`);
-      const fileList = await listAll(photosRef);
 
-      const photosList: Photo[] = [];
-      for (const file of fileList.items) {
-        const url = await getDownloadURL(file);
-        photosList.push({
-          id: file.name,
-          name: file.name,
-          url: url,
-          uploadedAt: new Date().toISOString(),
-        });
+      try {
+        const fileList = await listAll(photosRef);
+        const photosList: Photo[] = [];
+
+        for (const file of fileList.items) {
+          try {
+            const url = await getDownloadURL(file);
+            photosList.push({
+              id: file.name,
+              name: file.name,
+              url: url,
+              uploadedAt: new Date().toISOString(),
+            });
+          } catch (urlError) {
+            console.warn(`Error getting URL for ${file.name}:`, urlError);
+          }
+        }
+
+        setPhotos(photosList);
+      } catch (listError: any) {
+        // If directory doesn't exist yet, just show empty
+        if (listError.code === 'storage/invalid-root-operation') {
+          setPhotos([]);
+        } else {
+          throw listError;
+        }
       }
-
-      setPhotos(photosList);
     } catch (error) {
       console.error('Error loading photos:', error);
+      alert('Error al cargar fotos. Verifica las reglas de Storage en Firebase.');
     } finally {
       setLoading(false);
     }
