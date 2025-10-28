@@ -440,11 +440,53 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ onNavigate, dar
 
 function computeMonthlyData(contracts: Contract[], investmentInstallments: any[], period: any) {
   const now = new Date();
-  const months = Array.from({ length: 12 }).map((_, i) => {
-    const d = new Date(now.getFullYear(), i, 1);
-    const label = d.toLocaleString('es', { month: 'short' });
-    return { key: i, month: label.charAt(0).toUpperCase() + label.slice(1), income: 0, expenses: 0, profit: 0, earned: 0, forecast: 0, netProfit: 0 } as any;
-  });
+
+  const isShortPeriod = period.type === 'quincena' || (period.type === 'custom' && period.start && period.end && (() => {
+    const start = new Date(period.start);
+    const end = new Date(period.end);
+    return (end.getTime() - start.getTime()) <= (15 * 24 * 60 * 60 * 1000);
+  })());
+
+  let dataPoints: any[] = [];
+
+  if (isShortPeriod) {
+    let startDate: Date;
+    let endDate: Date;
+
+    if (period.type === 'quincena') {
+      startDate = new Date(now.getFullYear(), now.getMonth(), period.quinceType === '1' ? 1 : 16);
+      endDate = new Date(now.getFullYear(), now.getMonth(), period.quinceType === '1' ? 15 : 31);
+    } else {
+      startDate = new Date(period.start);
+      endDate = new Date(period.end);
+    }
+
+    const daysDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000)) + 1;
+
+    for (let i = 0; i < daysDiff; i++) {
+      const d = new Date(startDate);
+      d.setDate(d.getDate() + i);
+      const dayName = d.toLocaleString('es', { weekday: 'short' });
+      dataPoints.push({
+        key: i,
+        month: dayName.charAt(0).toUpperCase() + dayName.slice(1),
+        date: d.toISOString().split('T')[0],
+        income: 0,
+        expenses: 0,
+        profit: 0,
+        earned: 0,
+        forecast: 0,
+        netProfit: 0
+      });
+    }
+  } else {
+    const months = Array.from({ length: 12 }).map((_, i) => {
+      const d = new Date(now.getFullYear(), i, 1);
+      const label = d.toLocaleString('es', { month: 'short' });
+      return { key: i, month: label.charAt(0).toUpperCase() + label.slice(1), income: 0, expenses: 0, profit: 0, earned: 0, forecast: 0, netProfit: 0 } as any;
+    });
+    dataPoints = months;
+  }
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
