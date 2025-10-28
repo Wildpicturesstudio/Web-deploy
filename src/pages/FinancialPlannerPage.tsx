@@ -717,7 +717,7 @@ const FinancialPlannerPage: React.FC = () => {
                 </button>
                 <button
                   onClick={() => setShowIncomeModal(false)}
-                  className={`flex-1 border-2 border-black px-4 py-2 rounded-none font-medium ${textColor} hover:bg-black hover:${textColor === 'text-white' ? 'text-white' : 'text-white'}`}
+                  className={`flex-1 border-2 border-black px-4 py-2 rounded-none font-medium ${darkMode ? 'bg-gray-900 text-white hover:bg-white hover:text-black' : 'bg-white text-black hover:bg-black hover:text-white'}`}
                 >
                   Cancelar
                 </button>
