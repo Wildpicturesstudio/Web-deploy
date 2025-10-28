@@ -413,7 +413,7 @@ function computeMonthlyData(contracts: Contract[], investmentInstallments: any[]
   const months = Array.from({ length: 12 }).map((_, i) => {
     const d = new Date(now.getFullYear(), i, 1);
     const label = d.toLocaleString('es', { month: 'short' });
-    return { key: i, month: label.charAt(0).toUpperCase() + label.slice(1), income: 0, expenses: 0, profit: 0, earned: 0, forecast: 0 } as any;
+    return { key: i, month: label.charAt(0).toUpperCase() + label.slice(1), income: 0, expenses: 0, profit: 0, earned: 0, forecast: 0, netProfit: 0 } as any;
   });
 
   const today = new Date();
