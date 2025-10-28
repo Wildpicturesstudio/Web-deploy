@@ -375,8 +375,8 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ onNavigate, dar
           </div>
 
           {/* Pie Chart - Desglose de Gastos */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
-            <h3 className="font-semibold text-gray-800 mb-4">Desglose de Gastos</h3>
+          <div className={`${cardBg} rounded-lg border ${borderColor} p-6 shadow-sm`}>
+            <h3 className={`font-semibold mb-4 ${darkMode ? 'text-gray-100' : 'text-gray-800'}`}>Desglose de Gastos</h3>
             <div className="space-y-3">
               {metrics.expensesByCategory.length > 0 ? (
                 metrics.expensesByCategory.map((cat, idx) => {
