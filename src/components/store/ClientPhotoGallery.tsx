@@ -53,16 +53,13 @@ const ClientPhotoGallery = ({ shareToken }: { shareToken: string }) => {
       const contractId = linkData.contractId;
 
       // Get contract details
-      const contractsQuery = query(
-        collection(db, 'contracts'),
-        where('__name__', '==', contractId)
-      );
-      const contractsSnap = await getDocs(contractsQuery);
+      const contractRef = doc(db, 'contracts', contractId);
+      const contractSnap = await getDoc(contractRef);
 
-      if (contractsSnap.docs.length > 0) {
+      if (contractSnap.exists()) {
         const contractData = {
-          id: contractsSnap.docs[0].id,
-          ...contractsSnap.docs[0].data(),
+          id: contractSnap.id,
+          ...contractSnap.data(),
         } as ContractData;
         setContract(contractData);
 
@@ -76,15 +73,13 @@ const ClientPhotoGallery = ({ shareToken }: { shareToken: string }) => {
 
       // Load photos from Firestore
       try {
-        const libraryDoc = await getDocs(query(
-          collection(db, 'photo-libraries'),
-          where('__name__', '==', contractId)
-        ));
+        const libraryRef = doc(db, 'photo-libraries', contractId);
+        const librarySnap = await getDoc(libraryRef);
 
         const photosList: Photo[] = [];
 
-        if (!libraryDoc.empty) {
-          const libraryData = libraryDoc.docs[0].data() as any;
+        if (librarySnap.exists()) {
+          const libraryData = librarySnap.data() as any;
           const photoNames = libraryData.photos || [];
 
           for (const photoName of photoNames) {
