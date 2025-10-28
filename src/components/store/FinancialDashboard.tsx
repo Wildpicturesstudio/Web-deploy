@@ -218,10 +218,16 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ onNavigate, dar
     );
   }
 
+  const bgColor = darkMode ? 'bg-black' : 'bg-white';
+  const textColor = darkMode ? 'text-gray-100' : 'text-gray-800';
+  const borderColor = darkMode ? 'border-gray-700' : 'border-gray-200';
+  const cardBg = darkMode ? 'bg-gray-950' : 'bg-white';
+  const labelColor = darkMode ? 'text-gray-400' : 'text-gray-600';
+
   return (
-    <div className="space-y-6">
+    <div className={`space-y-6 ${darkMode ? 'bg-black' : ''}`}>
       {/* Period Filter */}
-      <div className="bg-white rounded-lg border border-gray-200 py-3 px-4 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 shadow-sm">
+      <div className={`${cardBg} rounded-lg border ${borderColor} py-3 px-4 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 shadow-sm`}>
         <label className="text-sm font-medium text-gray-700">Período:</label>
         <select 
           value={period.type} 
