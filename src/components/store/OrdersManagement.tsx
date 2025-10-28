@@ -44,10 +44,23 @@ interface OrderItem {
 const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 
 const OrdersManagement = () => {
-  const [orders, setOrders] = useState<OrderItem[]>([]);
+  const getCachedOrders = () => {
+    try {
+      const cached = localStorage.getItem('orders_management_cache');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const [orders, setOrders] = useState(() => getCachedOrders());
   const [statusFilter, setStatusFilter] = useState<'todas' | OrderStatus>('todas');
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem('orders_management_cache', JSON.stringify(orders));
+  }, [orders]);
 
   const [viewing, setViewing] = useState<OrderItem | null>(null);
   const [workflow, setWorkflow] = useState<WorkflowCategory[] | null>(null);
