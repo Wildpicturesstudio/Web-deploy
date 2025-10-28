@@ -385,11 +385,11 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ onNavigate, dar
           </div>
         </div>
 
-        {/* Saldo de Caja Actual */}
+        {/* Saldo - Ingreso Pendiente */}
         <div className={`${cardBg} rounded border ${borderColor} p-2 shadow-sm hover:shadow-md transition-shadow`}>
           <div className="flex items-center justify-between gap-2">
             <div className="min-w-0">
-              <p className={`text-xs font-medium ${labelColor} truncate`}>Saldo</p>
+              <p className={`text-xs font-medium ${labelColor} truncate`}>Saldo Pendiente</p>
               <p className="text-base font-bold text-indigo-600 leading-tight">R$ {metrics.currentCashBalance.toFixed(0)}</p>
             </div>
             <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
