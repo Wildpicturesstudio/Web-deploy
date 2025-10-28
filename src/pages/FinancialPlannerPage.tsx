@@ -581,7 +581,7 @@ const FinancialPlannerPage: React.FC = () => {
                 });
                 setShowGoalModal(true);
               }}
-              className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded"
+              className={`flex items-center gap-2 px-4 py-2 rounded-none font-medium transition-colors ${buttonStyle}`}
             >
               <Plus size={16} /> Añadir Meta
             </button>
