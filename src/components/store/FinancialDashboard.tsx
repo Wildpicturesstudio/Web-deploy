@@ -595,7 +595,11 @@ function computeMonthlyData(contracts: Contract[], investmentInstallments: any[]
 
     let dataPoint;
     if (isShortPeriod) {
-      dataPoint = dataPoints.find(dp => dp.date === d.toISOString().split('T')[0]);
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      const contractDateStr = `${year}-${month}-${day}`;
+      dataPoint = dataPoints.find(dp => dp.date === contractDateStr);
     } else {
       const m = d.getMonth();
       dataPoint = dataPoints[m];
@@ -623,7 +627,11 @@ function computeMonthlyData(contracts: Contract[], investmentInstallments: any[]
 
     let dataPoint;
     if (isShortPeriod) {
-      dataPoint = dataPoints.find(dp => dp.date === d.toISOString().split('T')[0]);
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      const contractDateStr = `${year}-${month}-${day}`;
+      dataPoint = dataPoints.find(dp => dp.date === contractDateStr);
     } else {
       const m = d.getMonth();
       dataPoint = dataPoints[m];
