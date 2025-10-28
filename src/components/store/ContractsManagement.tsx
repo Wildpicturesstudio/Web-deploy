@@ -624,7 +624,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 flex flex-col max-h-96 overflow-hidden">
-        <div className="hidden md:grid grid-cols-12 p-3 text-xs font-medium border-b bg-gray-50">
+        <div className="hidden md:grid grid-cols-12 p-3 text-xs font-medium border-b bg-gray-50 flex-shrink-0">
           <div className="col-span-2">Fecha principal</div>
           <div className="col-span-3">Nombre del trabajo</div>
           <div className="col-span-2">Tel��fono</div>
@@ -824,7 +824,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
                         </div>
                       </section>
                       <section>
-                        <h3 className="text-base font-medium text-primary mb-2">CLÁUSULA 2ª – DAS OBRIGAÇÕES DA CONTRATANTE</h3>
+                        <h3 className="text-base font-medium text-primary mb-2">CLÁUSULA 2ª �� DAS OBRIGAÇÕES DA CONTRATANTE</h3>
                         <div className="space-y-2">
                           <p>2.1. Realizar o pagamento conforme estipulado: 20% do valor total como sinal de reserva e o restante no dia do evento.</p>
                           <p>2.2. Fornecer todas as informações necessárias sobre o evento (horários, locais, pessoas importantes).</p>
