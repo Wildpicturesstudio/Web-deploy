@@ -447,12 +447,12 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ onNavigate, dar
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {metrics.topClients.length > 0 ? (
                 metrics.topClients.map((client, idx) => (
-                  <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-md hover:bg-gray-100 transition-colors">
+                  <div key={idx} className={`flex items-center justify-between p-3 rounded-md transition-colors ${darkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-gray-50 hover:bg-gray-100'}`}>
                     <div className="flex-1">
-                      <p className="font-medium text-gray-800 text-sm">{client.clientName}</p>
-                      <p className="text-xs text-gray-600">Valor contratado</p>
+                      <p className={`font-medium text-sm ${darkMode ? 'text-gray-100' : 'text-gray-800'}`}>{client.clientName}</p>
+                      <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Valor contratado</p>
                     </div>
-                    <p className="font-semibold text-gray-900">R$ {client.totalValue.toFixed(0)}</p>
+                    <p className={`font-semibold ${darkMode ? 'text-gray-100' : 'text-gray-900'}`}>R$ {client.totalValue.toFixed(0)}</p>
                   </div>
                 ))
               ) : (
