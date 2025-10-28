@@ -7,9 +7,11 @@ interface Props {
   selectedProductId: 'all' | 'none' | string;
   selectedProductIdB: 'none' | string;
   mode?: 'revenue' | 'contracts' | 'financial';
+  isWeekly?: boolean;
+  height?: number;
 }
 
-const ChartPerformance: React.FC<Props> = ({ data, products, selectedProductId, selectedProductIdB, mode = 'revenue' }) => {
+const ChartPerformance: React.FC<Props> = ({ data, products, selectedProductId, selectedProductIdB, mode = 'revenue', isWeekly = false, height = 300 }) => {
   const resolveName = (id: 'all' | 'none' | string) => {
     if (id === 'all') {
       if (mode === 'contracts') return 'Contratos firmados';
