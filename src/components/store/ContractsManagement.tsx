@@ -772,39 +772,41 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
 
                   <div>
                     <div className="text-sm font-medium mb-2">Items del contrato</div>
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="text-left text-gray-600">
-                          <th className="py-1">Item</th>
-                          <th className="py-1">Cant.</th>
-                          <th className="py-1">Precio</th>
-                          <th className="py-1">Total</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(viewing.services || []).map((it: any, idx: number) => {
-                          const qty = Number(it.quantity ?? 1);
-                          const price = Number(String(it.price || '').replace(/[^0-9]/g, ''));
-                          const total = price * qty;
-                          return (
-                            <tr key={idx} className="border-t">
-                              <td className="py-1">{it.name || it.id || '—'}</td>
-                              <td className="py-1">{qty}</td>
-                              <td className="py-1">R$ {price.toFixed(0)}</td>
-                              <td className="py-1">R$ {total.toFixed(0)}</td>
-                            </tr>
-                          );
-                        })}
-                        {Array.isArray(viewing.storeItems) && viewing.storeItems.map((it: any, idx: number) => (
-                          <tr key={`store-${idx}`} className="border-t">
-                            <td className="py-1">{it.name}</td>
-                            <td className="py-1">{Number(it.quantity)}</td>
-                            <td className="py-1">R$ {Number(it.price).toFixed(0)}</td>
-                            <td className="py-1">R$ {(Number(it.price) * Number(it.quantity)).toFixed(0)}</td>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="text-left text-gray-600">
+                            <th className="py-1">Item</th>
+                            <th className="py-1">Cant.</th>
+                            <th className="py-1">Precio</th>
+                            <th className="py-1">Total</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody>
+                          {(viewing.services || []).map((it: any, idx: number) => {
+                            const qty = Number(it.quantity ?? 1);
+                            const price = Number(String(it.price || '').replace(/[^0-9]/g, ''));
+                            const total = price * qty;
+                            return (
+                              <tr key={idx} className="border-t">
+                                <td className="py-1">{it.name || it.id || '—'}</td>
+                                <td className="py-1">{qty}</td>
+                                <td className="py-1">R$ {price.toFixed(0)}</td>
+                                <td className="py-1">R$ {total.toFixed(0)}</td>
+                              </tr>
+                            );
+                          })}
+                          {Array.isArray(viewing.storeItems) && viewing.storeItems.map((it: any, idx: number) => (
+                            <tr key={`store-${idx}`} className="border-t">
+                              <td className="py-1">{it.name}</td>
+                              <td className="py-1">{Number(it.quantity)}</td>
+                              <td className="py-1">R$ {Number(it.price).toFixed(0)}</td>
+                              <td className="py-1">R$ {(Number(it.price) * Number(it.quantity)).toFixed(0)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
 
                   <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
