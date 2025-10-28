@@ -468,10 +468,14 @@ function computeMonthlyData(contracts: Contract[], investmentInstallments: any[]
       const d = new Date(startDate);
       d.setDate(d.getDate() + i);
       const dayName = d.toLocaleString('es', { weekday: 'short' });
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      const dateStr = `${year}-${month}-${day}`;
       dataPoints.push({
         key: i,
         month: dayName.charAt(0).toUpperCase() + dayName.slice(1),
-        date: d.toISOString().split('T')[0],
+        date: dateStr,
         income: 0,
         expenses: 0,
         profit: 0,
