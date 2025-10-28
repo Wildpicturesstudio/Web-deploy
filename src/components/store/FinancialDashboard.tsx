@@ -247,7 +247,6 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ onNavigate, dar
 
     const netProfit = completedRevenue - expenses;
     const profitMargin = completedRevenue > 0 ? ((netProfit / completedRevenue) * 100) : 0;
-    const cashBalance = completedRevenue;
 
     const monthlyData = computeMonthlyData(filteredContracts, investmentInstallments, period);
     const expensesByCategory = [
@@ -260,7 +259,7 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ onNavigate, dar
       currentMonthExpenses: expenses,
       currentMonthNetProfit: netProfit,
       profitMargin: profitMargin,
-      currentCashBalance: cashBalance,
+      currentCashBalance: pendingRevenue,
       monthlyData,
       expensesByCategory,
       outstandingInvoices: invoices,
