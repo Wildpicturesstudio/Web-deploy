@@ -63,23 +63,37 @@ const BudgetPlanner: React.FC<BudgetPlannerProps> = ({ onNavigate, darkMode = fa
   const loadBudgetData = async () => {
     try {
       setLoading(true);
-      if (typeof navigator !== 'undefined' && !navigator.onLine) return;
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        setLoading(false);
+        return;
+      }
 
-      const envelopesSnap = await getDocs(collection(db, 'budget_envelopes'));
-      const envelopes = envelopesSnap.docs.map(d => {
-        const data = d.data();
-        return {
-          id: d.id,
-          name: data.name || '',
-          percentage: data.percentage || 0,
-          allocated: data.allocated || 0,
-          spent: data.spent || 0,
-          available: (data.allocated || 0) - (data.spent || 0),
-        } as Envelope;
-      });
+      let envelopes: Envelope[] = [];
+      let transactions: Transaction[] = [];
 
-      const transactionsSnap = await getDocs(query(collection(db, 'budget_transactions'), orderBy('date', 'desc')));
-      const transactions = transactionsSnap.docs.map(d => ({ id: d.id, ...d.data() } as Transaction));
+      try {
+        const envelopesSnap = await getDocs(collection(db, 'budget_envelopes'));
+        envelopes = envelopesSnap.docs.map(d => {
+          const data = d.data();
+          return {
+            id: d.id,
+            name: data.name || '',
+            percentage: data.percentage || 0,
+            allocated: data.allocated || 0,
+            spent: data.spent || 0,
+            available: (data.allocated || 0) - (data.spent || 0),
+          } as Envelope;
+        });
+      } catch (envelopeError) {
+        console.warn('Error loading envelopes:', envelopeError);
+      }
+
+      try {
+        const transactionsSnap = await getDocs(query(collection(db, 'budget_transactions'), orderBy('date', 'desc')));
+        transactions = transactionsSnap.docs.map(d => ({ id: d.id, ...d.data() } as Transaction));
+      } catch (transactionError) {
+        console.warn('Error loading transactions:', transactionError);
+      }
 
       const totalAllocated = envelopes.reduce((sum, e) => sum + e.allocated, 0);
       const totalSpent = envelopes.reduce((sum, e) => sum + e.spent, 0);
