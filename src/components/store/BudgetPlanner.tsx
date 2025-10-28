@@ -22,12 +22,29 @@ interface Transaction {
   envelopeId?: string;
 }
 
+interface Contract {
+  id: string;
+  clientName?: string;
+  totalAmount?: number;
+  finalPaymentPaid?: boolean;
+  eventCompleted?: boolean;
+  contractDate?: string;
+  eventDate?: string;
+  createdAt?: string;
+  services?: any[];
+  formSnapshot?: { cartItems?: any[] };
+  storeItems?: any[];
+  travelFee?: number;
+}
+
 interface BudgetData {
+  totalIncome: number;
   totalAvailable: number;
   totalAllocated: number;
   totalSpent: number;
   envelopes: Envelope[];
   transactions: Transaction[];
+  paidContracts: Contract[];
 }
 
 interface BudgetPlannerProps {
