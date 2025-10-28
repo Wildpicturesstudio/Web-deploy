@@ -410,11 +410,11 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ onNavigate, dar
 
         {/* COLUMN 3: Operational & Management Details */}
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-gray-800 px-2">Operaciones</h2>
+          <h2 className={`text-lg font-semibold px-2 ${darkMode ? 'text-gray-100' : 'text-gray-800'}`}>Operaciones</h2>
 
           {/* Facturas por Cobrar */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
-            <h3 className="font-semibold text-gray-800 mb-4">Facturas por Cobrar</h3>
+          <div className={`${cardBg} rounded-lg border ${borderColor} p-6 shadow-sm`}>
+            <h3 className={`font-semibold mb-4 ${darkMode ? 'text-gray-100' : 'text-gray-800'}`}>Facturas por Cobrar</h3>
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {metrics.outstandingInvoices.length > 0 ? (
                 metrics.outstandingInvoices.map((invoice) => (
