@@ -340,7 +340,7 @@ const AdminStorePage: React.FC = () => {
       </div>
 
       {notice && (
-        <div className={`fixed top-4 left-4 right-4 md:left-auto md:right-4 md:max-w-sm z-50 p-4 rounded-lg border text-sm shadow-lg animate-in fade-in slide-in-from-top-2 ${notice.type==='success' ? 'border-green-200 bg-green-50 text-green-700' : notice.type==='error' ? 'border-red-200 bg-red-50 text-red-700' : 'border-blue-200 bg-blue-50 text-blue-700'}`}>
+        <div className={`fixed top-4 left-4 right-4 md:left-auto md:right-4 md:w-96 z-50 p-4 rounded-lg border text-sm shadow-lg transition-all ${notice.type==='success' ? 'border-green-200 bg-green-50 text-green-700' : notice.type==='error' ? 'border-red-200 bg-red-50 text-red-700' : 'border-blue-200 bg-blue-50 text-blue-700'}`}>
           {notice.text}
         </div>
       )}
