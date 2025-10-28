@@ -119,13 +119,20 @@ const BudgetPlanner: React.FC<BudgetPlannerProps> = ({ onNavigate, darkMode = fa
     if (!incomeAmount || isNaN(Number(incomeAmount))) return;
 
     try {
+      const amount = Number(incomeAmount);
+      if (amount <= 0) {
+        alert('El monto debe ser mayor a 0');
+        return;
+      }
+
       const now = new Date().toISOString().split('T')[0];
       await addDoc(collection(db, 'budget_transactions'), {
         date: now,
         description: 'Ingreso',
         category: 'Ingresos',
         type: 'income',
-        amount: Number(incomeAmount),
+        amount: amount,
+        timestamp: new Date().toISOString(),
       });
 
       setIncomeAmount('');
@@ -133,6 +140,7 @@ const BudgetPlanner: React.FC<BudgetPlannerProps> = ({ onNavigate, darkMode = fa
       loadBudgetData();
     } catch (error) {
       console.error('Error adding income:', error);
+      alert('Error al agregar ingreso. Por favor, intenta de nuevo.');
     }
   };
 
