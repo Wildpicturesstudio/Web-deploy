@@ -136,8 +136,19 @@ const AdminPhotoLibrary = ({ contractId, clientName }: { contractId: string; cli
 
   const handleDeletePhoto = async (photoId: string) => {
     try {
+      // Delete from Storage
       const storageRef = ref(storage, `photo-libraries/${contractId}/${photoId}`);
       await deleteObject(storageRef);
+
+      // Update Firestore
+      const remainingPhotos = photos.filter(p => p.id !== photoId).map(p => p.id);
+      const libraryRef = doc(db, 'photo-libraries', contractId);
+      await setDoc(libraryRef, {
+        contractId,
+        photos: remainingPhotos,
+        updatedAt: new Date(),
+      }, { merge: true });
+
       await loadPhotos();
     } catch (error) {
       console.error('Error deleting photo:', error);
