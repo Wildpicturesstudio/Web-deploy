@@ -74,12 +74,12 @@ const AdminStoreDashboard: React.FC<AdminProps> = ({ onNavigate }) => {
     }
   };
 
-  const [stats, setStats] = useState(getCachedStats);
-  const [recentOrders, setRecentOrders] = useState(getCachedOrders);
-  const [allOrders, setAllOrders] = useState(getCachedOrders);
-  const [products, setProducts] = useState(getCachedProducts);
-  const [contracts, setContracts] = useState(getCachedContracts);
-  const [investmentInstallments, setInvestmentInstallments] = useState(getCachedInstallments);
+  const [stats, setStats] = useState(() => getCachedStats());
+  const [recentOrders, setRecentOrders] = useState(() => getCachedOrders());
+  const [allOrders, setAllOrders] = useState(() => getCachedOrders());
+  const [products, setProducts] = useState(() => getCachedProducts());
+  const [contracts, setContracts] = useState(() => getCachedContracts());
+  const [investmentInstallments, setInvestmentInstallments] = useState(() => getCachedInstallments());
   const [period, setPeriod] = useState<{ type: 'all' | 'year' | 'month' | 'custom'; start?: string; end?: string }>({ type: 'all' });
   const [metric, setMetric] = useState<'revenue' | 'contracts'>('revenue');
   const { flags, setPageEnabled } = useFeatureFlags();
