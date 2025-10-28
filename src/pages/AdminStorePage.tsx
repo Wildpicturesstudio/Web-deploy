@@ -274,7 +274,7 @@ const AdminStorePage: React.FC = () => {
       )}
 
       {/* Main Content Area */}
-      <div className="flex-1 overflow-hidden p-[2%]">
+      <div className="flex-1 overflow-auto p-[2%]">
         {adminView === 'calendar' && (
           <div className="h-full w-full flex flex-col bg-white rounded-lg shadow-lg overflow-hidden">
             <AdminCalendar darkMode={adminDark} />
