@@ -81,7 +81,16 @@ function resolveDressImageCM(u?: string, name?: string): string {
 }
 
 const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?: () => void }> = ({ openContractId, onOpened }) => {
-  const [contracts, setContracts] = useState<ContractItem[]>([]);
+  const getCachedContracts = () => {
+    try {
+      const cached = localStorage.getItem('contracts_management_cache');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const [contracts, setContracts] = useState(() => getCachedContracts());
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [search, setSearch] = useState('');
