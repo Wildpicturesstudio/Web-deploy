@@ -75,20 +75,32 @@ const ClientPhotoGallery = ({ shareToken }: { shareToken: string }) => {
       }
 
       // Load photos from storage
-      const photosRef = ref(storage, `photo-libraries/${contractId}`);
-      const fileList = await listAll(photosRef);
+      try {
+        const photosRef = ref(storage, `photo-libraries/${contractId}`);
+        const fileList = await listAll(photosRef);
 
-      const photosList: Photo[] = [];
-      for (const file of fileList.items) {
-        const url = await getDownloadURL(file);
-        photosList.push({
-          id: file.name,
-          name: file.name,
-          url: url,
-        });
+        const photosList: Photo[] = [];
+        for (const file of fileList.items) {
+          try {
+            const url = await getDownloadURL(file);
+            photosList.push({
+              id: file.name,
+              name: file.name,
+              url: url,
+            });
+          } catch (urlError) {
+            console.warn(`Error getting URL for ${file.name}:`, urlError);
+          }
+        }
+
+        setPhotos(photosList);
+      } catch (storageError: any) {
+        // If directory doesn't exist, just show empty
+        if (storageError.code !== 'storage/invalid-root-operation') {
+          console.warn('Error loading photos from storage:', storageError);
+        }
+        setPhotos([]);
       }
-
-      setPhotos(photosList);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
