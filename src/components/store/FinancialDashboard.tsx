@@ -54,6 +54,7 @@ interface FinancialMetrics {
 
 interface FinancialDashboardProps {
   onNavigate?: (view: string) => void;
+  darkMode?: boolean;
 }
 
 const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ onNavigate }) => {
