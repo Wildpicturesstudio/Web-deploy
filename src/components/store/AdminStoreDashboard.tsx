@@ -271,9 +271,9 @@ const AdminStoreDashboard: React.FC<AdminProps> = ({ onNavigate }) => {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" style={{ marginTop: '10px' }}>
         {statCards.map((s, i) => (
-          <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 flex items-center justify-between shadow-sm">
+          <div key={i} className="bg-white rounded-xl border border-gray-200 py-1 px-4 flex items-center justify-between shadow-sm">
             <div>
               <p className="text-gray-500 text-sm">{s.label}</p>
               <p className="text-2xl font-semibold">{s.value}</p>
