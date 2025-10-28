@@ -285,6 +285,46 @@ const FinancialPlannerPage: React.FC = () => {
     }));
   }, [expenses, totalExpenses]);
 
+  const monthlySummaryData = useMemo(() => {
+    const monthlyData = new Map<string, { income: number; expenses: number }>();
+    const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+
+    // Initialize all months
+    for (let i = 0; i < 12; i++) {
+      monthlyData.set(monthNames[i], { income: 0, expenses: 0 });
+    }
+
+    // Aggregate income by month
+    income.forEach(item => {
+      const monthYear = (item as any).monthYear;
+      if (monthYear) {
+        const month = parseInt(monthYear.split('-')[1]) - 1;
+        const existing = monthlyData.get(monthNames[month]) || { income: 0, expenses: 0 };
+        existing.income += item.amount;
+        monthlyData.set(monthNames[month], existing);
+      }
+    });
+
+    // Aggregate expenses by month
+    expenses.forEach(item => {
+      const monthYear = (item as any).monthYear;
+      if (monthYear) {
+        const month = parseInt(monthYear.split('-')[1]) - 1;
+        const existing = monthlyData.get(monthNames[month]) || { income: 0, expenses: 0 };
+        existing.expenses += item.amount;
+        monthlyData.set(monthNames[month], existing);
+      }
+    });
+
+    // Convert to array and calculate savings
+    return Array.from(monthlyData.entries()).map(([month, data]) => ({
+      month,
+      Ingresos: data.income,
+      Gastos: data.expenses,
+      Ahorros: Math.max(0, data.income - data.expenses)
+    }));
+  }, [income, expenses]);
+
   const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
 
   const bgColor = darkMode ? 'bg-gray-900' : 'bg-white';
