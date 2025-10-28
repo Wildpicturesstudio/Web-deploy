@@ -131,6 +131,26 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ onNavigate, dar
     return { services, storeTotal, travel, total };
   };
 
+  const calculatePaidAmount = (c: Contract) => {
+    const { services, storeTotal, total } = contractAmounts(c);
+
+    let paid = 0;
+
+    if (c.depositPaid) {
+      const servicesDeposit = Math.round(services * 0.2);
+      const storeDeposit = Math.round(storeTotal * 0.5);
+      paid += servicesDeposit + storeDeposit;
+    }
+
+    if (c.finalPaymentPaid) {
+      const deposit = c.depositPaid ? (Math.round(services * 0.2) + Math.round(storeTotal * 0.5)) : 0;
+      const remaining = Math.max(0, total - deposit);
+      paid += remaining;
+    }
+
+    return paid;
+  };
+
   const filteredContracts = useMemo(() => {
     return contracts.filter((c: Contract) => isInPeriod(c.contractDate || c.eventDate || c.createdAt));
   }, [contracts, period]);
@@ -149,14 +169,14 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ onNavigate, dar
 
     for (const c of filteredContracts) {
       const amount = contractAmounts(c).total;
+      const paidAmount = calculatePaidAmount(c);
       const dateStr = c.contractDate || c.eventDate || c.createdAt || '';
       const d = dateStr ? new Date(dateStr) : null;
       const isFuture = d && d.getTime() >= today.getTime();
 
       totalRevenue += amount;
-      if (c.eventCompleted) {
-        completedRevenue += amount;
-      } else if (isFuture) {
+      completedRevenue += paidAmount;
+      if (!c.depositPaid && !c.finalPaymentPaid && isFuture) {
         futureRevenue += amount;
         invoices.push({
           id: c.id,
@@ -168,7 +188,7 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ onNavigate, dar
       }
 
       const client = c.clientName || 'Cliente';
-      clientMap.set(client, (clientMap.get(client) || 0) + amount);
+      clientMap.set(client, (clientMap.get(client) || 0) + paidAmount);
     }
 
     invoices.sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
@@ -332,9 +352,9 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ onNavigate, dar
       </div>
 
       {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         {/* Line Chart - Rentabilidad Mensual */}
-        <div className={`${cardBg} rounded-lg border ${borderColor} p-6 shadow-sm`}>
+        <div className={`${cardBg} rounded-lg border ${borderColor} p-6 shadow-sm lg:col-span-3`}>
           <h3 className={`font-semibold mb-4 ${darkMode ? 'text-gray-100' : 'text-gray-800'}`}>Rentabilidad Mensual</h3>
           <div className="h-64">
             <Suspense fallback={<div className={`h-64 flex items-center justify-center ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Cargando gráfico...</div>}>
@@ -350,7 +370,7 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ onNavigate, dar
         </div>
 
         {/* Pie Chart - Desglose de Gastos */}
-        <div className={`${cardBg} rounded-lg border ${borderColor} p-6 shadow-sm`}>
+        <div className={`${cardBg} rounded-lg border ${borderColor} p-6 shadow-sm lg:col-span-2`}>
           <h3 className={`font-semibold mb-4 ${darkMode ? 'text-gray-100' : 'text-gray-800'}`}>Desglose de Gastos</h3>
           <div className="space-y-3">
             {metrics.expensesByCategory.length > 0 ? (
@@ -439,6 +459,26 @@ function computeMonthlyData(contracts: Contract[], investmentInstallments: any[]
     return { services, storeTotal, travel, total };
   };
 
+  const calculatePaidAmount = (c: Contract) => {
+    const { services, storeTotal, total } = contractAmounts(c);
+
+    let paid = 0;
+
+    if (c.depositPaid) {
+      const servicesDeposit = Math.round(services * 0.2);
+      const storeDeposit = Math.round(storeTotal * 0.5);
+      paid += servicesDeposit + storeDeposit;
+    }
+
+    if (c.finalPaymentPaid) {
+      const deposit = c.depositPaid ? (Math.round(services * 0.2) + Math.round(storeTotal * 0.5)) : 0;
+      const remaining = Math.max(0, total - deposit);
+      paid += remaining;
+    }
+
+    return paid;
+  };
+
   for (const c of contracts) {
     const dateStr = c.contractDate || c.eventDate || c.createdAt || '';
     if (!dateStr || !isInPeriod(dateStr)) continue;
@@ -446,11 +486,26 @@ function computeMonthlyData(contracts: Contract[], investmentInstallments: any[]
     if (isNaN(d.getTime())) continue;
     const m = d.getMonth();
     const amount = contractAmounts(c).total;
+    const paidAmount = (() => {
+      const { services, storeTotal, total } = contractAmounts(c);
+      let paid = 0;
+      if (c.depositPaid) {
+        const servicesDeposit = Math.round(services * 0.2);
+        const storeDeposit = Math.round(storeTotal * 0.5);
+        paid += servicesDeposit + storeDeposit;
+      }
+      if (c.finalPaymentPaid) {
+        const deposit = c.depositPaid ? (Math.round(services * 0.2) + Math.round(storeTotal * 0.5)) : 0;
+        const remaining = Math.max(0, total - deposit);
+        paid += remaining;
+      }
+      return paid;
+    })();
 
     months[m].income += amount;
-    if (c.eventCompleted) {
-      months[m].earned += amount;
-      months[m].profit += amount;
+    if (c.depositPaid || c.finalPaymentPaid) {
+      months[m].earned += paidAmount;
+      months[m].profit += paidAmount;
     } else {
       const isFuture = d.getTime() >= today.getTime();
       if (isFuture) {
