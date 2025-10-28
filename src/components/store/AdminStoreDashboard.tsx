@@ -285,60 +285,6 @@ const AdminStoreDashboard: React.FC<AdminProps> = ({ onNavigate }) => {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Quick Actions */}
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <h3 className="font-medium mb-4">Acciones Rápidas</h3>
-          <div className="space-y-3">
-            <button onClick={() => onNavigate?.('orders')} className="w-full border-2 border-black text-black px-4 py-3 rounded-none hover:bg-black hover:text-white flex items-center justify-center gap-2">
-              Ver Órdenes
-              <ArrowUpRight size={18} />
-            </button>
-            <button onClick={() => onNavigate?.('contracts')} className="w-full border-2 border-black text-black px-4 py-3 rounded-none hover:bg-black hover:text-white flex items-center justify-center gap-2">
-              Ver Contratos
-              <ArrowUpRight size={18} />
-            </button>
-            <button onClick={() => onNavigate?.('calendar')} className="w-full border-2 border-black text-black px-4 py-3 rounded-none hover:bg-black hover:text-white flex items-center justify-center gap-2">
-              Ver Calendario
-              <ArrowUpRight size={18} />
-            </button>
-            <button onClick={() => onNavigate?.('products')} className="w-full border-2 border-black text-black px-4 py-3 rounded-none hover:bg-black hover:text-white">
-              Administrar Productos
-            </button>
-          </div>
-
-        </div>
-
-        {/* Nearest Contracts */}
-        <div className="lg:col-span-2 bg-white rounded-xl border border-gray-200 p-4">
-          <h3 className="font-medium mb-4">Contratos Cercanos</h3>
-          <div className="divide-y">
-            {nearestContracts.length === 0 && (
-              <div className="text-gray-500 text-sm p-4 flex items-center justify-between">
-                <span>No hay contratos próximos</span>
-              </div>
-            )}
-            {nearestContracts.map(({ c, future }) => (
-              <div key={c.id} className="flex items-center justify-between py-3">
-                <div>
-                  <p className="font-medium lowercase first-letter:uppercase">{c.clientName || 'cliente'}</p>
-                  <p className="text-xs text-gray-500">{c.eventDate ? new Date(c.eventDate).toLocaleDateString() : (c.contractDate ? new Date(c.contractDate).toLocaleDateString() : '')}</p>
-                  <p className="text-xs text-gray-600">Evento: {c.eventType || '-'}</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-sm font-semibold">R$ {Number(c.totalAmount || 0).toFixed(0)}</span>
-                  <span className={`text-xs px-2 py-1 rounded-full ${c.eventCompleted ? 'bg-green-100 text-green-700' : future ? 'bg-yellow-100 text-yellow-700' : 'bg-blue-100 text-blue-700'}`}>
-                    {c.eventCompleted ? 'completado' : future ? 'pendiente' : 'pasado'}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="pt-3">
-            <button onClick={() => onNavigate?.('contracts')} className="w-full border-2 border-black text-black rounded-none py-2 hover:bg-black hover:text-white">Ver Todos los Contratos</button>
-          </div>
-        </div>
-      </div>
 
       {/* Performance */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
