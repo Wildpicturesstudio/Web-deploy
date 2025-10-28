@@ -571,7 +571,7 @@ function computeMonthlyData(contracts: Contract[], investmentInstallments: any[]
   };
 
   for (const c of contracts) {
-    const dateStr = c.contractDate || c.eventDate || c.createdAt || '';
+    const dateStr = c.eventDate || c.contractDate || c.createdAt || '';
     if (!dateStr || !isInPeriod(dateStr)) continue;
     const d = new Date(dateStr);
     if (isNaN(d.getTime())) continue;
