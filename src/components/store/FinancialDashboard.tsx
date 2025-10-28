@@ -402,7 +402,7 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ onNavigate, dar
                   );
                 })
               ) : (
-                <p className="text-gray-500 text-sm text-center py-4">Sin gastos en este período</p>
+                <p className={`text-sm text-center py-4 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Sin gastos en este período</p>
               )}
             </div>
           </div>
