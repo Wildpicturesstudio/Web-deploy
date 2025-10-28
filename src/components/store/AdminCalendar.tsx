@@ -230,13 +230,8 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
     let pending = 0;
     let completed = 0;
     filteredEvents.forEach(ev => {
-      const status = (() => {
-        if (ev.status) return ev.status;
-        if (ev.eventCompleted && ev.finalPaymentPaid) return 'delivered' as const;
-        if (ev.depositPaid === false) return 'pending_payment' as const;
-        return 'booked' as const;
-      })();
-      if (status === 'delivered' || status === 'released') {
+      const status = getEventStatus(ev);
+      if (status === 'completed') {
         completed++;
       } else {
         pending++;
