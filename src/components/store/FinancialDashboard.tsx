@@ -295,14 +295,10 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ onNavigate, dar
           </div>
 
           {/* Utilidad Neta */}
-          <div className={`rounded-lg border p-6 shadow-sm hover:shadow-md transition-shadow ${
-            metrics.currentMonthNetProfit >= 0 
-              ? 'bg-white border-gray-200' 
-              : 'bg-white border-gray-200'
-          }`}>
+          <div className={`rounded-lg border p-6 shadow-sm hover:shadow-md transition-shadow ${cardBg} ${borderColor}`}>
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-gray-600 text-sm font-medium">Utilidad Neta</p>
+                <p className={`text-sm font-medium ${labelColor}`}>Utilidad Neta</p>
                 <p className={`text-4xl font-bold mt-2 ${
                   metrics.currentMonthNetProfit >= 0 ? 'text-green-600' : 'text-red-600'
                 }`}>
