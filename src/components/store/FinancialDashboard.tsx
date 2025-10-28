@@ -60,7 +60,7 @@ interface FinancialDashboardProps {
 }
 
 const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ onNavigate, darkMode = false }) => {
-  const [period, setPeriod] = useState<{ type: 'all' | 'year' | 'month' | 'custom'; start?: string; end?: string }>({ type: 'month' });
+  const [period, setPeriod] = useState<{ type: 'all' | 'year' | 'month' | 'quincena' | 'custom'; start?: string; end?: string; quinceType?: '1' | '2' }>({ type: 'month' });
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [investmentInstallments, setInvestmentInstallments] = useState<any[]>([]);
