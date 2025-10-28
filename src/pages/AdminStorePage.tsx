@@ -277,7 +277,7 @@ const AdminStorePage: React.FC = () => {
         )}
 
         {adminView === 'dashboard' && (
-          <FinancialDashboard onNavigate={(v) => setAdminView(v)} />
+          <FinancialDashboard onNavigate={(v) => setAdminView(v)} darkMode={adminDark} />
         )}
 
         {adminView === 'products' && (
