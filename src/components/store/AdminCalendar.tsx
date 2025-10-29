@@ -377,6 +377,35 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
     setSelected(null);
   };
 
+  const updateEventProgress = async (field: 'depositPaid' | 'finalPaymentPaid' | 'eventCompleted', value: boolean) => {
+    if (!selectedEvent) return;
+
+    try {
+      const baseId = String(selectedEvent.id || '').split('__')[0] || selectedEvent.id;
+      const updates: any = { [field]: value };
+
+      await updateDoc(doc(db, 'contracts', baseId), updates);
+
+      const updatedEvent = { ...selectedEvent, [field]: value };
+      setSelectedEvent(updatedEvent);
+      setEvents(prev => prev.map(e => {
+        const eId = String(e.id || '').split('__')[0];
+        return eId === baseId ? { ...e, [field]: value } : e;
+      }));
+
+      window.dispatchEvent(new CustomEvent('contractsUpdated'));
+
+      window.dispatchEvent(new CustomEvent('adminToast', {
+        detail: { message: 'Progreso actualizado correctamente', type: 'success' }
+      }));
+    } catch (e) {
+      console.error('Error updating event progress:', e);
+      window.dispatchEvent(new CustomEvent('adminToast', {
+        detail: { message: 'Error al actualizar el progreso', type: 'error' }
+      }));
+    }
+  };
+
   const deleteEvent = (ev: ContractItem) => {
     setDeleteConfirmEvent(ev);
   };
