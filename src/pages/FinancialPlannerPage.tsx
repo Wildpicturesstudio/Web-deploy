@@ -69,9 +69,9 @@ const FinancialPlannerPage: React.FC = () => {
     isAntExpense: false
   });
   
-  const [incomeForm, setIncomeForm] = useState({
+  const [incomeForm, setIncomeForm] = useState<{ concept: string; type: 'Fijo' | 'Variable'; amount: number }>({
     concept: '',
-    type: 'Fijo' as const,
+    type: 'Fijo',
     amount: 0
   });
   
@@ -427,7 +427,7 @@ const FinancialPlannerPage: React.FC = () => {
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value) => `R$ ${value.toFixed(2)}`} />
+                    <Tooltip formatter={(value: any) => `R$ ${Number(value).toFixed(2)}`} />
                     <Legend />
                   </PieChart>
                 </ResponsiveContainer>
@@ -451,7 +451,7 @@ const FinancialPlannerPage: React.FC = () => {
                     <YAxis
                       stroke={labelColor}
                       style={{ fontSize: '12px' }}
-                      formatter={(value) => `R$ ${value}`}
+                      format={(value: any) => `R$ ${value}`}
                     />
                     <Tooltip
                       formatter={(value) => `R$ ${Number(value).toFixed(2)}`}
@@ -562,7 +562,7 @@ const FinancialPlannerPage: React.FC = () => {
                         <button
                           onClick={() => {
                             setEditingIncome(item);
-                            setIncomeForm(item);
+                            setIncomeForm({ concept: item.concept, type: item.type, amount: item.amount });
                             setShowIncomeModal(true);
                           }}
                           className="text-blue-600 hover:text-blue-800 mr-2"
