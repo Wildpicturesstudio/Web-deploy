@@ -340,67 +340,69 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
   const syncCalendarWithContracts = async () => {
     setSyncing(true);
     try {
-      // Load all events from calendar (contracts collection)
-      const contractsSnap = await getDocs(collection(db, 'contracts'));
-      const existingContracts = contractsSnap.docs.map(d => d.id);
+      let createdCount = 0;
 
-      // Load all events from a separate events collection if it exists
-      try {
-        const eventsSnap = await getDocs(collection(db, 'events'));
-        const eventsList = eventsSnap.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
+      // Try multiple event collections
+      const collectionNames = ['events', 'bookingRequests', 'pending_contracts', 'event_bookings'];
 
-        let createdCount = 0;
+      for (const collectionName of collectionNames) {
+        try {
+          const contractsSnap = await getDocs(collection(db, 'contracts'));
+          const existingContracts = contractsSnap.docs.map(d => d.id);
 
-        for (const event of eventsList) {
-          // Check if this event already has a contract
-          const contractExists = existingContracts.some(cId => {
-            // Check if contract references this event
-            const contractData = contractsSnap.docs.find(d => d.id === cId)?.data();
-            return contractData?.eventId === event.id || contractData?.originalEventId === event.id;
-          });
+          const eventsSnap = await getDocs(collection(db, collectionName));
+          if (eventsSnap.empty) continue;
 
-          if (!contractExists && event.clientName && event.eventDate) {
-            // Create contract for this event
-            const payload: any = {
-              clientName: event.clientName,
-              clientEmail: event.clientEmail || '',
-              eventType: event.eventType || 'Evento',
-              eventDate: event.eventDate,
-              eventTime: event.eventTime || '00:00',
-              eventLocation: event.eventLocation || '',
-              phone: event.phone || '',
-              paymentMethod: event.paymentMethod || 'pix',
-              depositPaid: false,
-              finalPaymentPaid: false,
-              eventCompleted: false,
-              isEditing: false,
-              createdAt: new Date().toISOString(),
-              totalAmount: Number(event.totalAmount || 0) || 0,
-              travelFee: Number(event.travelFee || 0) || 0,
-              status: 'booked' as const,
-              eventId: event.id,
-              originalEventId: event.id,
-            };
+          const eventsList = eventsSnap.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
 
-            await addDoc(collection(db, 'contracts'), payload);
-            createdCount++;
+          for (const event of eventsList) {
+            // Check if this event already has a contract
+            const contractExists = existingContracts.some(cId => {
+              const contractData = contractsSnap.docs.find(d => d.id === cId)?.data();
+              return contractData?.eventId === event.id || contractData?.originalEventId === event.id || contractData?.bookingId === event.id;
+            });
+
+            if (!contractExists && event.clientName && event.eventDate) {
+              // Create contract for this event
+              const payload: any = {
+                clientName: event.clientName,
+                clientEmail: event.clientEmail || '',
+                eventType: event.eventType || 'Evento',
+                eventDate: event.eventDate,
+                eventTime: event.eventTime || '00:00',
+                eventLocation: event.eventLocation || '',
+                phone: event.phone || '',
+                paymentMethod: event.paymentMethod || 'pix',
+                depositPaid: false,
+                finalPaymentPaid: false,
+                eventCompleted: false,
+                isEditing: false,
+                createdAt: new Date().toISOString(),
+                totalAmount: Number(event.totalAmount || 0) || 0,
+                travelFee: Number(event.travelFee || 0) || 0,
+                status: 'booked' as const,
+                bookingId: event.id,
+                originalEventId: event.id,
+              };
+
+              await addDoc(collection(db, 'contracts'), payload);
+              createdCount++;
+            }
           }
+        } catch (e) {
+          // Collection doesn't exist, try next
+          continue;
         }
+      }
 
-        if (createdCount > 0) {
-          window.dispatchEvent(new CustomEvent('adminToast', {
-            detail: { message: `${createdCount} contrato(s) creado(s)`, type: 'success' }
-          }));
-          await load();
-        } else {
-          window.dispatchEvent(new CustomEvent('adminToast', {
-            detail: { message: 'No hay eventos sin contrato', type: 'info' }
-          }));
-        }
-      } catch (e) {
-        // Events collection doesn't exist, that's OK
+      if (createdCount > 0) {
         window.dispatchEvent(new CustomEvent('adminToast', {
-          detail: { message: 'No hay eventos externos para sincronizar', type: 'info' }
+          detail: { message: `${createdCount} contrato(s) creado(s)`, type: 'success' }
+        }));
+        await load();
+      } else {
+        window.dispatchEvent(new CustomEvent('adminToast', {
+          detail: { message: 'No hay eventos sin contrato', type: 'info' }
         }));
       }
     } catch (e) {
