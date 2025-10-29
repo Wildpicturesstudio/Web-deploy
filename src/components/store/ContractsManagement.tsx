@@ -1436,7 +1436,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
               <input value={(editForm as any).clientRG || ''} onChange={e => setEditForm((f: any) => ({ ...f, clientRG: e.target.value }))} className="w-full px-3 py-2 border rounded-none" />
             </div>
             <div className="md:col-span-2">
-              <label className="text-xs text-gray-600">Endere��o</label>
+              <label className="text-xs text-gray-600">Endereço</label>
               <input value={(editForm as any).clientAddress || ''} onChange={e => setEditForm((f: any) => ({ ...f, clientAddress: e.target.value }))} className="w-full px-3 py-2 border rounded-none" />
             </div>
             <div>
@@ -1607,59 +1607,6 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
                 ))}
               </select>
             </div>
-
-            {/* Edit packages section */}
-            {Array.isArray((editForm as any).formSnapshot?.cartItems) && (editForm as any).formSnapshot!.cartItems.length > 0 && (
-              <div className="md:col-span-2 border-t pt-3 space-y-3">
-                <div className="text-sm font-medium">Paquetes Incluidos</div>
-                {((editForm as any).formSnapshot!.cartItems as any[]).map((pkg, idx) => (
-                  <div key={`edit-pkg-${idx}`} className="border rounded p-3 space-y-2 bg-gray-50 dark:bg-gray-900">
-                    <div className="font-medium text-sm dark:text-white text-gray-900">{pkg.name || `Paquete #${idx + 1}`}</div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="text-xs dark:text-gray-300 text-gray-600">Fecha</label>
-                        <input
-                          type="date"
-                          value={(editForm as any).formSnapshot?.[`date_${idx}`] || ''}
-                          onChange={(e) => setEditForm((f: any) => {
-                            const fs = { ...f.formSnapshot };
-                            fs[`date_${idx}`] = e.target.value;
-                            return { ...f, formSnapshot: fs };
-                          })}
-                          className="w-full px-3 py-2 border rounded-none text-sm"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-xs dark:text-gray-300 text-gray-600">Hora</label>
-                        <input
-                          type="time"
-                          value={(editForm as any).formSnapshot?.[`time_${idx}`] || ''}
-                          onChange={(e) => setEditForm((f: any) => {
-                            const fs = { ...f.formSnapshot };
-                            fs[`time_${idx}`] = e.target.value;
-                            return { ...f, formSnapshot: fs };
-                          })}
-                          className="w-full px-3 py-2 border rounded-none text-sm"
-                        />
-                      </div>
-                      <div className="col-span-2">
-                        <label className="text-xs dark:text-gray-300 text-gray-600">Ubicación</label>
-                        <input
-                          type="text"
-                          value={(editForm as any).formSnapshot?.[`eventLocation_${idx}`] || ''}
-                          onChange={(e) => setEditForm((f: any) => {
-                            const fs = { ...f.formSnapshot };
-                            fs[`eventLocation_${idx}`] = e.target.value;
-                            return { ...f, formSnapshot: fs };
-                          })}
-                          className="w-full px-3 py-2 border rounded-none text-sm"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
 
             {editForm.eventType === 'Gestantes' && (
               <div className="md:col-span-2 border-t pt-3">
