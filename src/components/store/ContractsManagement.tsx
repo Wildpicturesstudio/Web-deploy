@@ -398,17 +398,21 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
     return mapped.map(m => m.c);
   }, [contracts, search, contractsTab]);
 
-  const computeAmounts = (c: ContractItem, couponCode?: string) => {
+  const computeAmounts = (c: ContractItem, couponCode?: string, customPackagePrice?: number) => {
     const servicesList = Array.isArray(c.services) ? c.services : [];
     let servicesTotal = servicesList.reduce((sum, it: any) => {
       const qty = Number(it.quantity ?? 1);
       const price = Number(String(it.price || '').replace(/[^0-9]/g, ''));
       return sum + (price * qty);
     }, 0);
-    if (servicesTotal === 0 && (c as any).packageTitle) {
+
+    if (customPackagePrice !== undefined && customPackagePrice > 0) {
+      servicesTotal = Number(customPackagePrice);
+    } else if (servicesTotal === 0 && (c as any).packageTitle) {
       const pkg = packagesList.find(p => p.title === (c as any).packageTitle);
       if (pkg && pkg.price && !isNaN(pkg.price)) servicesTotal = Number(pkg.price);
     }
+
     const storeTotal = (Array.isArray(c.storeItems) ? c.storeItems : []).reduce((sum, it: any) => sum + (Number(it.price) * Number(it.quantity || 1)), 0);
     const travel = Number(c.travelFee || 0);
     let totalAmount = Math.round(servicesTotal + storeTotal + travel);
@@ -1624,7 +1628,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
                 }
               }} className="w-full px-3 py-2 border rounded-none">
                 <option value="">— Selecciona paquete —</option>
-                {packagesList.map(p=> (<option key={p.id} value={p.title}>{p.title} — R$ {Number(p.price||0).toFixed(0)}</option>))}
+                {packagesList.map(p=> (<option key={p.id} value={p.title}>{p.title} ��� R$ {Number(p.price||0).toFixed(0)}</option>))}
                 <option value="__custom__">Paquete Personalizado</option>
               </select>
             </div>
