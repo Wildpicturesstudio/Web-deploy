@@ -18,7 +18,7 @@ import { saveContract, updateContractStatus } from '../../utils/contractService'
 import { getAuth, signInAnonymously } from 'firebase/auth';
 import PaymentModal from './PaymentModal';
 import { sendConfirmationEmail } from '../../utils/email';
-import { gcalUpsertBooking, parseDurationToMinutes } from '../../utils/calendar';
+import { parseDurationToMinutes } from '../../utils/calendar';
 
 // Resolve local dress images stored as repo paths to proper URLs using Vite asset handling
 const DRESS_ASSETS: Record<string, string> = import.meta.glob('/src/utils/fotos/vestidos/*', { eager: true, as: 'url' }) as any;
