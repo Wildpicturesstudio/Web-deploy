@@ -105,6 +105,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
   const [wfEditMode, setWfEditMode] = useState(false);
   const [contractsTab, setContractsTab] = useState<'events' | 'finished' | 'pending' | 'new'>('events');
   const [coupons, setCoupons] = useState<DBCoupon[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
   const seenContractIdsRef = useRef<Set<string>>(new Set());
   const [hasShownPageNotification, setHasShownPageNotification] = useState(false);
 
