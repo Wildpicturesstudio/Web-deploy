@@ -572,11 +572,11 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
                       </span>
                     )}
                   </div>
-                  <div className="flex flex-wrap gap-0.5 flex-1">
+                  <div className="flex flex-wrap gap-0.5 flex-1 pointer-events-none">
                     {dayEvents.slice(0, 3).map((ev) => (
-                      <button key={ev.id} onClick={(e) => { e.stopPropagation(); setSelectedEvent(ev); }} className={`text-xs px-1 py-0.5 rounded text-white truncate transition-colors ${getEventColor(ev)}`}>
+                      <div key={ev.id} onClick={(e) => { e.stopPropagation(); setSelectedEvent(ev); }} className={`text-xs px-1 py-0.5 rounded text-white truncate transition-colors cursor-pointer pointer-events-auto ${getEventColor(ev)}`}>
                         {ev.clientName?.split('—')[0].trim()}
-                      </button>
+                      </div>
                     ))}
                     {dayEvents.length > 3 && (
                       <span className={`text-xs px-1 py-0.5 transition-colors ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>+{dayEvents.length - 3}</span>
@@ -830,7 +830,7 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
 
               {/* Payment Information */}
               <div className={`border-t pt-4 transition-colors ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-                <div className="text-sm font-medium mb-3">Información de Pago</div>
+                <div className="text-sm font-medium mb-3">Informaci��n de Pago</div>
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div className="flex items-center gap-2">
                     <span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Depósito (20%):</span>
