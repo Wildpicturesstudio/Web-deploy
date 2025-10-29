@@ -15,6 +15,7 @@ interface PackageEditorModalProps {
 
 const PackageEditorModal: React.FC<PackageEditorModalProps> = ({ open, onClose, pkg, onSaved }) => {
   const [title, setTitle] = useState('');
+  const [serviceType, setServiceType] = useState<string>('');
   const [price, setPrice] = useState<number>(0);
   const [duration, setDuration] = useState('');
   const [description, setDescription] = useState('');
