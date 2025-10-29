@@ -619,6 +619,48 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
         </div>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
           <button onClick={()=> setCreating(true)} className="border-2 border-black bg-black text-white px-3 py-2 rounded-none hover:opacity-90 inline-flex items-center justify-center sm:justify-start gap-2 text-sm sm:text-base"><Plus size={14}/> <span className="hidden sm:inline">Nuevo contrato</span><span className="sm:hidden">Nuevo</span></button>
+          <button onClick={async ()=> {
+            const names = ['María García', 'Juan López', 'Ana Martínez', 'Carlos Rodríguez', 'Sofia Hernández', 'Pablo Torres', 'Laura Sánchez', 'Miguel Ángel'];
+            const eventTypes = ['Matrimonio', 'Cumpleaños', 'Sesión de Fotos', 'Evento Corporativo', 'Quinceañera'];
+            const packageTypes = ['Paquete Básico', 'Paquete Estándar', 'Paquete Premium', 'Paquete Personalizado'];
+            const randomName = names[Math.floor(Math.random() * names.length)];
+            const randomType = eventTypes[Math.floor(Math.random() * eventTypes.length)];
+            const randomPackage = packageTypes[Math.floor(Math.random() * packageTypes.length)];
+            const randomDate = new Date(Date.now() + Math.random() * 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+            const randomTotal = Math.floor(1000 + Math.random() * 5000);
+            const randomPhone = '+55 ' + Math.floor(11000000000 + Math.random() * 89999999999).toString().slice(0, 2) + ' ' + Math.floor(1000000000 + Math.random() * 9000000000);
+
+            try {
+              await addDoc(collection(db, 'contracts'), {
+                clientName: randomName,
+                clientEmail: randomName.toLowerCase().replace(/\s+/g, '.') + '@test.com',
+                clientPhone: randomPhone,
+                eventType: randomType,
+                eventDate: randomDate,
+                eventTime: Math.floor(Math.random() * 24).toString().padStart(2, '0') + ':' + Math.floor(Math.random() * 60).toString().padStart(2, '0'),
+                eventLocation: 'Ubicación de prueba',
+                packageTitle: randomPackage,
+                packageDuration: '4 horas',
+                totalAmount: randomTotal,
+                travelFee: Math.floor(Math.random() * 500),
+                paymentMethod: ['pix', 'cash', 'card'][Math.floor(Math.random() * 3)],
+                depositPaid: Math.random() > 0.7,
+                finalPaymentPaid: false,
+                eventCompleted: false,
+                isEditing: false,
+                isNew: true,
+                createdAt: new Date().toISOString(),
+                status: 'booked',
+                formSnapshot: { phone: randomPhone }
+              });
+              await fetchContracts();
+              window.dispatchEvent(new CustomEvent('contractsUpdated'));
+              window.dispatchEvent(new CustomEvent('adminToast', { detail: { message: 'Contrato de test creado', type: 'success' } }));
+            } catch (e) {
+              console.error('Error creating test contract:', e);
+              window.dispatchEvent(new CustomEvent('adminToast', { detail: { message: 'Error al crear contrato de test', type: 'error' } }));
+            }
+          }} className="border-2 border-gray-400 text-gray-600 px-3 py-2 rounded-none hover:bg-gray-100 inline-flex items-center justify-center gap-2 text-sm" title="Generar contrato aleatorio para testing">Test</button>
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar..." className="px-3 py-2 border rounded-none text-sm w-full sm:w-auto" />
         </div>
       </div>
