@@ -227,7 +227,7 @@ const PhotoPackagesManagement = () => {
                         <ul className="grid grid-cols-1 gap-0.5 text-xs overflow-y-auto max-h-12">
                           {(p as any).storeItemsIncluded.map((it: any, idx: number) => (
                             <li key={idx} className="text-xs text-gray-800 line-clamp-1">
-                              {(() => { const isPkg = String(it.productId).startsWith('pkg:'); const pkgName = isPkg ? (packages.find(pk => `pkg:${pk.id}` === String(it.productId))?.title) : undefined; const baseName = pkgName || storeProducts[it.productId]?.name || String(it.productId); return (<span>{`${baseName}${it.variantName ? ` — ${it.variantName}` : ''}`}</span>); })()}
+                              {(() => { const isPkg = String(it.productId).startsWith('pkg:'); const pkgName = isPkg ? (packages.find((pk: DBPackage) => `pkg:${pk.id}` === String(it.productId))?.title) : undefined; const baseName = pkgName || storeProducts[it.productId]?.name || String(it.productId); return (<span>{`${baseName}${it.variantName ? ` — ${it.variantName}` : ''}`}</span>); })()}
                             </li>
                           ))}
                         </ul>
