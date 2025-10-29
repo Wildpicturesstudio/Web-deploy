@@ -338,6 +338,7 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
   };
 
   const syncCalendarWithContracts = async () => {
+    setSyncing(true);
     try {
       // Load all events from calendar (contracts collection)
       const contractsSnap = await getDocs(collection(db, 'contracts'));
@@ -407,6 +408,8 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
       window.dispatchEvent(new CustomEvent('adminToast', {
         detail: { message: 'Error al sincronizar', type: 'error' }
       }));
+    } finally {
+      setSyncing(false);
     }
   };
 
