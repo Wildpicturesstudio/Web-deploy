@@ -539,6 +539,8 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
       console.error('Error saving contract:', error);
       const errorMsg = error?.message || 'Error desconocido';
       window.dispatchEvent(new CustomEvent('adminToast', { detail: { message: `Error al guardar: ${errorMsg}`, type: 'error' } }));
+    } finally {
+      setIsSaving(false);
     }
   };
 
