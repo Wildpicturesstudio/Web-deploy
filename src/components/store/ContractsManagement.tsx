@@ -1168,13 +1168,39 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
                 <div><span className="text-gray-600">RG:</span> <span className="font-medium">{(viewing as any).clientRG || '-'}</span></div>
                 <div className="col-span-2"><span className="text-gray-600">Endereço:</span> <span className="font-medium">{(viewing as any).clientAddress || '-'}</span></div>
                 <div><span className="text-gray-600">Tipo de evento:</span> <span className="font-medium">{viewing.eventType || '-'}</span></div>
-                <div><span className="text-gray-600">Fecha evento:</span> <span className="font-medium">{viewing.eventDate || '-'}</span></div>
-                <div><span className="text-gray-600">Hora:</span> <span className="font-medium">{(viewing as any).eventTime || '-'}</span></div>
                 <div><span className="text-gray-600">Fecha contrato:</span> <span className="font-medium">{viewing.contractDate || '-'}</span></div>
                 <div><span className="text-gray-600">Hora firma:</span> <span className="font-medium">{(viewing as any).signatureTime || '-'}</span></div>
-                <div><span className="text-gray-600">Ubicación:</span> <span className="font-medium">{(viewing as any).eventLocation || '-'}</span></div>
-                <div><span className="text-gray-600">Paquete:</span> <span className="font-medium">{(viewing as any).packageTitle || '-'}</span></div>
-                <div><span className="text-gray-600">Duración:</span> <span className="font-medium">{(viewing as any).packageDuration || '-'}</span></div>
+                <div><span className="text-gray-600">Método de pago:</span> <span className="font-medium">{viewing.paymentMethod || '-'}</span></div>
+              </div>
+
+              {/* Display each service/package individually */}
+              {Array.isArray((viewing as any).formSnapshot?.cartItems) && (viewing as any).formSnapshot!.cartItems.length > 0 ? (
+                <div className="space-y-4">
+                  {((viewing as any).formSnapshot!.cartItems as any[]).map((pkg, idx) => (
+                    <div key={`pkg-detail-${idx}`} className="border rounded-lg p-4 space-y-3">
+                      {idx > 0 && <div className="border-t -mx-4 px-4 pt-3" />}
+                      <div className="font-medium text-gray-900 text-base">{pkg.name || `Paquete #${idx + 1}`}</div>
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div><span className="text-gray-600">Fecha:</span> <span className="font-medium">{(viewing as any).formSnapshot?.[`date_${idx}`] || viewing.eventDate || '-'}</span></div>
+                        <div><span className="text-gray-600">Hora:</span> <span className="font-medium">{(viewing as any).formSnapshot?.[`time_${idx}`] || (viewing as any).eventTime || '-'}</span></div>
+                        <div className="col-span-2"><span className="text-gray-600">Ubicación:</span> <span className="font-medium">{(viewing as any).formSnapshot?.[`eventLocation_${idx}`] || (viewing as any).eventLocation || '-'}</span></div>
+                        <div><span className="text-gray-600">Duración:</span> <span className="font-medium">{pkg.duration || '-'}</span></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div><span className="text-gray-600">Fecha evento:</span> <span className="font-medium">{viewing.eventDate || '-'}</span></div>
+                  <div><span className="text-gray-600">Hora:</span> <span className="font-medium">{(viewing as any).eventTime || '-'}</span></div>
+                  <div className="col-span-2"><span className="text-gray-600">Ubicación:</span> <span className="font-medium">{(viewing as any).eventLocation || '-'}</span></div>
+                  <div><span className="text-gray-600">Paquete:</span> <span className="font-medium">{(viewing as any).packageTitle || '-'}</span></div>
+                  <div><span className="text-gray-600">Duración:</span> <span className="font-medium">{(viewing as any).packageDuration || '-'}</span></div>
+              </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-3 text-sm border-t pt-4">
+                <div><span className="text-gray-600">Tipo de evento:</span> <span className="font-medium">{viewing.eventType || '-'}</span></div>
                 <div><span className="text-gray-600">Método de pago:</span> <span className="font-medium">{viewing.paymentMethod || '-'}</span></div>
                 {(() => {
                   const customPackagePrice = (viewing as any).formSnapshot?.customPackagePrice;
