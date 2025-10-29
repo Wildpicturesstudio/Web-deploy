@@ -551,6 +551,8 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
         storeItems: merged.storeItems || [],
         ...(merged.eventTime !== undefined ? { eventTime: merged.eventTime } : {}),
         ...(merged.eventLocation !== undefined ? { eventLocation: merged.eventLocation } : {}),
+        ...(editForm.contractDate ? { contractDate: editForm.contractDate } : {}),
+        ...(editForm.signatureTime ? { signatureTime: editForm.signatureTime } : {}),
         packageTitle: packageTitle,
         packageDuration: packageDuration,
         ...(editForm.clientPhone ? { clientPhone: String(editForm.clientPhone) } : {}),
