@@ -6,11 +6,13 @@ interface WorkflowStatusButtonsProps {
   finalPaymentPaid?: boolean;
   isEditing?: boolean;
   eventCompleted?: boolean;
+  isNew?: boolean;
   onUpdate: (updates: {
     depositPaid?: boolean;
     finalPaymentPaid?: boolean;
     isEditing?: boolean;
     eventCompleted?: boolean;
+    isNew?: boolean;
   }) => Promise<void> | void;
   disabled?: boolean;
 }
