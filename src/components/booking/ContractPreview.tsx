@@ -507,12 +507,6 @@ const ContractPreview = ({ data, onConfirm, onBack }: ContractPreviewProps) => {
                       <div className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4" data-pdf-block>
                           <div className="flex items-center">
-                            <span className="text-gray-600">Tipo de Serviço:</span>
-                            <span className="font-medium text-gray-900 ml-2">
-                              {item.type === 'events' ? 'Eventos' : item.type === 'portrait' ? 'Retratos' : 'Gestantes'}
-                            </span>
-                          </div>
-                          <div className="flex items-center">
                             <span className="text-gray-600">Pacote Contratado:</span>
                             <span className="font-medium text-gray-900 ml-2">{item.name}</span>
                           </div>
