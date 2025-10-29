@@ -263,6 +263,16 @@ const ContractPreview = ({ data, onConfirm, onBack }: ContractPreviewProps) => {
   };
 
   const calculateTotal = () => {
+    // If contractTotal is provided (from admin contract), use it directly
+    if ((data as any).contractTotal != null && (data as any).contractTotal > 0) {
+      return {
+        subtotal: (data as any).contractTotal,
+        couponDiscount: 0,
+        paymentDiscount: 0,
+        total: (data as any).contractTotal
+      };
+    }
+
     // Calculate items total considering coupon discounts (handles empty services)
     const itemsTotal = (data.cartItems || []).reduce((sum, item, index) => {
       const itemPrice = parseBRL(item.price);
