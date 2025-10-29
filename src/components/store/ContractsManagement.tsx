@@ -1290,26 +1290,6 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
                 </div>
               </div>
 
-              {/* Paquetes incluidos con fechas e info */}
-              {Array.isArray((viewing as any).formSnapshot?.cartItems) && (viewing as any).formSnapshot!.cartItems.length > 0 && (
-                <div>
-                  <div className="text-sm font-medium mb-2">Paquetes incluidos</div>
-                  <div className="space-y-3">
-                    {((viewing as any).formSnapshot!.cartItems as any[]).map((it, index) => (
-                      <div key={`pkg-${index}`} className="border rounded p-3">
-                        <div className="font-medium text-gray-900">{it.name || it.id || `Servicio #${index + 1}`}</div>
-                        <div className="grid grid-cols-2 gap-2 text-xs text-gray-700 mt-1">
-                          <div><span className="text-gray-600">Fecha:</span> <span className="font-medium">{(viewing as any).formSnapshot?.[`date_${index}`] || (viewing as any).eventDate || '-'}</span></div>
-                          <div><span className="text-gray-600">Hora:</span> <span className="font-medium">{(viewing as any).formSnapshot?.[`time_${index}`] || (viewing as any).eventTime || '-'}</span></div>
-                          <div className="col-span-2"><span className="text-gray-600">Ubicación:</span> <span className="font-medium">{(viewing as any).formSnapshot?.[`eventLocation_${index}`] || (viewing as any).eventLocation || '-'}</span></div>
-                          {it.duration && <div className="col-span-2"><span className="text-gray-600">Duración:</span> <span className="font-medium">{it.duration}</span></div>}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               {viewing.message && (
                 <div>
                   <div className="text-sm font-medium mb-1">Mensaje del cliente</div>
