@@ -223,13 +223,16 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
       const statusMatch = filterStatus === 'all' ? true : status === filterStatus;
 
       let phoneMatch = true;
+      let nameMatch = true;
       if (filterPhone.trim()) {
         const phoneSource = ev.phone || (ev as any).formSnapshot?.phone || '';
         const onlyDigits = (v: string) => String(v || '').replace(/\D/g, '');
         phoneMatch = onlyDigits(phoneSource).includes(onlyDigits(filterPhone));
+        const clientName = ev.clientName || '';
+        nameMatch = clientName.toLowerCase().includes(filterPhone.toLowerCase());
       }
 
-      return monthMatch && yearMatch && statusMatch && phoneMatch;
+      return monthMatch && yearMatch && statusMatch && (phoneMatch || nameMatch);
     });
   }, [events, filterMonth, filterYear, filterStatus, filterPhone]);
 
@@ -570,6 +573,13 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
             }} className={`p-2 rounded-full transition-colors flex-shrink-0 ${darkMode ? 'text-gray-400 hover:text-white hover:bg-gray-800' : 'text-gray-600 hover:text-black hover:bg-gray-200'}`}><ChevronRight size={18}/></button>
           </div>
           <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={filterPhone}
+              onChange={e => setFilterPhone(e.target.value)}
+              placeholder="Filtrar por"
+              className={`px-3 py-1.5 border rounded-lg text-sm transition-colors ${darkMode ? 'border-gray-700 bg-gray-800 text-gray-300 placeholder-gray-500' : 'border-gray-300 bg-white text-gray-900 placeholder-gray-400'}`}
+            />
             <button onClick={goToday} className="px-4 py-0.5 rounded-full bg-gray-600 text-white font-medium hover:opacity-90 transition-opacity mt-0.5">Hoy</button>
             <button onClick={()=> setAdding(true)} className="p-2 rounded-full bg-green-600 text-white hover:bg-green-700 transition-colors" title="Añadir evento"><Plus size={18}/></button>
             <button onClick={syncCalendarWithContracts} disabled={syncing} className={`p-2 rounded-full transition-colors ${syncing ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'} bg-blue-600 text-white`} title="Sincronizar eventos sin contrato"><RefreshCw size={18} className={syncing ? 'animate-spin' : ''}/></button>
