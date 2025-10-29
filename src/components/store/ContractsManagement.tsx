@@ -595,11 +595,12 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
       );
 
       await updateDoc(doc(db, 'contracts', id), cleanPayload as any);
-      setViewing(v => v && v.id === id ? ({ ...v, ...payload }) as any : v);
+      const updatedViewing = { ...editing, ...payload } as ContractItem;
+      setViewing(updatedViewing);
       setEditing(null);
       await fetchContracts();
       try { window.dispatchEvent(new CustomEvent('contractsUpdated')); } catch {}
-      window.dispatchEvent(new CustomEvent('adminToast', { detail: { message: '✓ Contrato actualizado correctamente', type: 'success' } }));
+      window.dispatchEvent(new CustomEvent('adminToast', { detail: { message: '✓ Contrato guardado y actualizado correctamente', type: 'success' } }));
     } catch (error: any) {
       console.error('Error saving contract:', error);
       const errorMsg = error?.message || 'Error desconocido';
@@ -1751,7 +1752,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs text-gray-600">Duración</label>
+                  <label className="text-xs text-gray-600">Duraci��n</label>
                   <input value={createForm.customPackageDuration || ''} onChange={e=> setCreateForm((f:any)=> ({ ...f, customPackageDuration: e.target.value }))} placeholder="Ej: 4 horas" className="w-full px-3 py-2 border rounded-none" />
                 </div>
                 <div>
