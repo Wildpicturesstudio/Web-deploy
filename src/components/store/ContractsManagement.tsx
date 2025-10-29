@@ -119,6 +119,20 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
   useEffect(() => {
     localStorage.setItem('contracts_management_cache', JSON.stringify(contracts));
   }, [contracts]);
+
+  // Fetch coupons on mount
+  useEffect(() => {
+    const loadCoupons = async () => {
+      try {
+        const list = await fetchCoupons();
+        setCoupons(list);
+      } catch (e) {
+        console.warn('Error fetching coupons:', e);
+      }
+    };
+    loadCoupons();
+  }, []);
+
   const [defaults, setDefaults] = useState<{ packages?: string; products?: string }>({});
   const [packagesList, setPackagesList] = useState<{ id: string; title: string; duration?: string; price?: number }[]>([]);
   const [productsList, setProductsList] = useState<any[]>([]);
@@ -916,7 +930,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
                         </div>
                       </section>
                       <section>
-                        <h3 className="text-base font-medium text-primary mb-2">CLÁUSULA 3ª – DA ENTREGA E DIREITOS AUTORAIS</h3>
+                        <h3 className="text-base font-medium text-primary mb-2">CLÁUSULA 3ª ��� DA ENTREGA E DIREITOS AUTORAIS</h3>
                         <div className="space-y-2">
                           <p>3.1. As fotografias serão entregues em formato digital através de galeria online privada.</p>
                           <p>3.2. Os direitos autorais das fotografias pertencem ao fotógrafo, sendo concedido ao contratante o direito de uso pessoal.</p>
