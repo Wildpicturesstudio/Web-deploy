@@ -537,7 +537,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
         eventType: merged.eventType,
         eventDate: merged.eventDate,
         eventCompleted: editing.eventCompleted,
-        totalAmount: editForm.isCustomPackage ? customPackagePrice + Number(editForm.travelFee || 0) + (editStoreItems || []).reduce((s,it)=> s + (Number(it.price)||0) * (Number(it.quantity)||1), 0) : calc.totalAmount,
+        totalAmount: calc.totalAmount,
         travelFee: merged.travelFee,
         paymentMethod: merged.paymentMethod,
         message: merged.message,
