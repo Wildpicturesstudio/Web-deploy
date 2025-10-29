@@ -606,6 +606,18 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
             <button onClick={()=> setContractsTab('events')} className={`px-3 py-1 text-sm ${contractsTab==='events' ? 'bg-black text-white' : ''}`}>Eventos futuros</button>
             <button onClick={()=> setContractsTab('finished')} className={`px-3 py-1 text-sm ${contractsTab==='finished' ? 'bg-black text-white' : ''}`}>Finalizados</button>
             <div className="relative">
+              <button onClick={()=> setContractsTab('new')} className={`px-3 py-1 text-sm ${contractsTab==='new' ? 'bg-black text-white' : ''}`}>
+                Nuevos
+              </button>
+              {contracts.filter(c => c.isNew === true).length > 0 && (
+                <span className={`absolute -top-3 -right-3 w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center ${
+                  contractsTab === 'new' ? 'bg-white text-black' : 'bg-red-600 text-white'
+                }`}>
+                  {contracts.filter(c => c.isNew === true).length}
+                </span>
+              )}
+            </div>
+            <div className="relative">
               <button onClick={()=> setContractsTab('pending')} className={`px-3 py-1 text-sm ${contractsTab==='pending' ? 'bg-black text-white' : ''}`}>
                 Pendiente de Aprobacion
               </button>
