@@ -460,7 +460,7 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
                 {(eventsByDay.get(expandedDay) || []).map((ev, idx) => {
                   const eventStatus = getEventStatus(ev);
                   return (
-                  <div key={ev.id} className={`border rounded-lg p-4 transition-colors ${darkMode ? 'bg-black border-gray-700' : 'bg-transparent border-gray-300'}`}>
+                  <div key={ev.id} onClick={() => setSelectedEvent(ev)} className={`border rounded-lg p-4 transition-colors cursor-pointer hover:shadow-lg ${darkMode ? 'bg-black border-gray-700 hover:bg-gray-900' : 'bg-transparent border-gray-300 hover:bg-gray-50'}`}>
                     <div className="flex items-center justify-between gap-2 mb-3">
                       <div className={`font-semibold text-lg transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{idx + 1}. {ev.clientName || 'Evento sin nombre'}</div>
                       {eventStatus === 'completed' && (
