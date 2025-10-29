@@ -742,7 +742,7 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
           <div className={`rounded-lg w-full max-w-2xl max-h-[80vh] overflow-y-auto p-6 border transition-colors ${darkMode ? 'bg-black border-gray-800' : 'bg-white border-gray-200'}`} onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-6">
               <div className={`text-2xl font-bold transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>
-                {statusFilter === 'pending' && 'Eventos Pendientes'}
+                {statusFilter === 'deposit_pending' && 'Pendientes Depósito'}
                 {statusFilter === 'editing' && 'Por editar'}
                 {statusFilter === 'completed' && 'Eventos Finalizados'}
               </div>
@@ -751,8 +751,8 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
 
             {(() => {
               const filtered = filteredEvents.filter(ev => {
-                if (statusFilter === 'pending') {
-                  return ev.depositPaid === true && ev.finalPaymentPaid !== true && ev.eventCompleted !== true;
+                if (statusFilter === 'deposit_pending') {
+                  return ev.depositPaid !== true;
                 } else if (statusFilter === 'editing') {
                   return ev.depositPaid === true && ev.finalPaymentPaid === true && ev.eventCompleted !== true;
                 } else if (statusFilter === 'completed') {
@@ -1287,7 +1287,7 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
                     const paymentLines = [
                       `Total: R$ ${Number(ev.totalAmount || 0).toFixed(0)}`,
                       `Entrada (20%): R$ ${(Number(ev.totalAmount || 0) * 0.2).toFixed(0)} ${ev.depositPaid ? '✓ Pago' : 'Pendiente'}`,
-                      `Restante: R$ ${(Number(ev.totalAmount || 0) * 0.8).toFixed(0)} ${ev.finalPaymentPaid ? '✓ Pago' : 'Pendiente'}`
+                      `Restante: R$ ${(Number(ev.totalAmount || 0) * 0.8).toFixed(0)} ${ev.finalPaymentPaid ? '�� Pago' : 'Pendiente'}`
                     ];
 
                     paymentLines.forEach(line => {
