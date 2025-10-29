@@ -26,6 +26,7 @@ interface ContractItem {
   finalPaymentPaid?: boolean;
   eventCompleted?: boolean;
   isEditing?: boolean;
+  isNew?: boolean;
   services?: any[];
   storeItems?: any[];
   message?: string;
@@ -847,7 +848,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
                           <p>4.1. Em caso de cancelamento pela contratante com mais de 30 dias de antecedência, será devolvido 50% do valor pago.</p>
                           <p>4.2. Cancelamentos com menos de 30 dias não ter��o devolução do valor pago.</p>
                           <p>4.3. Reagendamentos estão sujeitos à disponibilidade da agenda da contratada.</p>
-                          <p>4.4. Casos de força maior serão analisados individualmente.</p>
+                          <p>4.4. Casos de força maior ser��o analisados individualmente.</p>
                         </div>
                       </section>
                       <section>
