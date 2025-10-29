@@ -1341,7 +1341,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
         <div className="bg-white rounded-xl border border-gray-200 w-full max-w-5xl p-0 overflow-hidden max-h-[90vh] overflow-y-auto" onClick={(e)=>e.stopPropagation()}>
           <div className="flex items-center justify-between p-4 border-b">
             <div className="font-medium">Editor de Workflows</div>
-            <button onClick={()=>setTemplatesOpen(false)} className="text-gray-500 hover:text-gray-900">✕</button>
+            <button onClick={()=>setTemplatesOpen(false)} className="text-gray-500 hover:text-gray-900">��</button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3">
             <div className="md:col-span-1 border-r p-3 space-y-2 max-h-[70vh] overflow-auto">
@@ -1471,7 +1471,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
                   setEditForm((f:any)=> ({ ...f, packageTitle: title, packageDuration: found?.duration || f.packageDuration || '', totalAmount: (found?.price || 0) + Number(f.travelFee || 0) + (editStoreItems || []).reduce((s,it)=> s + (Number(it.price)||0) * (Number(it.quantity)||1), 0), isCustomPackage: false }));
                 }
               }} className="w-full px-3 py-2 border rounded-none">
-                <option value="">— Selecciona paquete ���</option>
+                <option value="">— Selecciona paquete —</option>
                 {packagesList.map(p=> (<option key={p.id} value={p.title}>{p.title} — R$ {Number(p.price||0).toFixed(0)}</option>))}
                 <option value="__custom__">Paquete Personalizado</option>
               </select>
@@ -1556,7 +1556,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
                     <div className="font-medium text-sm dark:text-white text-gray-900">{pkg.name || `Paquete #${idx + 1}`}</div>
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label className="text-xs text-gray-600">Fecha</label>
+                        <label className="text-xs dark:text-gray-300 text-gray-600">Fecha</label>
                         <input
                           type="date"
                           value={(editForm as any).formSnapshot?.[`date_${idx}`] || ''}
@@ -1569,7 +1569,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
                         />
                       </div>
                       <div>
-                        <label className="text-xs text-gray-600">Hora</label>
+                        <label className="text-xs dark:text-gray-300 text-gray-600">Hora</label>
                         <input
                           type="time"
                           value={(editForm as any).formSnapshot?.[`time_${idx}`] || ''}
@@ -1582,7 +1582,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
                         />
                       </div>
                       <div className="col-span-2">
-                        <label className="text-xs text-gray-600">Ubicación</label>
+                        <label className="text-xs dark:text-gray-300 text-gray-600">Ubicación</label>
                         <input
                           type="text"
                           value={(editForm as any).formSnapshot?.[`eventLocation_${idx}`] || ''}
