@@ -28,7 +28,7 @@ export const WorkflowStatusButtons: React.FC<WorkflowStatusButtonsProps> = ({
 }) => {
   const [tooltipVisible, setTooltipVisible] = useState<string | null>(null);
   const [updatingButton, setUpdatingButton] = useState<string | null>(null);
-  const tooltipTimers = useRef<Record<string, NodeJS.Timeout>>({});
+  const tooltipTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   const statusButtons = [
     {
