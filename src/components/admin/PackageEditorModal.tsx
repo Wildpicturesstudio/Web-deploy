@@ -58,6 +58,7 @@ const PackageEditorModal: React.FC<PackageEditorModalProps> = ({ open, onClose, 
   useEffect(() => {
     if (!pkg) return;
     setTitle(pkg.title || '');
+    setServiceType(pkg.serviceType || '');
     setPrice(Number(pkg.price) || 0);
     setDuration(pkg.duration || '');
     setDescription(pkg.description || '');
