@@ -617,7 +617,7 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
                           setSelectedEvent(ev);
                           setFilterPhone('');
                         }}
-                        className={`w-full text-left px-3 py-2 transition-colors border-b last:border-b-0 hover:${darkMode ? 'bg-gray-800' : 'bg-gray-50'} ${darkMode ? 'text-gray-200' : 'text-gray-900'}`}
+                        className={`w-full text-left px-3 py-2 transition-colors border-b last:border-b-0 ${darkMode ? 'hover:bg-gray-800 text-gray-200' : 'hover:bg-gray-50 text-gray-900'}`}
                       >
                         <div className="font-medium text-sm">{ev.clientName}</div>
                         <div className={`text-xs mt-0.5 transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
