@@ -243,8 +243,8 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
     let completed = 0;
 
     filteredEvents.forEach(ev => {
-      // "Pendiente": Only "✓ Depósito Realizado" is marked
-      if (ev.depositPaid === true && ev.finalPaymentPaid !== true && ev.eventCompleted !== true) {
+      // "Pendiente": Depósito no realizado
+      if (ev.depositPaid !== true) {
         pending++;
       }
       // "Por Editar": "✓ Depósito Realizado" and "✓ Pago Final" are marked
