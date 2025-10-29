@@ -1436,7 +1436,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
               <input value={(editForm as any).clientRG || ''} onChange={e => setEditForm((f: any) => ({ ...f, clientRG: e.target.value }))} className="w-full px-3 py-2 border rounded-none" />
             </div>
             <div className="md:col-span-2">
-              <label className="text-xs text-gray-600">Endereço</label>
+              <label className="text-xs text-gray-600">Endere��o</label>
               <input value={(editForm as any).clientAddress || ''} onChange={e => setEditForm((f: any) => ({ ...f, clientAddress: e.target.value }))} className="w-full px-3 py-2 border rounded-none" />
             </div>
             <div>
@@ -1444,63 +1444,124 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
               <input value={editForm.eventType || ''} onChange={e => setEditForm((f: any) => ({ ...f, eventType: e.target.value }))} className="w-full px-3 py-2 border rounded-none" />
             </div>
             <div>
-              <label className="text-xs text-gray-600">Ubicación</label>
-              <input value={editForm.eventLocation || ''} onChange={e => setEditForm((f: any) => ({ ...f, eventLocation: e.target.value }))} className="w-full px-3 py-2 border rounded-none" />
-            </div>
-            <div>
-              <label className="text-xs text-gray-600">Fecha evento</label>
-              <input type="date" value={editForm.eventDate || ''} onChange={e => setEditForm((f: any) => ({ ...f, eventDate: e.target.value }))} className="w-full px-3 py-2 border rounded-none" />
-            </div>
-            <div>
-              <label className="text-xs text-gray-600">Hora</label>
-              <input type="time" value={editForm.eventTime || ''} onChange={e => setEditForm((f: any) => ({ ...f, eventTime: e.target.value }))} className="w-full px-3 py-2 border rounded-none" />
+              <label className="text-xs text-gray-600">Fecha contrato</label>
+              <input type="date" value={editForm.contractDate || ''} onChange={e => setEditForm((f: any) => ({ ...f, contractDate: e.target.value }))} className="w-full px-3 py-2 border rounded-none" />
             </div>
             <div>
               <label className="text-xs text-gray-600">Hora firma</label>
               <input type="time" value={editForm.signatureTime || ''} onChange={e => setEditForm((f: any) => ({ ...f, signatureTime: e.target.value }))} className="w-full px-3 py-2 border rounded-none" />
             </div>
 
-            <div>
-              <label className="text-xs text-gray-600">Paquete</label>
-              <select value={editForm.packageTitle || ''} onChange={(e)=>{
-                const title = e.target.value;
-                if (title === '__custom__') {
-                  setEditForm((f:any)=> ({ ...f, packageTitle: '', isCustomPackage: true, customPackageType: '', customPackageDuration: '', customPackagePrice: 0, packageDuration: '' }));
-                } else {
-                  const found = packagesList.find(p=>p.title===title);
-                  setEditForm((f:any)=> ({ ...f, packageTitle: title, packageDuration: found?.duration || f.packageDuration || '', totalAmount: (found?.price || 0) + Number(f.travelFee || 0) + (editStoreItems || []).reduce((s,it)=> s + (Number(it.price)||0) * (Number(it.quantity)||1), 0), isCustomPackage: false }));
-                }
-              }} className="w-full px-3 py-2 border rounded-none">
-                <option value="">— Selecciona paquete —</option>
-                {packagesList.map(p=> (<option key={p.id} value={p.title}>{p.title} — R$ {Number(p.price||0).toFixed(0)}</option>))}
-                <option value="__custom__">Paquete Personalizado</option>
-              </select>
-            </div>
-            {editForm.isCustomPackage ? (
+            {/* Edit packages section at top like viewing modal */}
+            {Array.isArray((editForm as any).formSnapshot?.cartItems) && (editForm as any).formSnapshot!.cartItems.length > 0 ? (
+              <div className="md:col-span-2 border rounded-lg p-4 space-y-3 bg-gray-50 dark:bg-gray-900">
+                <div className="text-sm font-medium dark:text-white text-gray-900">Paquetes Incluidos</div>
+                {((editForm as any).formSnapshot!.cartItems as any[]).map((pkg, idx) => (
+                  <div key={`edit-pkg-${idx}`} className="border rounded p-3 space-y-3 bg-white dark:bg-gray-800">
+                    {idx > 0 && <div className="border-t -mx-3 px-3 pt-3" />}
+                    <div className="font-medium dark:text-white text-gray-900 text-base">{pkg.name || `Paquete #${idx + 1}`}</div>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <label className="text-xs dark:text-gray-300 text-gray-600">Fecha</label>
+                        <input
+                          type="date"
+                          value={(editForm as any).formSnapshot?.[`date_${idx}`] || ''}
+                          onChange={(e) => setEditForm((f: any) => {
+                            const fs = { ...f.formSnapshot };
+                            fs[`date_${idx}`] = e.target.value;
+                            return { ...f, formSnapshot: fs };
+                          })}
+                          className="w-full px-3 py-2 border rounded-none text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs dark:text-gray-300 text-gray-600">Hora</label>
+                        <input
+                          type="time"
+                          value={(editForm as any).formSnapshot?.[`time_${idx}`] || ''}
+                          onChange={(e) => setEditForm((f: any) => {
+                            const fs = { ...f.formSnapshot };
+                            fs[`time_${idx}`] = e.target.value;
+                            return { ...f, formSnapshot: fs };
+                          })}
+                          className="w-full px-3 py-2 border rounded-none text-sm"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="text-xs dark:text-gray-300 text-gray-600">Ubicación</label>
+                        <input
+                          type="text"
+                          value={(editForm as any).formSnapshot?.[`eventLocation_${idx}`] || ''}
+                          onChange={(e) => setEditForm((f: any) => {
+                            const fs = { ...f.formSnapshot };
+                            fs[`eventLocation_${idx}`] = e.target.value;
+                            return { ...f, formSnapshot: fs };
+                          })}
+                          className="w-full px-3 py-2 border rounded-none text-sm"
+                        />
+                      </div>
+                      <div><span className="text-gray-600 dark:text-gray-300">Duración:</span> <span className="font-medium dark:text-white text-gray-900">{pkg.duration || '-'}</span></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
               <>
                 <div>
-                  <label className="text-xs text-gray-600">Tipo de servicio</label>
-                  <select value={editForm.customPackageType || ''} onChange={(e)=> setEditForm((f:any)=> ({ ...f, customPackageType: e.target.value }))} className="w-full px-3 py-2 border rounded-none">
-                    <option value="">— Selecciona tipo —</option>
-                    <option value="foto">Fotos</option>
-                    <option value="video">Video</option>
-                    <option value="foto_video">Fotos + Video</option>
+                  <label className="text-xs text-gray-600">Ubicación</label>
+                  <input value={editForm.eventLocation || ''} onChange={e => setEditForm((f: any) => ({ ...f, eventLocation: e.target.value }))} className="w-full px-3 py-2 border rounded-none" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-600">Fecha evento</label>
+                  <input type="date" value={editForm.eventDate || ''} onChange={e => setEditForm((f: any) => ({ ...f, eventDate: e.target.value }))} className="w-full px-3 py-2 border rounded-none" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-600">Hora</label>
+                  <input type="time" value={editForm.eventTime || ''} onChange={e => setEditForm((f: any) => ({ ...f, eventTime: e.target.value }))} className="w-full px-3 py-2 border rounded-none" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-600">Paquete</label>
+                  <select value={editForm.packageTitle || ''} onChange={(e)=>{
+                    const title = e.target.value;
+                    if (title === '__custom__') {
+                      setEditForm((f:any)=> ({ ...f, packageTitle: '', isCustomPackage: true, customPackageType: '', customPackageDuration: '', customPackagePrice: 0, packageDuration: '' }));
+                    } else {
+                      const found = packagesList.find(p=>p.title===title);
+                      setEditForm((f:any)=> ({ ...f, packageTitle: title, packageDuration: found?.duration || f.packageDuration || '', totalAmount: (found?.price || 0) + Number(f.travelFee || 0) + (editStoreItems || []).reduce((s,it)=> s + (Number(it.price)||0) * (Number(it.quantity)||1), 0), isCustomPackage: false }));
+                    }
+                  }} className="w-full px-3 py-2 border rounded-none">
+                    <option value="">— Selecciona paquete —</option>
+                    {packagesList.map(p=> (<option key={p.id} value={p.title}>{p.title} — R$ {Number(p.price||0).toFixed(0)}</option>))}
+                    <option value="__custom__">Paquete Personalizado</option>
                   </select>
                 </div>
-                <div>
-                  <label className="text-xs text-gray-600">Duración</label>
-                  <input value={editForm.customPackageDuration || ''} onChange={e=> setEditForm((f:any)=> ({ ...f, customPackageDuration: e.target.value }))} placeholder="Ej: 4 horas" className="w-full px-3 py-2 border rounded-none" />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-600">Precio (R$)</label>
-                  <input type="number" step="0.01" value={editForm.customPackagePrice ?? 0} onChange={e => setEditForm((f: any) => ({ ...f, customPackagePrice: e.target.value, totalAmount: Number(e.target.value) + Number(f.travelFee || 0) + (editStoreItems || []).reduce((s,it)=> s + (Number(it.price)||0) * (Number(it.quantity)||1), 0) }))} className="w-full px-3 py-2 border rounded-none" />
-                </div>
+                {editForm.isCustomPackage ? (
+                  <>
+                    <div>
+                      <label className="text-xs text-gray-600">Tipo de servicio</label>
+                      <select value={editForm.customPackageType || ''} onChange={(e)=> setEditForm((f:any)=> ({ ...f, customPackageType: e.target.value }))} className="w-full px-3 py-2 border rounded-none">
+                        <option value="">— Selecciona tipo —</option>
+                        <option value="foto">Fotos</option>
+                        <option value="video">Video</option>
+                        <option value="foto_video">Fotos + Video</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-600">Duración</label>
+                      <input value={editForm.customPackageDuration || ''} onChange={e=> setEditForm((f:any)=> ({ ...f, customPackageDuration: e.target.value }))} placeholder="Ej: 4 horas" className="w-full px-3 py-2 border rounded-none" />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-600">Precio (R$)</label>
+                      <input type="number" step="0.01" value={editForm.customPackagePrice ?? 0} onChange={e => setEditForm((f: any) => ({ ...f, customPackagePrice: e.target.value, totalAmount: Number(e.target.value) + Number(f.travelFee || 0) + (editStoreItems || []).reduce((s,it)=> s + (Number(it.price)||0) * (Number(it.quantity)||1), 0) }))} className="w-full px-3 py-2 border rounded-none" />
+                    </div>
+                  </>
+                ) : (
+                  <div>
+                    <label className="text-xs text-gray-600">Duración</label>
+                    <input value={editForm.packageDuration || ''} onChange={e=> setEditForm((f:any)=> ({ ...f, packageDuration: e.target.value }))} className="w-full px-3 py-2 border rounded-none" />
+                  </div>
+                )}
               </>
-            ) : (
-              <div>
-                <label className="text-xs text-gray-600">Duración</label>
-                <input value={editForm.packageDuration || ''} onChange={e=> setEditForm((f:any)=> ({ ...f, packageDuration: e.target.value }))} className="w-full px-3 py-2 border rounded-none" />
-              </div>
             )}
 
             <div>
