@@ -701,6 +701,115 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
         </div>
       )}
 
+      {/* Detailed Event Modal */}
+      {selectedEvent && (
+        <div className={`fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 transition-colors ${darkMode ? 'bg-black/70' : 'bg-white/70'}`} onClick={() => setSelectedEvent(null)}>
+          <div className={`rounded-xl w-full max-w-5xl p-4 md:p-6 overflow-hidden max-h-[90vh] overflow-y-auto transition-colors ${darkMode ? 'bg-black border border-gray-800' : 'bg-white border border-gray-200'}`} onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <div className={`text-lg font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{selectedEvent.clientName} — {selectedEvent.eventType || 'Trabajo'}</div>
+                <div className={`text-xs transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Fecha principal: {selectedEvent.eventDate || '-'} | Hora: {selectedEvent.eventTime || '-'}</div>
+              </div>
+              <button onClick={() => setSelectedEvent(null)} className={`text-2xl transition-colors ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-black'}`}>✕</button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Basic Information */}
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Nombre:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{selectedEvent.clientName}</span></div>
+                <div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Email:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{selectedEvent.clientEmail || '-'}</span></div>
+                <div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Teléfono:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{selectedEvent.phone || (selectedEvent as any).clientPhone || (selectedEvent as any).formSnapshot?.phone || '-'}</span></div>
+                <div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>CPF:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{(selectedEvent as any).clientCPF || '-'}</span></div>
+                <div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>RG:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{(selectedEvent as any).clientRG || '-'}</span></div>
+                <div className="col-span-2"><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Endereço:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{(selectedEvent as any).clientAddress || '-'}</span></div>
+                <div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Tipo de evento:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{selectedEvent.eventType || '-'}</span></div>
+                <div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Fecha contrato:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{selectedEvent.contractDate || '-'}</span></div>
+                <div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Hora firma:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{(selectedEvent as any).signatureTime || '-'}</span></div>
+                <div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Método de pago:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{selectedEvent.paymentMethod || '-'}</span></div>
+              </div>
+
+              {/* Event Details */}
+              <div className={`border-t pt-4 transition-colors ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Fecha evento:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{selectedEvent.eventDate || '-'}</span></div>
+                  <div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Hora:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{selectedEvent.eventTime || '-'}</span></div>
+                  <div className="col-span-2"><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Ubicación:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{selectedEvent.eventLocation || '-'}</span></div>
+                  <div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Paquete:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{(selectedEvent as any).packageTitle || '-'}</span></div>
+                  <div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Duración:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{selectedEvent.packageDuration || '-'}</span></div>
+                </div>
+              </div>
+
+              {/* Payment Information */}
+              <div className={`border-t pt-4 transition-colors ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                <div className="text-sm font-medium mb-3">Información de Pago</div>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Depósito (20%):</span>
+                    <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>R$ {(Number(selectedEvent.totalAmount || 0) * 0.2).toFixed(0)}</span>
+                    <span className={`px-2 py-0.5 rounded text-xs ${selectedEvent.depositPaid ? (darkMode ? 'bg-green-900/30 text-green-400' : 'bg-green-100 text-green-700') : (darkMode ? 'bg-red-900/30 text-red-400' : 'bg-red-100 text-red-700')}`}>{selectedEvent.depositPaid ? 'Pagado' : 'No pagado'}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Restante (80%):</span>
+                    <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>R$ {(Number(selectedEvent.totalAmount || 0) * 0.8).toFixed(0)}</span>
+                    <span className={`px-2 py-0.5 rounded text-xs ${selectedEvent.finalPaymentPaid ? (darkMode ? 'bg-green-900/30 text-green-400' : 'bg-green-100 text-green-700') : (darkMode ? 'bg-red-900/30 text-red-400' : 'bg-red-100 text-red-700')}`}>{selectedEvent.finalPaymentPaid ? 'Pagado' : 'No pagado'}</span>
+                  </div>
+                  <div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>R$ {Number(selectedEvent.totalAmount || 0).toFixed(0)}</span></div>
+                  <div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Deslocamiento:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>R$ {(selectedEvent.travelFee ?? 0).toFixed(0)}</span></div>
+                </div>
+              </div>
+
+              {/* Progreso del evento */}
+              <div className={`border-t pt-4 transition-colors ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                <div className="text-sm font-medium mb-3">Progreso del evento</div>
+                <div className="flex flex-wrap gap-2">
+                  <div className={`flex items-center gap-2 px-3 py-1.5 rounded text-sm font-medium ${selectedEvent.depositPaid ? (darkMode ? 'bg-green-900/30 text-green-400 border border-green-900' : 'bg-green-100 text-green-700 border border-green-200') : (darkMode ? 'bg-gray-800 text-gray-300 border border-gray-700' : 'bg-gray-100 text-gray-600 border border-gray-200')}`}>
+                    <span className="w-4 h-4 rounded-full border flex items-center justify-center text-xs">{selectedEvent.depositPaid ? '✓' : ''}</span>
+                    Depósito Realizado
+                  </div>
+                  <div className={`flex items-center gap-2 px-3 py-1.5 rounded text-sm font-medium ${selectedEvent.finalPaymentPaid ? (darkMode ? 'bg-green-900/30 text-green-400 border border-green-900' : 'bg-green-100 text-green-700 border border-green-200') : (darkMode ? 'bg-gray-800 text-gray-300 border border-gray-700' : 'bg-gray-100 text-gray-600 border border-gray-200')}`}>
+                    <span className="w-4 h-4 rounded-full border flex items-center justify-center text-xs">{selectedEvent.finalPaymentPaid ? '✓' : ''}</span>
+                    Pago Final
+                  </div>
+                  <div className={`flex items-center gap-2 px-3 py-1.5 rounded text-sm font-medium ${selectedEvent.eventCompleted ? (darkMode ? 'bg-green-900/30 text-green-400 border border-green-900' : 'bg-green-100 text-green-700 border border-green-200') : (darkMode ? 'bg-gray-800 text-gray-300 border border-gray-700' : 'bg-gray-100 text-gray-600 border border-gray-200')}`}>
+                    <span className="w-4 h-4 rounded-full border flex items-center justify-center text-xs">{selectedEvent.eventCompleted ? '✓' : ''}</span>
+                    Evento Completado
+                  </div>
+                </div>
+              </div>
+
+              {/* Items */}
+              {(Array.isArray(selectedEvent.storeItems) && selectedEvent.storeItems.length > 0) && (
+                <div className={`border-t pt-4 transition-colors ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                  <div className="text-sm font-medium mb-3">Items del contrato</div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                          <th className="py-1 text-left">Item</th>
+                          <th className="py-1 text-left">Cant.</th>
+                          <th className="py-1 text-left">Precio</th>
+                          <th className="py-1 text-left">Total</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selectedEvent.storeItems.map((it: any, idx: number) => (
+                          <tr key={idx} className={`border-t transition-colors ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                            <td className={`py-1 transition-colors ${darkMode ? 'text-gray-300' : 'text-gray-900'}`}>{it.name}</td>
+                            <td className={`py-1 transition-colors ${darkMode ? 'text-gray-300' : 'text-gray-900'}`}>{Number(it.quantity)}</td>
+                            <td className={`py-1 transition-colors ${darkMode ? 'text-gray-300' : 'text-gray-900'}`}>R$ {Number(it.price).toFixed(0)}</td>
+                            <td className={`py-1 transition-colors ${darkMode ? 'text-gray-300' : 'text-gray-900'}`}>R$ {(Number(it.price) * Number(it.quantity)).toFixed(0)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Event modal */}
       {selected && (
         <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-colors ${darkMode ? 'bg-black/50' : 'bg-white/50'}`} onClick={()=> setSelected(null)}>
