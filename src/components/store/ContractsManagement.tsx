@@ -27,6 +27,7 @@ interface ContractItem {
   eventCompleted?: boolean;
   isEditing?: boolean;
   isNew?: boolean;
+  couponCode?: string;
   services?: any[];
   storeItems?: any[];
   message?: string;
