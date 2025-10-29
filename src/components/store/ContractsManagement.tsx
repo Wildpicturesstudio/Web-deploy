@@ -521,6 +521,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
         totalAmount: Number(editForm.totalAmount ?? editing.totalAmount ?? 0),
         travelFee: Number(editForm.travelFee ?? editing.travelFee ?? 0),
         storeItems: editStoreItems,
+        couponCode: editForm.couponCode || undefined,
         ...(editForm.eventTime !== undefined ? { eventTime: String(editForm.eventTime || '') } : {}),
         ...(editForm.eventLocation !== undefined ? { eventLocation: String(editForm.eventLocation || '') } : {}),
         packageTitle: packageTitle,
@@ -528,7 +529,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
         ...(editForm.signatureTime !== undefined ? { signatureTime: String(editForm.signatureTime || '') } : {}),
       } as any;
 
-      const calc = computeAmounts(merged);
+      const calc = computeAmounts(merged, editForm.couponCode);
 
       const payload: Partial<ContractItem> = {
         clientName: merged.clientName,
