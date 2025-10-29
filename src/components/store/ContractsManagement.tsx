@@ -570,12 +570,30 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
 
   const colorsFor = (len: number) => categoryColors(len);
 
+  const updateContractCountInFirebase = async () => {
+    try {
+      const newCount = contracts.filter(c => c.isNew === true).length;
+      await setDoc(doc(db, 'metadata', 'contractsCount'), {
+        newContractsCount: newCount,
+        totalContractsCount: contracts.length,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+    } catch (e) {
+      console.warn('Error updating contract count in Firebase:', e);
+    }
+  };
+
+  useEffect(() => {
+    updateContractCountInFirebase();
+  }, [contracts]);
+
   const counts = useMemo(() => {
     const events = contracts.filter(c => c.eventCompleted !== true && !isPast(c)).length;
     const finished = contracts.filter(c => c.eventCompleted === true).length;
     const pending = contracts.filter(c => String((c as any).status || '') === 'pending_approval').length;
+    const newContracts = contracts.filter(c => c.isNew === true).length;
     const total = events + finished;
-    return { events, finished, pending, total };
+    return { events, finished, pending, total, newContracts };
   }, [contracts]);
 
   return (
@@ -848,7 +866,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
                           <p>4.1. Em caso de cancelamento pela contratante com mais de 30 dias de antecedência, será devolvido 50% do valor pago.</p>
                           <p>4.2. Cancelamentos com menos de 30 dias não ter��o devolução do valor pago.</p>
                           <p>4.3. Reagendamentos estão sujeitos à disponibilidade da agenda da contratada.</p>
-                          <p>4.4. Casos de força maior ser��o analisados individualmente.</p>
+                          <p>4.4. Casos de força maior serão analisados individualmente.</p>
                         </div>
                       </section>
                       <section>
