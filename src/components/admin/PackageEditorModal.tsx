@@ -171,6 +171,7 @@ const PackageEditorModal: React.FC<PackageEditorModalProps> = ({ open, onClose, 
           .filter(Boolean),
         image_url: imageUrl,
         category: category || undefined,
+        serviceType: serviceType || undefined,
         recommended: Boolean(recommended),
       } as Partial<DBPackage> & { displayPage?: 'portrait'|'maternity'|'events'|'civilWedding' };
       if (displayPage) (updates as any).displayPage = displayPage;
