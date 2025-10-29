@@ -398,7 +398,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
     return mapped.map(m => m.c);
   }, [contracts, search, contractsTab]);
 
-  const computeAmounts = (c: ContractItem) => {
+  const computeAmounts = (c: ContractItem, couponCode?: string) => {
     const servicesList = Array.isArray(c.services) ? c.services : [];
     let servicesTotal = servicesList.reduce((sum, it: any) => {
       const qty = Number(it.quantity ?? 1);
@@ -411,13 +411,41 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
     }
     const storeTotal = (Array.isArray(c.storeItems) ? c.storeItems : []).reduce((sum, it: any) => sum + (Number(it.price) * Number(it.quantity || 1)), 0);
     const travel = Number(c.travelFee || 0);
-    const totalAmount = Math.round(servicesTotal + storeTotal + travel);
+    let totalAmount = Math.round(servicesTotal + storeTotal + travel);
+
+    let discountAmount = 0;
+    if (couponCode) {
+      const coupon = coupons.find(cp => cp.code === couponCode);
+      if (coupon) {
+        const cartItems: CartItemLike[] = [
+          ...(Array.isArray(c.services) ? c.services : []).map((it: any) => ({
+            id: it.id,
+            name: it.name,
+            price: Number(String(it.price || '').replace(/[^0-9]/g, '')),
+            quantity: Number(it.quantity ?? 1),
+            type: 'service'
+          })),
+          ...(Array.isArray(c.storeItems) ? c.storeItems : []).map((it: any) => ({
+            id: it.id,
+            name: it.name,
+            price: Number(it.price),
+            quantity: Number(it.quantity || 1),
+            type: 'store'
+          }))
+        ];
+
+        const { discount } = computeCouponDiscountForCart(coupon, cartItems);
+        discountAmount = Math.round(discount);
+        totalAmount = Math.max(0, totalAmount - discountAmount);
+      }
+    }
 
     let depositAmount = 0;
-    if (servicesTotal <= 0 && storeTotal > 0) depositAmount = Math.ceil((storeTotal + travel) * 0.5);
-    else depositAmount = Math.ceil(servicesTotal * 0.2 + storeTotal * 0.5);
+    if (servicesTotal <= 0 && storeTotal > 0) depositAmount = Math.ceil((storeTotal + travel - discountAmount) * 0.5);
+    else depositAmount = Math.ceil(servicesTotal * 0.2 + storeTotal * 0.5 - discountAmount * 0.5);
+    depositAmount = Math.max(0, depositAmount);
     const remainingAmount = Math.max(0, Math.round(totalAmount - depositAmount));
-    return { servicesTotal, storeTotal, travel, totalAmount, depositAmount, remainingAmount };
+    return { servicesTotal, storeTotal, travel, totalAmount, depositAmount, remainingAmount, discountAmount };
   };
 
   const getAvailableCouponsForContract = (eventType?: string): DBCoupon[] => {
