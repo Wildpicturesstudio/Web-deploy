@@ -210,6 +210,7 @@ const PackageEditorModal: React.FC<PackageEditorModalProps> = ({ open, onClose, 
         features: baseFeatures,
         image_url: imageUrl || '',
         category: category || undefined,
+        serviceType: serviceType || undefined,
         sections: sections,
         recommended: Boolean(recommended),
         storeItemsIncluded: Object.entries(included).map(([rawKey, quantity]) => {
