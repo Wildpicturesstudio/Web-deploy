@@ -1179,7 +1179,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
                   {((viewing as any).formSnapshot!.cartItems as any[]).map((pkg, idx) => (
                     <div key={`pkg-detail-${idx}`} className="border rounded-lg p-4 space-y-3">
                       {idx > 0 && <div className="border-t -mx-4 px-4 pt-3" />}
-                      <div className="font-medium text-gray-900 text-base">{pkg.name || `Paquete #${idx + 1}`}</div>
+                      <div className="font-medium dark:text-white text-gray-900 text-base">{pkg.name || `Paquete #${idx + 1}`}</div>
                       <div className="grid grid-cols-2 gap-3 text-sm">
                         <div><span className="text-gray-600">Fecha:</span> <span className="font-medium">{(viewing as any).formSnapshot?.[`date_${idx}`] || viewing.eventDate || '-'}</span></div>
                         <div><span className="text-gray-600">Hora:</span> <span className="font-medium">{(viewing as any).formSnapshot?.[`time_${idx}`] || (viewing as any).eventTime || '-'}</span></div>
