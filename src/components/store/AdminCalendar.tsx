@@ -257,7 +257,9 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
       }
     });
 
-    return { pending, editing, completed, total: pending + editing + completed };
+    const allTotal = filteredEvents.length;
+
+    return { pending, editing, completed, allTotal, total: pending + editing + completed };
   }, [filteredEvents]);
 
   const goToday = () => {
