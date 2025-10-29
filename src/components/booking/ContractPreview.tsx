@@ -312,7 +312,8 @@ const ContractPreview = ({ data, onConfirm, onBack }: ContractPreviewProps) => {
   };
 
   const calculatePayments = () => {
-    const { total } = calculateTotal();
+    const useContractTotal = (data as any).contractTotal != null && (data as any).contractTotal > 0;
+    const total = useContractTotal ? (data as any).contractTotal : calculateTotal().total;
 
     const isStoreOnly = (!(data.cartItems && data.cartItems.length) && (data.storeItems && data.storeItems.length));
 
@@ -389,7 +390,7 @@ const ContractPreview = ({ data, onConfirm, onBack }: ContractPreviewProps) => {
               {/* Cláusula 2 */}
               <section>
                 <h3 className="text-lg font-medium text-primary mb-4 pb-2 border-b border-secondary">
-                  CLÁUSULA 2ª – DAS OBRIGAÇÕES DA CONTRATANTE
+                  CLÁUSULA 2ª – DAS OBRIGA��ÕES DA CONTRATANTE
                 </h3>
                 <div className="space-y-3 text-sm text-gray-700">
                   <p>2.1. Realizar o pagamento conforme estipulado: 20% do valor total como sinal de reserva e o restante no dia do evento.</p>
