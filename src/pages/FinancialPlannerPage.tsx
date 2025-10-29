@@ -451,7 +451,6 @@ const FinancialPlannerPage: React.FC = () => {
                     <YAxis
                       stroke={labelColor}
                       style={{ fontSize: '12px' }}
-                      format={(value: any) => `R$ ${value}`}
                     />
                     <Tooltip
                       formatter={(value) => `R$ ${Number(value).toFixed(2)}`}
