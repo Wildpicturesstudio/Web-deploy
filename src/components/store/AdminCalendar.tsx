@@ -473,7 +473,7 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
             <div className="flex-1">
               <div className={`text-xs transition-colors ${darkMode ? 'text-gray-500' : 'text-gray-600'}`}>Ingresos del Mes</div>
               <div className={`text-3xl font-bold transition-colors ${darkMode ? 'text-green-400' : 'text-green-600'}`}>
-                {showRevenue ? `R$ ${eventSummary.totalRevenue.toFixed(0)}` : '••••••'}
+                {showRevenue ? `R$ ${eventSummary.totalRevenue.toFixed(0)}` : '••���•••'}
               </div>
             </div>
             <button
@@ -609,6 +609,106 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
         </div>
 
       </div>
+
+      {/* Daily List View Modal */}
+      {expandedDay && (
+        <div className={`fixed inset-0 z-[50] flex items-center justify-center p-4 transition-colors ${darkMode ? 'bg-black/70' : 'bg-black/50'}`} onClick={() => setExpandedDay(null)}>
+          <div className={`rounded-xl w-full max-w-2xl p-6 transition-colors overflow-hidden max-h-[80vh] overflow-y-auto ${darkMode ? 'bg-black border border-gray-800' : 'bg-white border border-gray-200'}`} onClick={(e) => e.stopPropagation()}>
+            <div className={`flex items-center justify-between mb-6 pb-4 border-b transition-colors ${darkMode ? 'border-gray-800' : 'border-gray-200'}`}>
+              <h3 className={`text-lg font-semibold transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>
+                {new Date(expandedDay).toLocaleDateString('es', { weekday: 'long', month: 'long', day: 'numeric' })}
+              </h3>
+              <button onClick={() => setExpandedDay(null)} className={`text-2xl transition-colors ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-black'}`}>✕</button>
+            </div>
+            <div className="space-y-2 mb-6">
+              {(eventsByDay.get(expandedDay) || []).map(ev => (
+                <button key={ev.id} onClick={() => { setSelectedEvent(ev); setExpandedDay(null); }} className={`w-full text-left p-4 rounded-lg border transition-colors cursor-pointer ${darkMode ? 'bg-gray-900 border-gray-700 hover:bg-gray-800' : 'bg-gray-50 border-gray-200 hover:bg-gray-100'}`}>
+                  <div className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{ev.clientName}</div>
+                  <div className={`text-sm mt-1 transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    {ev.eventTime ? `${ev.eventTime} · ` : ''}{ev.eventType || ''}
+                  </div>
+                  <div className={`text-sm mt-1 transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    {ev.eventLocation || ''}
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            <div className={`flex gap-2 pt-4 border-t transition-colors ${darkMode ? 'border-gray-800' : 'border-gray-200'}`}>
+              <button onClick={() => {
+                const dateStr = new Date(expandedDay).toLocaleDateString('es', { weekday: 'long', month: 'long', day: 'numeric' });
+                const events = eventsByDay.get(expandedDay) || [];
+                const html = `<h2>${dateStr}</h2><ul>${events.map(ev => `<li><strong>${ev.clientName}</strong><br/>${ev.eventTime || ''} ${ev.eventType || ''}<br/>${ev.eventLocation || ''}</li>`).join('')}</ul>`;
+                const printWindow = window.open('', '', 'width=800,height=600');
+                if (printWindow) {
+                  printWindow.document.write(html);
+                  printWindow.document.close();
+                  printWindow.print();
+                }
+              }} className="border-2 border-black text-black px-4 py-2 rounded-none hover:bg-black hover:text-white inline-flex items-center gap-2">
+                <Printer size={16} /> Imprimir
+              </button>
+              <button onClick={async () => {
+                try {
+                  const events = eventsByDay.get(expandedDay) || [];
+                  const pdf = new jsPDF('p', 'mm', 'a4');
+
+                  const pageHeight = pdf.internal.pageSize.getHeight();
+                  const pageWidth = pdf.internal.pageSize.getWidth();
+                  const margin = 15;
+                  let yPosition = margin;
+
+                  const dateStr = new Date(expandedDay).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+                  pdf.setFontSize(16);
+                  pdf.setFont('', 'bold');
+                  pdf.text('Eventos del día', margin, yPosition);
+                  yPosition += 10;
+
+                  pdf.setFontSize(12);
+                  pdf.setFont('', 'normal');
+                  pdf.text(dateStr, margin, yPosition);
+                  yPosition += 12;
+
+                  for (const event of events) {
+                    if (yPosition > pageHeight - 30) {
+                      pdf.addPage();
+                      yPosition = margin;
+                    }
+
+                    pdf.setFontSize(11);
+                    pdf.setFont('', 'bold');
+                    pdf.text(event.clientName || 'Sin nombre', margin, yPosition);
+                    yPosition += 7;
+
+                    pdf.setFontSize(9);
+                    pdf.setFont('', 'normal');
+                    const details = [
+                      event.eventTime ? `Hora: ${event.eventTime}` : '',
+                      event.eventType ? `Tipo: ${event.eventType}` : '',
+                      event.eventLocation ? `Ubicación: ${event.eventLocation}` : '',
+                      event.phone ? `Teléfono: ${event.phone}` : '',
+                    ].filter(Boolean);
+
+                    for (const detail of details) {
+                      pdf.text(detail, margin + 3, yPosition);
+                      yPosition += 5;
+                    }
+
+                    yPosition += 5;
+                  }
+
+                  pdf.save(`eventos-${expandedDay}.pdf`);
+                } catch (e) {
+                  console.error('Error generating PDF:', e);
+                }
+              }} className="border-2 border-black text-black px-4 py-2 rounded-none hover:bg-black hover:text-white inline-flex items-center gap-2">
+                <Download size={16} /> PDF
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Status Filter Modal */}
       {statusFilter && (
