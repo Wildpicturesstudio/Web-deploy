@@ -359,8 +359,12 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
       <div className={`flex-1 flex flex-col overflow-hidden transition-colors ${darkMode ? 'bg-black' : 'bg-white'}`}>
         {/* Calendar header with month display */}
         <div className={`px-4 py-0 border-b flex items-center justify-between flex-shrink-0 transition-colors ${darkMode ? 'border-gray-800' : 'border-gray-200'}`}>
-          <div className={`text-lg font-semibold transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>
-            {new Date(filterYear, filterMonth, 1).toLocaleString('es', { month: 'long', year: 'numeric' })}
+          <div className="flex items-center gap-3">
+            <button onClick={() => { setFilterMonth(m => m === 0 ? 11 : m - 1); setCurrent(c => { const y = c.m === 0 ? c.y - 1 : c.y; const m = c.m === 0 ? 11 : c.m - 1; return { y, m }; }); }} className={`p-2 rounded-full transition-colors flex-shrink-0 ${darkMode ? 'text-gray-400 hover:text-white hover:bg-gray-800' : 'text-gray-600 hover:text-black hover:bg-gray-200'}`}><ChevronLeft size={18}/></button>
+            <div className={`text-lg font-semibold transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>
+              {new Date(filterYear, filterMonth, 1).toLocaleString('es', { month: 'long', year: 'numeric' })}
+            </div>
+            <button onClick={() => { setFilterMonth(m => m === 11 ? 0 : m + 1); setCurrent(c => { const y = c.m === 11 ? c.y + 1 : c.y; const m = c.m === 11 ? 0 : c.m + 1; return { y, m }; }); }} className={`p-2 rounded-full transition-colors flex-shrink-0 ${darkMode ? 'text-gray-400 hover:text-white hover:bg-gray-800' : 'text-gray-600 hover:text-black hover:bg-gray-200'}`}><ChevronRight size={18}/></button>
           </div>
           <div className="flex items-center gap-2">
             <button onClick={goToday} className="px-4 py-0.5 rounded-full bg-gray-600 text-white font-medium hover:opacity-90 transition-opacity mt-0.5">Hoy</button>
