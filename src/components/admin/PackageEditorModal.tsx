@@ -264,6 +264,11 @@ const PackageEditorModal: React.FC<PackageEditorModalProps> = ({ open, onClose, 
             <input value={title} onChange={e => setTitle(e.target.value)} className="w-full px-3 py-2 border rounded" />
           </div>
 
+          <div>
+            <label className="block text-sm text-gray-700 mb-1">Tipo de Servicio</label>
+            <input value={serviceType} onChange={e => setServiceType(e.target.value)} className="w-full px-3 py-2 border rounded" placeholder="ej: Matrimonio, Sesión de Fotos, Evento Corporativo" />
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm text-gray-700 mb-1">Preço (R$)</label>
