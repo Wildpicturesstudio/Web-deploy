@@ -98,11 +98,11 @@ const AdminContractPreviewPage = () => {
       contractTotal: Number(contract.totalAmount || 0)
     } as any;
 
-    // Fill per-service dates/times/locations to match ContractPreview expectations
+    // Fill per-service dates/times/locations from formSnapshot or use contract-level defaults
     (booking.cartItems || []).forEach((_it, index) => {
-      (booking as any)[`date_${index}`] = booking.eventDate;
-      (booking as any)[`time_${index}`] = booking.eventTime;
-      (booking as any)[`eventLocation_${index}`] = booking.eventLocation;
+      (booking as any)[`date_${index}`] = contract.formSnapshot?.[`date_${index}`] || booking.eventDate;
+      (booking as any)[`time_${index}`] = contract.formSnapshot?.[`time_${index}`] || booking.eventTime;
+      (booking as any)[`eventLocation_${index}`] = contract.formSnapshot?.[`eventLocation_${index}`] || booking.eventLocation;
     });
 
     return booking;
