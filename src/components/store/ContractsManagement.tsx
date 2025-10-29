@@ -533,7 +533,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
         ...(editForm.signatureTime !== undefined ? { signatureTime: String(editForm.signatureTime || '') } : {}),
       } as any;
 
-      const calc = computeAmounts(merged, editForm.couponCode);
+      const calc = computeAmounts(merged, editForm.couponCode, editForm.isCustomPackage ? customPackagePrice : undefined);
 
       const payload: Partial<ContractItem> = {
         clientName: merged.clientName,
@@ -1628,7 +1628,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
                 }
               }} className="w-full px-3 py-2 border rounded-none">
                 <option value="">— Selecciona paquete —</option>
-                {packagesList.map(p=> (<option key={p.id} value={p.title}>{p.title} ��� R$ {Number(p.price||0).toFixed(0)}</option>))}
+                {packagesList.map(p=> (<option key={p.id} value={p.title}>{p.title} — R$ {Number(p.price||0).toFixed(0)}</option>))}
                 <option value="__custom__">Paquete Personalizado</option>
               </select>
             </div>
