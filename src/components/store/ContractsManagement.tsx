@@ -1521,59 +1521,65 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
             <button onClick={async ()=>{
               if (!createForm.clientName || !createForm.eventDate) { alert('Nombre y fecha del evento son obligatorios'); return; }
 
-              let packageTitle = createForm.packageTitle || '';
-              let packageDuration = createForm.packageDuration || '';
-              let customPackagePrice = 0;
+              try {
+                let packageTitle = createForm.packageTitle || '';
+                let packageDuration = createForm.packageDuration || '';
+                let customPackagePrice = 0;
 
-              if (createForm.isCustomPackage) {
-                packageTitle = `Paquete Personalizado (${createForm.customPackageType || 'personalizado'})`;
-                packageDuration = createForm.customPackageDuration || '';
-                customPackagePrice = Number(createForm.customPackagePrice || 0);
+                if (createForm.isCustomPackage) {
+                  packageTitle = `Paquete Personalizado (${createForm.customPackageType || 'personalizado'})`;
+                  packageDuration = createForm.customPackageDuration || '';
+                  customPackagePrice = Number(createForm.customPackagePrice || 0);
+                }
+
+                const totalAmount = createForm.isCustomPackage
+                  ? customPackagePrice + Number(createForm.travelFee || 0) + (createStoreItems || []).reduce((s,it)=> s + (Number(it.price)||0) * (Number(it.quantity)||1), 0)
+                  : Number(createForm.totalAmount || 0) || 0;
+
+                const payload: any = {
+                  clientName: createForm.clientName,
+                  clientEmail: createForm.clientEmail || '',
+                  eventType: createForm.eventType || 'Evento',
+                  eventDate: createForm.eventDate,
+                  eventTime: createForm.eventTime || '00:00',
+                  eventLocation: createForm.eventLocation || '',
+                  paymentMethod: createForm.paymentMethod || 'pix',
+                  depositPaid: false,
+                  finalPaymentPaid: false,
+                  eventCompleted: false,
+                  isEditing: false,
+                  createdAt: new Date().toISOString(),
+                  totalAmount: totalAmount,
+                  travelFee: Number(createForm.travelFee || 0) || 0,
+                  status: 'booked' as const,
+                  ...(packageTitle ? { packageTitle: packageTitle } : {}),
+                  ...(packageDuration ? { packageDuration: packageDuration } : {}),
+                  ...(createForm.clientPhone ? { clientPhone: String(createForm.clientPhone) } : {}),
+                  ...(createForm.clientCPF ? { clientCPF: String(createForm.clientCPF) } : {}),
+                  ...(createForm.clientRG ? { clientRG: String(createForm.clientRG) } : {}),
+                  ...(createForm.clientAddress ? { clientAddress: String(createForm.clientAddress) } : {}),
+                  storeItems: createStoreItems || [],
+                };
+
+                const formSnapshot: any = { phone: createForm.clientPhone };
+                if (createForm.isCustomPackage) {
+                  formSnapshot.isCustomPackage = true;
+                  formSnapshot.customPackageType = createForm.customPackageType;
+                  formSnapshot.customPackageDuration = createForm.customPackageDuration;
+                  formSnapshot.customPackagePrice = customPackagePrice;
+                }
+                payload.formSnapshot = formSnapshot;
+
+                await addDoc(collection(db, 'contracts'), payload);
+                setCreating(false);
+                setCreateForm({ clientName: '', clientEmail: '', clientPhone: '', eventType: '', eventDate: '', eventTime: '', eventLocation: '', packageTitle: '', packageDuration: '', paymentMethod: 'pix', totalAmount: 0, travelFee: 0, message: '' });
+                await fetchContracts();
+                try { window.dispatchEvent(new CustomEvent('contractsUpdated')); } catch {}
+                window.dispatchEvent(new CustomEvent('adminToast', { detail: { message: 'Contrato creado exitosamente', type: 'success' } }));
+              } catch (e) {
+                console.error('Error creating contract:', e);
+                window.dispatchEvent(new CustomEvent('adminToast', { detail: { message: 'Error al crear el contrato', type: 'error' } }));
               }
-
-              const totalAmount = createForm.isCustomPackage
-                ? customPackagePrice + Number(createForm.travelFee || 0) + (createStoreItems || []).reduce((s,it)=> s + (Number(it.price)||0) * (Number(it.quantity)||1), 0)
-                : Number(createForm.totalAmount || 0) || 0;
-
-              const payload: any = {
-                clientName: createForm.clientName,
-                clientEmail: createForm.clientEmail || '',
-                eventType: createForm.eventType || 'Evento',
-                eventDate: createForm.eventDate,
-                eventTime: createForm.eventTime || '00:00',
-                eventLocation: createForm.eventLocation || '',
-                paymentMethod: createForm.paymentMethod || 'pix',
-                depositPaid: false,
-                finalPaymentPaid: false,
-                eventCompleted: false,
-                isEditing: false,
-                createdAt: new Date().toISOString(),
-                totalAmount: totalAmount,
-                travelFee: Number(createForm.travelFee || 0) || 0,
-                status: 'booked' as const,
-                ...(packageTitle ? { packageTitle: packageTitle } : {}),
-                ...(packageDuration ? { packageDuration: packageDuration } : {}),
-                ...(createForm.clientPhone ? { clientPhone: String(createForm.clientPhone) } : {}),
-                ...(createForm.clientCPF ? { clientCPF: String(createForm.clientCPF) } : {}),
-                ...(createForm.clientRG ? { clientRG: String(createForm.clientRG) } : {}),
-                ...(createForm.clientAddress ? { clientAddress: String(createForm.clientAddress) } : {}),
-                storeItems: createStoreItems || [],
-              };
-
-              const formSnapshot: any = { phone: createForm.clientPhone };
-              if (createForm.isCustomPackage) {
-                formSnapshot.isCustomPackage = true;
-                formSnapshot.customPackageType = createForm.customPackageType;
-                formSnapshot.customPackageDuration = createForm.customPackageDuration;
-                formSnapshot.customPackagePrice = customPackagePrice;
-              }
-              payload.formSnapshot = formSnapshot;
-
-              await addDoc(collection(db, 'contracts'), payload);
-              setCreating(false);
-              setCreateForm({ clientName: '', clientEmail: '', clientPhone: '', eventType: '', eventDate: '', eventTime: '', eventLocation: '', packageTitle: '', packageDuration: '', paymentMethod: 'pix', totalAmount: 0, travelFee: 0, message: '' });
-              await fetchContracts();
-              try { window.dispatchEvent(new CustomEvent('contractsUpdated')); } catch {}
             }} className="border-2 border-black bg-black text-white px-3 py-2 rounded-none hover:opacity-90">Crear</button>
           </div>
         </div>
