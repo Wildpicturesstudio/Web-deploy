@@ -16,6 +16,7 @@ interface ContractItem {
   eventTime?: string; // HH:mm
   eventLocation?: string;
   packageDuration?: string;
+  packageTitle?: string;
   paymentMethod?: string;
   depositPaid?: boolean;
   finalPaymentPaid?: boolean;
@@ -24,11 +25,17 @@ interface ContractItem {
   status?: 'pending' | 'booked' | 'delivered' | 'cancelled' | 'pending_payment' | 'confirmed' | 'pending_approval' | 'released';
   pdfUrl?: string | null;
   phone?: string;
+  clientPhone?: string;
+  clientCPF?: string;
+  clientRG?: string;
+  clientAddress?: string;
+  signatureTime?: string;
   formSnapshot?: any;
   totalAmount?: number;
   travelFee?: number;
   contractDate?: string;
   storeItems?: any[];
+  services?: any[];
 }
 
 type StatusFilter = 'all' | 'pending' | 'booked' | 'delivered' | 'cancelled' | 'pending_payment' | 'pending_approval' | 'released';
