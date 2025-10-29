@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { db } from '../../utils/firebaseClient';
-import { addDoc, collection, doc, getDocs, orderBy, query, updateDoc } from 'firebase/firestore';
+import { addDoc, collection, doc, getDocs, orderBy, query, updateDoc, deleteDoc } from 'firebase/firestore';
 import { ChevronLeft, ChevronRight, Plus, X, ExternalLink, MapPin, Phone, Calendar as IconCalendar, Clock, DollarSign, FileText, Download, Printer, RefreshCw } from 'lucide-react';
 import { parseDurationToMinutes } from '../../utils/calendar';
 import html2canvas from 'html2canvas';
