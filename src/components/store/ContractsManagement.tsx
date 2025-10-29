@@ -992,7 +992,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
                         </div>
                       </section>
                       <section>
-                        <h3 className="text-base font-medium text-primary mb-2">CLÁUSULA 3ª ��� DA ENTREGA E DIREITOS AUTORAIS</h3>
+                        <h3 className="text-base font-medium text-primary mb-2">CL��USULA 3ª ��� DA ENTREGA E DIREITOS AUTORAIS</h3>
                         <div className="space-y-2">
                           <p>3.1. As fotografias serão entregues em formato digital através de galeria online privada.</p>
                           <p>3.2. Os direitos autorais das fotografias pertencem ao fotógrafo, sendo concedido ao contratante o direito de uso pessoal.</p>
@@ -1200,8 +1200,6 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
               )}
 
               <div className="grid grid-cols-2 gap-3 text-sm border-t pt-4">
-                <div><span className="text-gray-600">Tipo de evento:</span> <span className="font-medium">{viewing.eventType || '-'}</span></div>
-                <div><span className="text-gray-600">Método de pago:</span> <span className="font-medium">{viewing.paymentMethod || '-'}</span></div>
                 {(() => {
                   const customPackagePrice = (viewing as any).formSnapshot?.customPackagePrice;
                   const calc = computeAmounts(viewing, viewing.couponCode, customPackagePrice);
