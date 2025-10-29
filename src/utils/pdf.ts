@@ -11,8 +11,8 @@ export interface GeneratePdfOptions {
 }
 
 export async function generatePDF(element: HTMLElement, opts: GeneratePdfOptions = {}): Promise<string | Blob> {
-  const quality = Math.max(0.3, Math.min(1, opts.quality ?? 0.6));
-  const scale = Math.max(1, Math.min(3, opts.scale ?? (typeof window !== 'undefined' && (window.devicePixelRatio || 0) > 1 ? Math.min(3, window.devicePixelRatio) : 2)));
+  const quality = Math.max(0.3, Math.min(1, opts.quality ?? 0.5));
+  const scale = Math.max(1, Math.min(3, opts.scale ?? (typeof window !== 'undefined' && (window.devicePixelRatio || 0) > 1 ? Math.min(2, window.devicePixelRatio) : 1.5)));
   const marginTopPt = Math.max(0, opts.marginTopPt ?? 20);
   const marginBottomPt = Math.max(0, opts.marginBottomPt ?? 20);
 
