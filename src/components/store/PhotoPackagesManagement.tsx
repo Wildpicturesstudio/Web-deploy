@@ -40,9 +40,9 @@ const PhotoPackagesManagement = () => {
 
   const grouped = useMemo(() => {
     return {
-      portrait: packages.filter(p => p.type === 'portrait'),
-      maternity: packages.filter(p => p.type === 'maternity'),
-      events: packages.filter(p => p.type === 'events'),
+      portrait: packages.filter((p: DBPackage) => p.type === 'portrait'),
+      maternity: packages.filter((p: DBPackage) => p.type === 'maternity'),
+      events: packages.filter((p: DBPackage) => p.type === 'events'),
     };
   }, [packages]);
 
@@ -205,7 +205,7 @@ const PhotoPackagesManagement = () => {
         <div key={type} className="mb-8">
           <h3 className="text-lg font-semibold mb-3 capitalize">{type === 'portrait' ? 'Retratos' : type === 'maternity' ? 'Gestantes' : 'Eventos'}</h3>
           <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            {grouped[type].map((p) => (
+            {grouped[type].map((p: DBPackage) => (
               <div key={p.id} className="bg-white rounded-lg border border-gray-200 overflow-hidden aspect-square flex flex-col">
                 <div className="relative flex-shrink-0 h-1/2">
                   <img loading="lazy" src={p.image_url} alt={p.title} className="w-full h-full object-cover" data-pkg-id={p.id} />
