@@ -730,6 +730,65 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
         </div>
       )}
 
+      {/* Status Filter Modal */}
+      {statusFilter && (
+        <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-colors ${darkMode ? 'bg-black/70' : 'bg-white/70'}`} onClick={() => setStatusFilter(null)}>
+          <div className={`rounded-lg w-full max-w-2xl max-h-[80vh] overflow-y-auto p-6 border transition-colors ${darkMode ? 'bg-black border-gray-800' : 'bg-white border-gray-200'}`} onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-6">
+              <div className={`text-2xl font-bold transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>
+                {statusFilter === 'pending' && 'Eventos Pendientes'}
+                {statusFilter === 'editing' && 'Por editar'}
+                {statusFilter === 'completed' && 'Eventos Finalizados'}
+              </div>
+              <button onClick={() => setStatusFilter(null)} className={`text-2xl transition-colors ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-black'}`}>✕</button>
+            </div>
+
+            {(() => {
+              const filtered = filteredEvents.filter(ev => {
+                if (statusFilter === 'pending') {
+                  return ev.depositPaid === true && ev.finalPaymentPaid !== true && ev.eventCompleted !== true;
+                } else if (statusFilter === 'editing') {
+                  return ev.depositPaid === true && ev.finalPaymentPaid === true && ev.eventCompleted !== true;
+                } else if (statusFilter === 'completed') {
+                  return ev.depositPaid === true && ev.finalPaymentPaid === true && ev.eventCompleted === true;
+                }
+                return false;
+              });
+
+              return filtered.length > 0 ? (
+                <div className="space-y-2">
+                  {filtered.map((ev, idx) => (
+                    <button
+                      key={ev.id}
+                      onClick={() => setSelectedEvent(ev)}
+                      className={`w-full text-left p-4 rounded-lg border transition-colors cursor-pointer hover:shadow-md ${darkMode ? 'bg-gray-900 border-gray-700 hover:bg-gray-800' : 'bg-gray-50 border-gray-200 hover:bg-gray-100'}`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div>
+                          <div className={`font-semibold transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>
+                            {idx + 1}. {ev.clientName || 'Evento sin nombre'}
+                          </div>
+                          <div className={`text-sm mt-1 transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                            {ev.eventDate} {ev.eventTime ? `· ${ev.eventTime}` : ''} {ev.eventType ? `· ${ev.eventType}` : ''}
+                          </div>
+                        </div>
+                        <div className={`text-xs px-2 py-1 rounded whitespace-nowrap ${darkMode ? 'bg-gray-800 text-gray-300' : 'bg-gray-200 text-gray-700'}`}>
+                          R$ {Number(ev.totalAmount || 0).toFixed(0)}
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className={`text-center py-8 transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                  No hay eventos en esta categoría
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      )}
+
       {/* Detailed Event Modal */}
       {selectedEvent && (
         <div className={`fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 transition-colors ${darkMode ? 'bg-black/70' : 'bg-white/70'}`} onClick={() => setSelectedEvent(null)}>
