@@ -356,11 +356,16 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
     setSelected(null);
   };
 
-  const deleteEvent = async (ev: ContractItem) => {
-    if (!confirm('¿Eliminar este evento? También se eliminará el contrato.')) return;
+  const deleteEvent = (ev: ContractItem) => {
+    setDeleteConfirmEvent(ev);
+  };
 
+  const confirmDelete = async () => {
+    if (!deleteConfirmEvent) return;
+
+    setIsDeleting(true);
     try {
-      const baseId = String(ev.id || '').split('__')[0] || ev.id;
+      const baseId = String(deleteConfirmEvent.id || '').split('__')[0] || deleteConfirmEvent.id;
       await deleteDoc(doc(db, 'contracts', baseId));
 
       // Remove from local state
@@ -369,7 +374,8 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
         return id !== baseId;
       }));
 
-      // Close the modal
+      // Close modals
+      setDeleteConfirmEvent(null);
       setSelectedEvent(null);
 
       // Notify other components
@@ -386,6 +392,8 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
       window.dispatchEvent(new CustomEvent('adminToast', {
         detail: { message: 'Error al eliminar el evento', type: 'error' }
       }));
+    } finally {
+      setIsDeleting(false);
     }
   };
 
