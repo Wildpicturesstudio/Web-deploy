@@ -671,9 +671,26 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
 
   const remove = async (id: string) => {
     if (!confirm('¿Eliminar este contrato?')) return;
-    await deleteDoc(doc(db, 'contracts', id));
-    await fetchContracts();
-    try { window.dispatchEvent(new CustomEvent('contractsUpdated')); } catch {}
+    try {
+      await deleteDoc(doc(db, 'contracts', id));
+      await fetchContracts();
+
+      // Notify calendar and other components about the deletion
+      try {
+        window.dispatchEvent(new CustomEvent('contractDeleted', { detail: { contractId: id } }));
+        window.dispatchEvent(new CustomEvent('contractsUpdated'));
+      } catch {}
+
+      // Show confirmation
+      window.dispatchEvent(new CustomEvent('adminToast', {
+        detail: { message: 'Contrato eliminado correctamente', type: 'success' }
+      }));
+    } catch (e) {
+      console.error('Error deleting contract:', e);
+      window.dispatchEvent(new CustomEvent('adminToast', {
+        detail: { message: 'Error al eliminar el contrato', type: 'error' }
+      }));
+    }
   };
 
   const colorsFor = (len: number) => categoryColors(len);
