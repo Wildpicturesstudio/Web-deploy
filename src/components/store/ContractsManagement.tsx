@@ -250,7 +250,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
   useEffect(() => {
     if (!openContractId) return;
     if (loading) return;
-    const found = contracts.find(c => c.id === openContractId);
+    const found = contracts.find((c: ContractItem) => c.id === openContractId);
     if (found) {
       openView(found);
       if (onOpened) onOpened();
@@ -267,13 +267,13 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
     const lastVisitTime = lastVisitTimestamp ? parseInt(lastVisitTimestamp, 10) : 0;
     const currentTime = Date.now();
 
-    const newContracts = contracts.filter(c => {
+    const newContracts = contracts.filter((c: ContractItem) => {
       if (!c.createdAt) return false;
       const contractTime = new Date(c.createdAt).getTime();
       return contractTime > lastVisitTime;
     });
 
-    const pendingContracts = contracts.filter(c => String((c as any).status || '') === 'pending_approval');
+    const pendingContracts = contracts.filter((c: ContractItem) => String((c as any).status || '') === 'pending_approval');
 
     if (newContracts.length > 0 || pendingContracts.length > 0) {
       const messages: string[] = [];
@@ -354,7 +354,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
   };
 
   const filtered = useMemo(() => {
-    const base = contracts.filter(c => {
+    const base = contracts.filter((c: ContractItem) => {
       if (contractsTab === 'pending') {
         return String((c as any).status || '') === 'pending_approval';
       } else if (contractsTab === 'finished') {
@@ -370,7 +370,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
     const list = (() => {
       if (!search.trim()) return base;
       const s = search.toLowerCase();
-      return base.filter(c => {
+      return base.filter((c: ContractItem) => {
         const nameMatch = (c.clientName || '').toLowerCase().includes(s);
         const typeMatch = (c.eventType || '').toLowerCase().includes(s);
         const phoneSource = (c as any).clientPhone || (c as any).phone || (c as any).client_phone || (c as any).formSnapshot?.phone || '';
@@ -381,21 +381,21 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
     })();
 
     const now = new Date().getTime();
-    const mapped = list.map(c => {
+    const mapped = list.map((c: ContractItem) => {
       const ev = c.eventDate ? new Date(c.eventDate) : undefined;
       const t = ev && !isNaN(ev.getTime()) ? ev.getTime() : new Date(c.contractDate || c.createdAt || Date.now()).getTime();
       const diff = Math.abs(t - now);
       return { c, diff };
     });
 
-    mapped.sort((a, b) => {
+    mapped.sort((a: any, b: any) => {
       const ap = a.c.eventCompleted ? 1 : 0;
       const bp = b.c.eventCompleted ? 1 : 0;
       if (ap !== bp) return ap - bp;
       return a.diff - b.diff;
     });
 
-    return mapped.map(m => m.c);
+    return mapped.map((m: any) => m.c);
   }, [contracts, search, contractsTab]);
 
   const computeAmounts = (c: ContractItem, couponCode?: string, customPackagePrice?: number) => {
@@ -462,7 +462,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
   };
 
   const toggleFlag = async (id: string, field: keyof ContractItem) => {
-    const current = contracts.find(c => c.id === id);
+    const current = contracts.find((c: ContractItem) => c.id === id);
     if (!current) return;
     const next = !Boolean(current[field]);
     await updateDoc(doc(db, 'contracts', id), { [field]: next } as any);
@@ -680,7 +680,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
 
   const updateContractCountInFirebase = async () => {
     try {
-      const newCount = contracts.filter(c => c.isNew === true).length;
+      const newCount = contracts.filter((c: ContractItem) => c.isNew === true).length;
       await setDoc(doc(db, 'metadata', 'contractsCount'), {
         newContractsCount: newCount,
         totalContractsCount: contracts.length,
@@ -696,10 +696,10 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
   }, [contracts]);
 
   const counts = useMemo(() => {
-    const events = contracts.filter(c => c.eventCompleted !== true && !isPast(c)).length;
-    const finished = contracts.filter(c => c.eventCompleted === true).length;
-    const pending = contracts.filter(c => String((c as any).status || '') === 'pending_approval').length;
-    const newContracts = contracts.filter(c => c.isNew === true).length;
+    const events = contracts.filter((c: ContractItem) => c.eventCompleted !== true && !isPast(c)).length;
+    const finished = contracts.filter((c: ContractItem) => c.eventCompleted === true).length;
+    const pending = contracts.filter((c: ContractItem) => String((c as any).status || '') === 'pending_approval').length;
+    const newContracts = contracts.filter((c: ContractItem) => c.isNew === true).length;
     const total = events + finished;
     return { events, finished, pending, total, newContracts };
   }, [contracts]);
@@ -715,11 +715,11 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
               <button onClick={()=> setContractsTab('new')} className={`px-3 py-1 text-sm ${contractsTab==='new' ? 'bg-black text-white' : ''}`}>
                 Nuevos
               </button>
-              {contracts.filter(c => c.isNew === true).length > 0 && (
+              {contracts.filter((c: ContractItem) => c.isNew === true).length > 0 && (
                 <span className={`absolute -top-3 -right-3 w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center ${
                   contractsTab === 'new' ? 'bg-white text-black' : 'bg-red-600 text-white'
                 }`}>
-                  {contracts.filter(c => c.isNew === true).length}
+                  {contracts.filter((c: ContractItem) => c.isNew === true).length}
                 </span>
               )}
             </div>
@@ -727,7 +727,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
               <button onClick={()=> setContractsTab('pending')} className={`px-3 py-1 text-sm ${contractsTab==='pending' ? 'bg-black text-white' : ''}`}>
                 Pendiente de Aprobacion
               </button>
-              {contracts.filter(c => String((c as any).status || '') === 'pending_approval').length > 0 && (
+              {contracts.filter((c: ContractItem) => String((c as any).status || '') === 'pending_approval').length > 0 && (
                 <span className={`absolute -top-3 -right-3 w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center ${
                   contractsTab === 'pending' ? 'bg-white text-black' : 'bg-red-600 text-white'
                 }`}>
