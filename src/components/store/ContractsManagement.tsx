@@ -526,7 +526,11 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
       } as any;
 
       const existingSnapshot = (editing as any).formSnapshot || {};
-      const newSnapshot = { ...existingSnapshot, selectedDresses: editSelectedDresses, isCustomPackage: editForm.isCustomPackage, customPackageType: editForm.customPackageType, customPackageDuration: editForm.customPackageDuration, customPackagePrice: customPackagePrice };
+      const newSnapshot: any = { ...existingSnapshot, selectedDresses: editSelectedDresses };
+      if (editForm.isCustomPackage !== undefined) newSnapshot.isCustomPackage = editForm.isCustomPackage;
+      if (editForm.customPackageType !== undefined) newSnapshot.customPackageType = editForm.customPackageType;
+      if (editForm.customPackageDuration !== undefined) newSnapshot.customPackageDuration = editForm.customPackageDuration;
+      if (customPackagePrice !== undefined && customPackagePrice !== 0) newSnapshot.customPackagePrice = customPackagePrice;
       (payload as any).formSnapshot = newSnapshot;
 
       await updateDoc(doc(db, 'contracts', id), payload as any);
@@ -968,7 +972,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
                         </div>
                       </section>
                       <section>
-                        <h3 className="text-base font-medium text-primary mb-2">CLÁUSULA 5ª ��� DAS DISPOSIÇÕES GERAIS</h3>
+                        <h3 className="text-base font-medium text-primary mb-2">CLÁUSULA 5ª – DAS DISPOSIÇÕES GERAIS</h3>
                         <div className="space-y-2">
                           <p>5.1. Este contrato é regido pelas leis brasileiras.</p>
                           <p>5.2. Eventuais conflitos serão resolvidos preferencialmente por mediação.</p>
