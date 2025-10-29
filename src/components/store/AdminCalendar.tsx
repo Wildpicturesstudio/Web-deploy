@@ -354,6 +354,39 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
     setSelected(null);
   };
 
+  const deleteEvent = async (ev: ContractItem) => {
+    if (!confirm('¿Eliminar este evento? También se eliminará el contrato.')) return;
+
+    try {
+      const baseId = String(ev.id || '').split('__')[0] || ev.id;
+      await deleteDoc(doc(db, 'contracts', baseId));
+
+      // Remove from local state
+      setEvents(prev => prev.filter(e => {
+        const id = String(e.id || '').split('__')[0];
+        return id !== baseId;
+      }));
+
+      // Close the modal
+      setSelectedEvent(null);
+
+      // Notify other components
+      try {
+        window.dispatchEvent(new CustomEvent('contractDeleted', { detail: { contractId: baseId } }));
+        window.dispatchEvent(new CustomEvent('contractsUpdated'));
+      } catch {}
+
+      window.dispatchEvent(new CustomEvent('adminToast', {
+        detail: { message: 'Evento eliminado correctamente', type: 'success' }
+      }));
+    } catch (e) {
+      console.error('Error deleting event:', e);
+      window.dispatchEvent(new CustomEvent('adminToast', {
+        detail: { message: 'Error al eliminar el evento', type: 'error' }
+      }));
+    }
+  };
+
   const syncCalendarWithContracts = async () => {
     setSyncing(true);
     try {
