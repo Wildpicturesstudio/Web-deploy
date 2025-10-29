@@ -731,7 +731,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
                 <span className={`absolute -top-3 -right-3 w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center ${
                   contractsTab === 'pending' ? 'bg-white text-black' : 'bg-red-600 text-white'
                 }`}>
-                  {contracts.filter(c => String((c as any).status || '') === 'pending_approval').length}
+                  {contracts.filter((c: ContractItem) => String((c as any).status || '') === 'pending_approval').length}
                 </span>
               )}
             </div>
@@ -817,7 +817,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
         {loading && <div className="p-3 md:p-4 text-sm text-gray-500">Cargando...</div>}
         {!loading && filtered.length === 0 && <div className="p-3 md:p-4 text-sm text-gray-500">Sin resultados</div>}
         <div className="divide-y overflow-y-auto flex-1">
-          {filtered.map(c => {
+          {filtered.map((c: ContractItem) => {
             return (
               <div key={c.id} className="hidden md:grid grid-cols-12 p-2 md:p-3 items-center hover:bg-gray-50 hover:text-black cursor-pointer border-b text-xs md:text-sm transition-colors admin-contract-row" onClick={() => openView(c)}>
                 <div className="col-span-2 text-sm">{c.eventDate || '-'}</div>
@@ -862,7 +862,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
 
         {/* Mobile view - Card layout */}
         <div className="md:hidden space-y-2">
-          {filtered.map(c => (
+          {filtered.map((c: ContractItem) => (
             <div key={c.id} className="p-3 border-b hover:bg-gray-50 hover:text-black cursor-pointer space-y-2 transition-colors admin-contract-row" onClick={() => openView(c)}>
               <div className="flex justify-between items-start gap-2">
                 <div className="flex-1">
