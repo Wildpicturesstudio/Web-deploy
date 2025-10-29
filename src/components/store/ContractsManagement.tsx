@@ -644,7 +644,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
                 totalAmount: randomTotal,
                 travelFee: Math.floor(Math.random() * 500),
                 paymentMethod: ['pix', 'cash', 'card'][Math.floor(Math.random() * 3)],
-                depositPaid: Math.random() > 0.7,
+                depositPaid: false,
                 finalPaymentPaid: false,
                 eventCompleted: false,
                 isEditing: false,
@@ -901,7 +901,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
                           <p>3.1. As fotografias serão entregues em formato digital através de galeria online privada.</p>
                           <p>3.2. Os direitos autorais das fotografias pertencem ao fotógrafo, sendo concedido ao contratante o direito de uso pessoal.</p>
                           <p>3.3. É vedada a reprodução comercial das imagens sem autorização expressa da contratada.</p>
-                          <p>3.4. A contratada poderá utilizar as imagens para fins de divulgação de seu trabalho.</p>
+                          <p>3.4. A contratada poder�� utilizar as imagens para fins de divulgação de seu trabalho.</p>
                         </div>
                       </section>
                       <section>
