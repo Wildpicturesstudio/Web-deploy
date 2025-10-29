@@ -485,6 +485,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
       eventDate: c.eventDate || '',
       eventTime: (c as any).eventTime || '',
       signatureTime: (c as any).signatureTime || '',
+      contractDate: (c as any).contractDate || '',
       eventLocation: (c as any).eventLocation || '',
       packageTitle: (c as any).packageTitle || '',
       packageDuration: (c as any).packageDuration || '',
@@ -492,7 +493,8 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
       totalAmount: Number(c.totalAmount || 0),
       travelFee: Number(c.travelFee || 0),
       couponCode: c.couponCode || '',
-      message: c.message || ''
+      message: c.message || '',
+      formSnapshot: (c as any).formSnapshot || {}
     });
   };
 
