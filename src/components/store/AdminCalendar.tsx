@@ -505,7 +505,7 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
 
         {/* Phone Filter */}
         <div className="space-y-2 mb-4">
-          <label className={`text-xs block transition-colors ${darkMode ? 'text-gray-500' : 'text-gray-600'}`}>Filtrar por teléfono</label>
+          <label className={`text-xs block transition-colors ${darkMode ? 'text-gray-500' : 'text-gray-600'}`}>Filtrar por tel��fono</label>
           <input
             type="text"
             value={filterPhone}
@@ -1569,6 +1569,67 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmEvent && (
+        <div className={`fixed inset-0 z-[52] flex items-center justify-center p-4 transition-colors ${darkMode ? 'bg-black/70' : 'bg-black/50'}`} onClick={() => !isDeleting && setDeleteConfirmEvent(null)}>
+          <div className={`rounded-xl w-full max-w-md p-6 transition-colors ${darkMode ? 'bg-gray-900 border border-gray-800' : 'bg-white border border-gray-200'}`} onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start gap-4 mb-4">
+              <div className={`p-3 rounded-full ${darkMode ? 'bg-red-900/30' : 'bg-red-100'}`}>
+                <Trash2 size={24} className={darkMode ? 'text-red-400' : 'text-red-600'} />
+              </div>
+              <div className="flex-1">
+                <h3 className={`text-lg font-bold transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>
+                  ¿Eliminar evento?
+                </h3>
+                <p className={`text-sm mt-1 transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  Se eliminará el evento <strong>{deleteConfirmEvent.clientName || 'sin nombre'}</strong> y su contrato asociado.
+                </p>
+                <p className={`text-xs mt-2 transition-colors ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                  Esta acción no se puede deshacer.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 mt-6">
+              <button
+                onClick={() => setDeleteConfirmEvent(null)}
+                disabled={isDeleting}
+                className={`flex-1 px-4 py-2 rounded-lg border transition-colors font-medium ${
+                  darkMode
+                    ? 'border-gray-700 text-gray-300 hover:bg-gray-800'
+                    : 'border-gray-300 text-gray-700 hover:bg-gray-100'
+                } ${isDeleting ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={isDeleting}
+                className={`flex-1 px-4 py-2 rounded-lg font-medium text-white transition-colors flex items-center justify-center gap-2 ${
+                  isDeleting
+                    ? 'bg-red-700/50 cursor-not-allowed'
+                    : darkMode
+                    ? 'bg-red-600 hover:bg-red-700'
+                    : 'bg-red-600 hover:bg-red-700'
+                }`}
+              >
+                {isDeleting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Eliminando...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={18} />
+                    Eliminar
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>
