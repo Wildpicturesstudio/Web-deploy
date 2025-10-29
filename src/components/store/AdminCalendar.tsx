@@ -90,6 +90,7 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
   const [expandedDay, setExpandedDay] = useState<string | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<ContractItem | null>(null);
   const [statusFilter, setStatusFilter] = useState<'deposit_pending' | 'editing' | 'completed' | null>(null);
+  const [syncing, setSyncing] = useState(false);
 
   const load = async () => {
     setLoading(true);
