@@ -341,6 +341,8 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
         return String((c as any).status || '') === 'pending_approval';
       } else if (contractsTab === 'finished') {
         return c.eventCompleted === true;
+      } else if (contractsTab === 'new') {
+        return c.isNew === true;
       } else if (contractsTab === 'events') {
         return c.eventCompleted !== true && !isPast(c);
       }
