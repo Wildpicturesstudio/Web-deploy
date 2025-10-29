@@ -12,8 +12,8 @@ interface ContractItem {
   clientName: string;
   clientEmail: string;
   eventType?: string;
-  eventDate?: string; // YYYY-MM-DD
-  eventTime?: string; // HH:mm
+  eventDate?: string;
+  eventTime?: string;
   eventLocation?: string;
   packageDuration?: string;
   packageTitle?: string;
@@ -418,9 +418,7 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
 
   return (
     <div className={`flex h-full w-full transition-colors ${darkMode ? 'bg-black' : 'bg-white'}`}>
-      {/* Left Sidebar - Mini Calendar */}
       <div className={`w-64 border-r p-4 flex flex-col overflow-y-auto flex-shrink-0 transition-colors ${darkMode ? 'bg-black border-gray-800' : 'bg-white border-gray-200'}`}>
-        {/* Mini Calendar */}
         <div className="mb-6">
           <div className="flex items-center justify-between gap-2 mb-3">
             <button onClick={prevMonth} className={`p-2 rounded-full transition-colors flex-shrink-0 ${darkMode ? 'text-gray-400 hover:text-white hover:bg-gray-800' : 'text-gray-600 hover:text-black hover:bg-gray-200'}`}><ChevronLeft size={16}/></button>
@@ -444,9 +442,7 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
           </div>
         </div>
 
-        {/* Event Summary */}
         <div className="space-y-2 mb-4">
-          {/* First Row - Two cards */}
           <div className="grid grid-cols-2 gap-2">
             <button onClick={() => setStatusFilter('deposit_pending')} className={`p-3 rounded-lg border transition-colors cursor-pointer hover:shadow-md ${darkMode ? 'bg-gray-900 border-gray-800 hover:bg-gray-800' : 'bg-gray-50 border-gray-200 hover:bg-gray-100'}`}>
               <div className={`text-xs transition-colors ${darkMode ? 'text-gray-500' : 'text-gray-600'}`}>Pendientes Depósito</div>
@@ -457,7 +453,6 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
               <div className={`text-2xl font-bold transition-colors ${darkMode ? 'text-yellow-400' : 'text-yellow-600'}`}>{eventSummary.editing}</div>
             </button>
           </div>
-          {/* Second Row - Two cards */}
           <div className="grid grid-cols-2 gap-2">
             <button onClick={() => setStatusFilter('completed')} className={`p-3 rounded-lg border transition-colors cursor-pointer hover:shadow-md ${darkMode ? 'bg-gray-900 border-gray-800 hover:bg-gray-800' : 'bg-gray-50 border-gray-200 hover:bg-gray-100'}`}>
               <div className={`text-xs transition-colors ${darkMode ? 'text-gray-500' : 'text-gray-600'}`}>Eventos Finalizados</div>
@@ -468,12 +463,11 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
               <div className={`text-2xl font-bold transition-colors mx-auto ${darkMode ? 'text-purple-400' : 'text-purple-600'}`}>{eventSummary.allTotal}</div>
             </div>
           </div>
-          {/* Revenue Card - Full Width */}
           <div className={`p-4 rounded-lg border transition-colors flex items-center justify-between ${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-gray-50 border-gray-200'}`}>
             <div className="flex-1">
               <div className={`text-xs transition-colors ${darkMode ? 'text-gray-500' : 'text-gray-600'}`}>Ingresos del Mes</div>
               <div className={`text-3xl font-bold transition-colors ${darkMode ? 'text-green-400' : 'text-green-600'}`}>
-                {showRevenue ? `R$ ${eventSummary.totalRevenue.toFixed(0)}` : '••���•••'}
+                {showRevenue ? `R$ ${eventSummary.totalRevenue.toFixed(0)}` : '••••••'}
               </div>
             </div>
             <button
@@ -487,9 +481,7 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
         </div>
       </div>
 
-      {/* Right Calendar Area */}
       <div className={`flex-1 flex flex-col overflow-hidden transition-colors ${darkMode ? 'bg-black' : 'bg-white'}`}>
-        {/* Calendar header with month display */}
         <div className={`px-4 py-[3px] border-b flex items-center justify-between flex-shrink-0 transition-colors ${darkMode ? 'border-gray-800' : 'border-gray-200'}`}>
           <div className="flex items-center gap-3">
             <button onClick={() => {
@@ -564,7 +556,6 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
           </div>
         </div>
 
-        {/* Calendar grid */}
         <div className={`flex-1 overflow-hidden flex flex-col transition-colors ${darkMode ? 'bg-black' : 'bg-white'}`}>
           <div className={`grid grid-cols-7 text-center text-xs py-0 px-1 border-b flex-shrink-0 transition-colors ${darkMode ? 'border-gray-800 bg-black text-gray-400' : 'border-gray-200 bg-gray-50 lg:bg-gray-50 max-lg:bg-white text-gray-600'}`}>
             {['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'].map((d)=> <div key={d} className="py-1 font-medium">{d}</div>)}
@@ -607,10 +598,8 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
             })}
           </div>
         </div>
-
       </div>
 
-      {/* Daily List View Modal */}
       {expandedDay && (
         <div className={`fixed inset-0 z-[50] flex items-center justify-center p-4 transition-colors ${darkMode ? 'bg-black/70' : 'bg-black/50'}`} onClick={() => setExpandedDay(null)}>
           <div className={`rounded-xl w-full max-w-2xl p-6 transition-colors overflow-hidden max-h-[80vh] overflow-y-auto ${darkMode ? 'bg-black border border-gray-800' : 'bg-white border border-gray-200'}`} onClick={(e) => e.stopPropagation()}>
@@ -710,7 +699,6 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
         </div>
       )}
 
-      {/* Status Filter Modal */}
       {statusFilter && (
         <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-colors ${darkMode ? 'bg-black/70' : 'bg-white/70'}`} onClick={() => setStatusFilter(null)}>
           <div className={`rounded-lg w-full max-w-2xl max-h-[80vh] overflow-y-auto p-6 border transition-colors ${darkMode ? 'bg-black border-gray-800' : 'bg-white border-gray-200'}`} onClick={e => e.stopPropagation()}>
@@ -769,7 +757,6 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
         </div>
       )}
 
-      {/* Detailed Event Modal */}
       {selectedEvent && (
         <div className={`fixed inset-0 z-[51] flex items-center justify-center p-2 sm:p-4 transition-colors ${darkMode ? 'bg-black/70' : 'bg-white/70'}`} onClick={() => setSelectedEvent(null)}>
           <div className={`rounded-xl w-full max-w-5xl p-4 md:p-6 overflow-hidden max-h-[90vh] overflow-y-auto transition-colors ${darkMode ? 'bg-black border border-gray-800' : 'bg-white border border-gray-200'}`} onClick={(e) => e.stopPropagation()}>
@@ -785,7 +772,6 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
             </div>
 
             <div className="space-y-4">
-              {/* Basic Information */}
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Nombre:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{selectedEvent.clientName}</span></div>
                 <div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Email:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{selectedEvent.clientEmail || '-'}</span></div>
@@ -799,7 +785,6 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
                 <div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Método de pago:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{selectedEvent.paymentMethod || '-'}</span></div>
               </div>
 
-              {/* Event Details */}
               <div className={`border-t pt-4 transition-colors ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Fecha evento:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{selectedEvent.eventDate || '-'}</span></div>
@@ -810,7 +795,6 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
                 </div>
               </div>
 
-              {/* Vestidos / Dresses */}
               {(selectedEvent as any).formSnapshot?.selectedDresses && Array.isArray((selectedEvent as any).formSnapshot.selectedDresses) && (
                 <div className={`border-t pt-4 transition-colors ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
                   <div className="text-sm font-medium mb-3">Vestidos</div>
@@ -830,9 +814,8 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
                 </div>
               )}
 
-              {/* Payment Information */}
               <div className={`border-t pt-4 transition-colors ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-                <div className="text-sm font-medium mb-3">Informaci��n de Pago</div>
+                <div className="text-sm font-medium mb-3">Información de Pago</div>
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div className="flex items-center gap-2">
                     <span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Depósito (20%):</span>
@@ -849,7 +832,6 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
                 </div>
               </div>
 
-              {/* Progreso del evento */}
               <div className={`border-t pt-4 transition-colors ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
                 <div className="text-sm font-medium mb-3">Progreso del evento</div>
                 <div className="flex flex-wrap gap-2">
@@ -877,7 +859,6 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
                 </div>
               </div>
 
-              {/* Items */}
               {(Array.isArray(selectedEvent.storeItems) && selectedEvent.storeItems.length > 0) && (
                 <div className={`border-t pt-4 transition-colors ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
                   <div className="text-sm font-medium mb-3">Items del contrato</div>
@@ -910,7 +891,6 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
       {deleteConfirmEvent && (
         <div className={`fixed inset-0 z-[52] flex items-center justify-center p-4 transition-colors ${darkMode ? 'bg-black/70' : 'bg-black/50'}`} onClick={() => !isDeleting && setDeleteConfirmEvent(null)}>
           <div className={`rounded-xl w-full max-w-md p-6 transition-colors ${darkMode ? 'bg-gray-900 border border-gray-800' : 'bg-white border border-gray-200'}`} onClick={(e) => e.stopPropagation()}>
