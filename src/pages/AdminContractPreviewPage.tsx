@@ -90,8 +90,9 @@ const AdminContractPreviewPage = () => {
       discountCoupon: String(contract.couponCode || ''),
       message: String(contract.message || ''),
       cartItems: services,
-      storeItems
-    };
+      storeItems,
+      contractTotal: Number(contract.totalAmount || 0)
+    } as any;
 
     // Fill per-service dates/times/locations to match ContractPreview expectations
     (booking.cartItems || []).forEach((_it, index) => {
