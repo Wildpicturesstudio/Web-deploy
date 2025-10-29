@@ -167,7 +167,7 @@ const OrdersManagement = () => {
   }, []);
 
   const filtered = useMemo(() => {
-    return orders.filter(o => {
+    return orders.filter((o: OrderItem) => {
       const status = getDerivedStatusForOrder(o);
       const byStatus = statusFilter === 'todas' ? true : (status === statusFilter);
       const s = search.trim().toLowerCase();
@@ -178,12 +178,12 @@ const OrdersManagement = () => {
   }, [orders, statusFilter, search, contractsMap, contractsByEmail]);
 
   const counts = useMemo(() => {
-    const statuses = orders.map(o => getDerivedStatusForOrder(o));
+    const statuses = orders.map((o: OrderItem) => getDerivedStatusForOrder(o));
     return {
       todas: orders.length,
-      pendiente: statuses.filter(s => s === 'pendiente').length,
-      procesando: statuses.filter(s => s === 'procesando').length,
-      completado: statuses.filter(s => s === 'completado').length,
+      pendiente: statuses.filter((s: OrderStatus) => s === 'pendiente').length,
+      procesando: statuses.filter((s: OrderStatus) => s === 'procesando').length,
+      completado: statuses.filter((s: OrderStatus) => s === 'completado').length,
     };
   }, [orders, contractsMap]);
 
@@ -299,12 +299,12 @@ const OrdersManagement = () => {
           await updateDoc(cRef, { workflow } as any);
           setContractsMap(prev => ({ ...prev, [contractId]: { ...(prev[contractId] || {}), workflow } }));
           // reflect immediately in row
-          setOrders(prev => prev.map(x => x.id === viewing.id ? { ...x, workflow } : x));
+          setOrders((prev: OrderItem[]) => prev.map((x: OrderItem) => x.id === viewing.id ? { ...x, workflow } : x));
           setViewing(v => v ? { ...v, workflow } : v);
         }
       } else {
         await updateDoc(doc(db, 'orders', viewing.id), { workflow } as any);
-        setOrders(prev => prev.map(x => x.id === viewing.id ? { ...x, workflow } : x));
+        setOrders((prev: OrderItem[]) => prev.map((x: OrderItem) => x.id === viewing.id ? { ...x, workflow } : x));
         setViewing(v => v ? { ...v, workflow } : v);
 
         // Try to sync to contract: prefer explicit contractId, otherwise match by customer_email
@@ -360,7 +360,7 @@ const OrdersManagement = () => {
     if (!confirm('Vincular órdenes sin contractId a contratos coincidentes por email o productos?')) return;
     setLinking(true);
     try {
-      const toProcess = (orders || []).filter(o => !o.contractId);
+      const toProcess = (orders || []).filter((o: OrderItem) => !o.contractId);
       let count = 0;
       for (const o of toProcess) {
         let target: any = null;
@@ -369,7 +369,7 @@ const OrdersManagement = () => {
           target = contractsByEmail[key] || Object.values(contractsMap).find((x: any) => String((x.clientEmail || x.client_email || '')).toLowerCase().trim() === key) || null;
         }
         if (!target) {
-          const onames = new Set((o.items || []).map(it => String(it.name || it.product_id || it.productId || '').toLowerCase().trim()));
+          const onames = new Set((o.items || []).map((it: OrderLineItem) => String(it.name || it.product_id || it.productId || '').toLowerCase().trim()));
           target = Object.values(contractsMap).find((c: any) => Array.isArray(c.storeItems) && c.storeItems.some((si: any) => onames.has(String(si.name || '').toLowerCase().trim())));
         }
         if (target) {
@@ -441,7 +441,7 @@ const OrdersManagement = () => {
         {loading && <div className="p-4 text-sm text-gray-500">Cargando...</div>}
         {!loading && filtered.length === 0 && <div className="p-4 text-sm text-gray-500">Sin resultados</div>}
         <div className="divide-y">
-          {filtered.map(o => {
+          {filtered.map((o: OrderItem) => {
             const wfRow = getWorkflowForRow(o);
             const deliveryComplete = isDeliveryCompleteForOrder(o);
             const segments = wfRow.map(cat => {
