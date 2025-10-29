@@ -467,70 +467,77 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
     if (!editing) return;
     const id = editing.id;
 
-    // Handle custom package
-    let packageTitle = editForm.packageTitle || '';
-    let packageDuration = editForm.packageDuration || '';
-    let customPackagePrice = 0;
+    try {
+      // Handle custom package
+      let packageTitle = editForm.packageTitle || '';
+      let packageDuration = editForm.packageDuration || '';
+      let customPackagePrice = 0;
 
-    if (editForm.isCustomPackage) {
-      packageTitle = `Paquete Personalizado (${editForm.customPackageType || 'personalizado'})`;
-      packageDuration = editForm.customPackageDuration || '';
-      customPackagePrice = Number(editForm.customPackagePrice || 0);
+      if (editForm.isCustomPackage) {
+        packageTitle = `Paquete Personalizado (${editForm.customPackageType || 'personalizado'})`;
+        packageDuration = editForm.customPackageDuration || '';
+        customPackagePrice = Number(editForm.customPackagePrice || 0);
+      }
+
+      // Merge editing with form changes to compute correctly
+      const merged: ContractItem = {
+        ...editing,
+        clientName: String(editForm.clientName || editing.clientName || ''),
+        clientEmail: String(editForm.clientEmail || editing.clientEmail || ''),
+        eventType: String(editForm.eventType || editing.eventType || ''),
+        eventDate: String(editForm.eventDate || editing.eventDate || ''),
+        paymentMethod: String(editForm.paymentMethod || editing.paymentMethod || ''),
+        message: String(editForm.message || editing.message || ''),
+        totalAmount: Number(editForm.totalAmount ?? editing.totalAmount ?? 0),
+        travelFee: Number(editForm.travelFee ?? editing.travelFee ?? 0),
+        storeItems: editStoreItems,
+        ...(editForm.eventTime !== undefined ? { eventTime: String(editForm.eventTime || '') } : {}),
+        ...(editForm.eventLocation !== undefined ? { eventLocation: String(editForm.eventLocation || '') } : {}),
+        packageTitle: packageTitle,
+        packageDuration: packageDuration,
+        ...(editForm.signatureTime !== undefined ? { signatureTime: String(editForm.signatureTime || '') } : {}),
+      } as any;
+
+      const calc = computeAmounts(merged);
+
+      const payload: Partial<ContractItem> = {
+        clientName: merged.clientName,
+        clientEmail: merged.clientEmail,
+        eventType: merged.eventType,
+        eventDate: merged.eventDate,
+        eventCompleted: editing.eventCompleted,
+        totalAmount: editForm.isCustomPackage ? customPackagePrice + Number(editForm.travelFee || 0) + (editStoreItems || []).reduce((s,it)=> s + (Number(it.price)||0) * (Number(it.quantity)||1), 0) : calc.totalAmount,
+        travelFee: merged.travelFee,
+        paymentMethod: merged.paymentMethod,
+        message: merged.message,
+        couponCode: editForm.couponCode || undefined,
+        storeItems: merged.storeItems || [],
+        ...(merged.eventTime !== undefined ? { eventTime: merged.eventTime } : {}),
+        ...(merged.eventLocation !== undefined ? { eventLocation: merged.eventLocation } : {}),
+        packageTitle: packageTitle,
+        packageDuration: packageDuration,
+        ...(editForm.clientPhone ? { clientPhone: String(editForm.clientPhone) } : {}),
+        ...(editForm.clientCPF ? { clientCPF: String(editForm.clientCPF) } : {}),
+        ...(editForm.clientRG ? { clientRG: String(editForm.clientRG) } : {}),
+        ...(editForm.clientAddress ? { clientAddress: String(editForm.clientAddress) } : {}),
+        ...( { depositAmount: calc.depositAmount, remainingAmount: calc.remainingAmount } as any )
+      } as any;
+
+      const existingSnapshot = (editing as any).formSnapshot || {};
+      const newSnapshot = { ...existingSnapshot, selectedDresses: editSelectedDresses, isCustomPackage: editForm.isCustomPackage, customPackageType: editForm.customPackageType, customPackageDuration: editForm.customPackageDuration, customPackagePrice: customPackagePrice };
+      (payload as any).formSnapshot = newSnapshot;
+
+      await updateDoc(doc(db, 'contracts', id), payload as any);
+      setViewing(v => v && v.id === id ? ({ ...v, ...payload }) as any : v);
+      setEditing(null);
+      await fetchContracts();
+      try { window.dispatchEvent(new CustomEvent('contractsUpdated')); } catch {}
+      window.dispatchEvent(new CustomEvent('adminToast', { detail: { message: '✓ Contrato actualizado correctamente', type: 'success' } }));
+    } catch (error: any) {
+      console.error('Error saving contract:', error);
+      const errorMsg = error?.message || 'Error desconocido';
+      window.dispatchEvent(new CustomEvent('adminToast', { detail: { message: `Error al guardar: ${errorMsg}`, type: 'error' } }));
     }
-
-    // Merge editing with form changes to compute correctly
-    const merged: ContractItem = {
-      ...editing,
-      clientName: String(editForm.clientName || editing.clientName || ''),
-      clientEmail: String(editForm.clientEmail || editing.clientEmail || ''),
-      eventType: String(editForm.eventType || editing.eventType || ''),
-      eventDate: String(editForm.eventDate || editing.eventDate || ''),
-      paymentMethod: String(editForm.paymentMethod || editing.paymentMethod || ''),
-      message: String(editForm.message || editing.message || ''),
-      totalAmount: Number(editForm.totalAmount ?? editing.totalAmount ?? 0),
-      travelFee: Number(editForm.travelFee ?? editing.travelFee ?? 0),
-      storeItems: editStoreItems,
-      ...(editForm.eventTime !== undefined ? { eventTime: String(editForm.eventTime || '') } : {}),
-      ...(editForm.eventLocation !== undefined ? { eventLocation: String(editForm.eventLocation || '') } : {}),
-      packageTitle: packageTitle,
-      packageDuration: packageDuration,
-      ...(editForm.signatureTime !== undefined ? { signatureTime: String(editForm.signatureTime || '') } : {}),
-    } as any;
-
-    const calc = computeAmounts(merged);
-
-    const payload: Partial<ContractItem> = {
-      clientName: merged.clientName,
-      clientEmail: merged.clientEmail,
-      eventType: merged.eventType,
-      eventDate: merged.eventDate,
-      eventCompleted: editing.eventCompleted,
-      totalAmount: editForm.isCustomPackage ? customPackagePrice + Number(editForm.travelFee || 0) + (editStoreItems || []).reduce((s,it)=> s + (Number(it.price)||0) * (Number(it.quantity)||1), 0) : calc.totalAmount,
-      travelFee: merged.travelFee,
-      paymentMethod: merged.paymentMethod,
-      message: merged.message,
-      couponCode: editForm.couponCode || undefined,
-      storeItems: merged.storeItems || [],
-      ...(merged.eventTime !== undefined ? { eventTime: merged.eventTime } : {}),
-      ...(merged.eventLocation !== undefined ? { eventLocation: merged.eventLocation } : {}),
-      packageTitle: packageTitle,
-      packageDuration: packageDuration,
-      ...(editForm.clientPhone ? { clientPhone: String(editForm.clientPhone) } : {}),
-      ...(editForm.clientCPF ? { clientCPF: String(editForm.clientCPF) } : {}),
-      ...(editForm.clientRG ? { clientRG: String(editForm.clientRG) } : {}),
-      ...(editForm.clientAddress ? { clientAddress: String(editForm.clientAddress) } : {}),
-      ...( { depositAmount: calc.depositAmount, remainingAmount: calc.remainingAmount } as any )
-    } as any;
-
-    const existingSnapshot = (editing as any).formSnapshot || {};
-    const newSnapshot = { ...existingSnapshot, selectedDresses: editSelectedDresses, isCustomPackage: editForm.isCustomPackage, customPackageType: editForm.customPackageType, customPackageDuration: editForm.customPackageDuration, customPackagePrice: customPackagePrice };
-    (payload as any).formSnapshot = newSnapshot;
-    await updateDoc(doc(db, 'contracts', id), payload as any);
-    setViewing(v => v && v.id === id ? ({ ...v, ...payload }) as any : v);
-    setEditing(null);
-    await fetchContracts();
-    try { window.dispatchEvent(new CustomEvent('contractsUpdated')); } catch {}
-    window.dispatchEvent(new CustomEvent('adminToast', { detail: { message: 'Contrato actualizado correctamente', type: 'success' } }));
   };
 
   const openView = async (c: ContractItem) => {
