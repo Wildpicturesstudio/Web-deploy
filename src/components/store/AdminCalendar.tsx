@@ -545,7 +545,7 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
       {/* Right Calendar Area */}
       <div className={`flex-1 flex flex-col overflow-hidden transition-colors ${darkMode ? 'bg-black' : 'bg-white'}`}>
         {/* Calendar header with month display */}
-        <div className={`px-4 py-0 border-b flex items-center justify-between flex-shrink-0 transition-colors ${darkMode ? 'border-gray-800' : 'border-gray-200'}`}>
+        <div className={`px-4 py-[3px] border-b flex items-center justify-between flex-shrink-0 transition-colors ${darkMode ? 'border-gray-800' : 'border-gray-200'}`}>
           <div className="flex items-center gap-3">
             <button onClick={() => {
               if (filterMonth === 0) {
