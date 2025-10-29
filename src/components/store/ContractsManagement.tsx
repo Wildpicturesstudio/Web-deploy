@@ -419,6 +419,15 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
     return { servicesTotal, storeTotal, travel, totalAmount, depositAmount, remainingAmount };
   };
 
+  const getAvailableCouponsForContract = (eventType?: string): DBCoupon[] => {
+    if (!eventType) return [];
+    return coupons.filter(coupon => {
+      if (!coupon.appliesTo) return true;
+      const applies = Array.isArray(coupon.appliesTo) ? coupon.appliesTo : [coupon.appliesTo];
+      return applies.includes('todos') || applies.includes(eventType);
+    });
+  };
+
   const toggleFlag = async (id: string, field: keyof ContractItem) => {
     const current = contracts.find(c => c.id === id);
     if (!current) return;
