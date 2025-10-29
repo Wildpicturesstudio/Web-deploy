@@ -27,6 +27,8 @@ interface ContractItem {
   formSnapshot?: any;
   totalAmount?: number;
   travelFee?: number;
+  contractDate?: string;
+  storeItems?: any[];
 }
 
 type StatusFilter = 'all' | 'pending' | 'booked' | 'delivered' | 'cancelled' | 'pending_payment' | 'pending_approval' | 'released';
