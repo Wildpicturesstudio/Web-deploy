@@ -253,7 +253,10 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
     const editing = filteredEvents.filter(e => e.depositPaid === true && e.finalPaymentPaid === true && e.eventCompleted !== true).length;
     const completed = filteredEvents.filter(e => e.depositPaid === true && e.finalPaymentPaid === true && e.eventCompleted === true).length;
     const allTotal = filteredEvents.length;
-    return { pending, editing, completed, allTotal };
+    const totalRevenue = filteredEvents
+      .filter(e => e.depositPaid === true && e.finalPaymentPaid === true && e.eventCompleted === true)
+      .reduce((sum, e) => sum + (Number(e.totalAmount || 0)), 0);
+    return { pending, editing, completed, allTotal, totalRevenue };
   }, [filteredEvents]);
 
   const prevMonth = () => setCurrent(c => ({
