@@ -1471,7 +1471,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
                   setEditForm((f:any)=> ({ ...f, packageTitle: title, packageDuration: found?.duration || f.packageDuration || '', totalAmount: (found?.price || 0) + Number(f.travelFee || 0) + (editStoreItems || []).reduce((s,it)=> s + (Number(it.price)||0) * (Number(it.quantity)||1), 0), isCustomPackage: false }));
                 }
               }} className="w-full px-3 py-2 border rounded-none">
-                <option value="">— Selecciona paquete —</option>
+                <option value="">— Selecciona paquete ���</option>
                 {packagesList.map(p=> (<option key={p.id} value={p.title}>{p.title} — R$ {Number(p.price||0).toFixed(0)}</option>))}
                 <option value="__custom__">Paquete Personalizado</option>
               </select>
@@ -1552,8 +1552,8 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
               <div className="md:col-span-2 border-t pt-3 space-y-3">
                 <div className="text-sm font-medium">Paquetes Incluidos</div>
                 {((editForm as any).formSnapshot!.cartItems as any[]).map((pkg, idx) => (
-                  <div key={`edit-pkg-${idx}`} className="border rounded p-3 space-y-2 bg-gray-50">
-                    <div className="font-medium text-sm text-gray-900">{pkg.name || `Paquete #${idx + 1}`}</div>
+                  <div key={`edit-pkg-${idx}`} className="border rounded p-3 space-y-2 bg-gray-50 dark:bg-gray-900">
+                    <div className="font-medium text-sm dark:text-white text-gray-900">{pkg.name || `Paquete #${idx + 1}`}</div>
                     <div className="grid grid-cols-2 gap-2">
                       <div>
                         <label className="text-xs text-gray-600">Fecha</label>
