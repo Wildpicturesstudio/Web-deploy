@@ -465,8 +465,9 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
   };
 
   const saveEdit = async () => {
-    if (!editing) return;
+    if (!editing || isSaving) return;
     const id = editing.id;
+    setIsSaving(true);
 
     try {
       // Handle custom package
