@@ -1506,7 +1506,23 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
             <div>
               <label className="text-xs text-gray-600">Total</label>
               <div className="px-3 py-2 border rounded-none bg-gray-100 text-gray-700 font-medium">
-                R$ {editing && computeAmounts(editing, editForm.couponCode, editForm.isCustomPackage ? editForm.customPackagePrice : undefined).totalAmount.toFixed(0)}
+                R$ {editing && (() => {
+                  const merged: ContractItem = {
+                    ...editing,
+                    clientName: String(editForm.clientName || editing.clientName || ''),
+                    clientEmail: String(editForm.clientEmail || editing.clientEmail || ''),
+                    eventType: String(editForm.eventType || editing.eventType || ''),
+                    eventDate: String(editForm.eventDate || editing.eventDate || ''),
+                    paymentMethod: String(editForm.paymentMethod || editing.paymentMethod || ''),
+                    message: String(editForm.message || editing.message || ''),
+                    totalAmount: Number(editForm.totalAmount ?? editing.totalAmount ?? 0),
+                    travelFee: Number(editForm.travelFee ?? editing.travelFee ?? 0),
+                    storeItems: editStoreItems,
+                    couponCode: editForm.couponCode || undefined,
+                  } as any;
+                  const calc = computeAmounts(merged, editForm.couponCode, editForm.isCustomPackage ? editForm.customPackagePrice : undefined);
+                  return calc.totalAmount.toFixed(0);
+                })()}
               </div>
             </div>
             <div>
