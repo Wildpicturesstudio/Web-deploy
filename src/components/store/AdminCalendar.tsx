@@ -1124,18 +1124,27 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
               <div className={`border-t pt-4 transition-colors ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
                 <div className="text-sm font-medium mb-3">Progreso del evento</div>
                 <div className="flex flex-wrap gap-2">
-                  <div className={`flex items-center gap-2 px-3 py-1.5 rounded text-sm font-medium ${selectedEvent.depositPaid ? (darkMode ? 'bg-green-900/30 text-green-400 border border-green-900' : 'bg-green-100 text-green-700 border border-green-200') : (darkMode ? 'bg-gray-800 text-gray-300 border border-gray-700' : 'bg-gray-100 text-gray-600 border border-gray-200')}`}>
+                  <button
+                    onClick={() => updateEventProgress('depositPaid', !selectedEvent.depositPaid)}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded text-sm font-medium cursor-pointer transition-colors ${selectedEvent.depositPaid ? (darkMode ? 'bg-green-900/30 text-green-400 border border-green-900 hover:bg-green-900/50' : 'bg-green-100 text-green-700 border border-green-200 hover:bg-green-200') : (darkMode ? 'bg-gray-800 text-gray-300 border border-gray-700 hover:bg-gray-700' : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200')}`}
+                  >
                     <span className="w-4 h-4 rounded-full border flex items-center justify-center text-xs">{selectedEvent.depositPaid ? '✓' : ''}</span>
                     Depósito Realizado
-                  </div>
-                  <div className={`flex items-center gap-2 px-3 py-1.5 rounded text-sm font-medium ${selectedEvent.finalPaymentPaid ? (darkMode ? 'bg-green-900/30 text-green-400 border border-green-900' : 'bg-green-100 text-green-700 border border-green-200') : (darkMode ? 'bg-gray-800 text-gray-300 border border-gray-700' : 'bg-gray-100 text-gray-600 border border-gray-200')}`}>
+                  </button>
+                  <button
+                    onClick={() => updateEventProgress('finalPaymentPaid', !selectedEvent.finalPaymentPaid)}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded text-sm font-medium cursor-pointer transition-colors ${selectedEvent.finalPaymentPaid ? (darkMode ? 'bg-green-900/30 text-green-400 border border-green-900 hover:bg-green-900/50' : 'bg-green-100 text-green-700 border border-green-200 hover:bg-green-200') : (darkMode ? 'bg-gray-800 text-gray-300 border border-gray-700 hover:bg-gray-700' : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200')}`}
+                  >
                     <span className="w-4 h-4 rounded-full border flex items-center justify-center text-xs">{selectedEvent.finalPaymentPaid ? '✓' : ''}</span>
                     Pago Final
-                  </div>
-                  <div className={`flex items-center gap-2 px-3 py-1.5 rounded text-sm font-medium ${selectedEvent.eventCompleted ? (darkMode ? 'bg-green-900/30 text-green-400 border border-green-900' : 'bg-green-100 text-green-700 border border-green-200') : (darkMode ? 'bg-gray-800 text-gray-300 border border-gray-700' : 'bg-gray-100 text-gray-600 border border-gray-200')}`}>
+                  </button>
+                  <button
+                    onClick={() => updateEventProgress('eventCompleted', !selectedEvent.eventCompleted)}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded text-sm font-medium cursor-pointer transition-colors ${selectedEvent.eventCompleted ? (darkMode ? 'bg-green-900/30 text-green-400 border border-green-900 hover:bg-green-900/50' : 'bg-green-100 text-green-700 border border-green-200 hover:bg-green-200') : (darkMode ? 'bg-gray-800 text-gray-300 border border-gray-700 hover:bg-gray-700' : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200')}`}
+                  >
                     <span className="w-4 h-4 rounded-full border flex items-center justify-center text-xs">{selectedEvent.eventCompleted ? '✓' : ''}</span>
                     Evento Completado
-                  </div>
+                  </button>
                 </div>
               </div>
 
