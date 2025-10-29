@@ -87,7 +87,7 @@ const AdminContractPreviewPage = () => {
       eventLocation: String(contract.eventLocation || ''),
       travelCost: Number(contract.travelFee || 0),
       paymentMethod: (contract.paymentMethod as any) || 'pix',
-      discountCoupon: '',
+      discountCoupon: String(contract.couponCode || ''),
       message: String(contract.message || ''),
       cartItems: services,
       storeItems
