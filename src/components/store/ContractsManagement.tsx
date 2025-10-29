@@ -1471,22 +1471,24 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
               </select>
             </div>
 
-            <div className="md:col-span-2 border-t pt-3">
-              <div className="text-sm font-medium mb-2">Vestidos seleccionados</div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {dressOptions.map((d) => (
-                  <label key={d.id} className="block cursor-pointer">
-                    <div className="relative aspect-[9/16] overflow-hidden rounded border">
-                      {d.image && <img loading="eager" src={resolveDressImageCM(d.image, d.name)} alt={d.name} className="absolute inset-0 w-full h-full object-cover" />}
-                      <input type="checkbox" className="absolute top-2 left-2 z-10 accent-black" checked={editSelectedDresses.includes(d.id)} onChange={() => setEditSelectedDresses(list => list.includes(d.id) ? list.filter(x => x !== d.id) : [...list, d.id])} />
-                      {editSelectedDresses.includes(d.id) && <div className="absolute inset-0 ring-2 ring-black pointer-events-none" />}
-                    </div>
-                    <div className="mt-1 text-xs text-gray-800 truncate text-center">{d.name}</div>
-                    {d.color && <div className="text-[10px] text-gray-500 text-center">{d.color}</div>}
-                  </label>
-                ))}
+            {editForm.eventType === 'Gestantes' && (
+              <div className="md:col-span-2 border-t pt-3">
+                <div className="text-sm font-medium mb-2">Vestidos seleccionados</div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {dressOptions.map((d) => (
+                    <label key={d.id} className="block cursor-pointer">
+                      <div className="relative aspect-[9/16] overflow-hidden rounded border">
+                        {d.image && <img loading="eager" src={resolveDressImageCM(d.image, d.name)} alt={d.name} className="absolute inset-0 w-full h-full object-cover" />}
+                        <input type="checkbox" className="absolute top-2 left-2 z-10 accent-black" checked={editSelectedDresses.includes(d.id)} onChange={() => setEditSelectedDresses(list => list.includes(d.id) ? list.filter(x => x !== d.id) : [...list, d.id])} />
+                        {editSelectedDresses.includes(d.id) && <div className="absolute inset-0 ring-2 ring-black pointer-events-none" />}
+                      </div>
+                      <div className="mt-1 text-xs text-gray-800 truncate text-center">{d.name}</div>
+                      {d.color && <div className="text-[10px] text-gray-500 text-center">{d.color}</div>}
+                    </label>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
             <div className="md:col-span-2 border-t pt-3">
               <div className="text-sm font-medium mb-2">Agregar producto de la tienda</div>
               <StoreItemAdder products={productsList} onAdd={(item)=> setEditStoreItems(list=> [...list, item])} />
