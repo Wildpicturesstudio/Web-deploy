@@ -433,6 +433,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
       paymentMethod: c.paymentMethod || '',
       totalAmount: Number(c.totalAmount || 0),
       travelFee: Number(c.travelFee || 0),
+      couponCode: c.couponCode || '',
       message: c.message || ''
     });
   };
@@ -907,7 +908,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
                           <p>2.1. Realizar o pagamento conforme estipulado: 20% do valor total como sinal de reserva e o restante no dia do evento.</p>
                           <p>2.2. Fornecer todas as informações necessárias sobre o evento (horários, locais, pessoas importantes).</p>
                           <p>2.3. Garantir acesso aos locais do evento e cooperação das pessoas envolvidas.</p>
-                          <p>2.4. Comunicar qualquer alteração com antecedência mínima de 48 horas.</p>
+                          <p>2.4. Comunicar qualquer alteraç��o com antecedência mínima de 48 horas.</p>
                         </div>
                       </section>
                       <section>
