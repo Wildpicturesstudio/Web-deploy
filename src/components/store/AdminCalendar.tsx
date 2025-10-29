@@ -208,6 +208,24 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
     return cells;
   }, [current]);
 
+  const searchResults = useMemo(() => {
+    if (!filterPhone.trim()) return [];
+    return events.filter(ev => {
+      const d = toLocalDate(ev.eventDate);
+      if (!d) return false;
+
+      let phoneMatch = false;
+      let nameMatch = false;
+      const phoneSource = ev.phone || (ev as any).formSnapshot?.phone || '';
+      const onlyDigits = (v: string) => String(v || '').replace(/\D/g, '');
+      phoneMatch = onlyDigits(phoneSource).includes(onlyDigits(filterPhone));
+      const clientName = ev.clientName || '';
+      nameMatch = clientName.toLowerCase().includes(filterPhone.toLowerCase());
+
+      return phoneMatch || nameMatch;
+    }).slice(0, 8);
+  }, [events, filterPhone]);
+
   const filteredEvents = useMemo(() => {
     return events.filter(ev => {
       const d = toLocalDate(ev.eventDate);
@@ -572,14 +590,50 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
               setCurrent(c => { const y = c.m === 11 ? c.y + 1 : c.y; const m = c.m === 11 ? 0 : c.m + 1; return { y, m }; });
             }} className={`p-2 rounded-full transition-colors flex-shrink-0 ${darkMode ? 'text-gray-400 hover:text-white hover:bg-gray-800' : 'text-gray-600 hover:text-black hover:bg-gray-200'}`}><ChevronRight size={18}/></button>
           </div>
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              value={filterPhone}
-              onChange={e => setFilterPhone(e.target.value)}
-              placeholder="Filtrar por"
-              className={`px-3 py-1.5 border rounded-lg text-sm transition-colors ${darkMode ? 'border-gray-700 bg-gray-800 text-gray-300 placeholder-gray-500' : 'border-gray-300 bg-white text-gray-900 placeholder-gray-400'}`}
-            />
+          <div className="flex items-center gap-2 relative">
+            <div className="relative flex-shrink-0">
+              <input
+                type="text"
+                value={filterPhone}
+                onChange={e => setFilterPhone(e.target.value)}
+                placeholder="Filtrar por"
+                className={`px-3 py-1.5 border rounded-lg text-sm transition-colors min-w-[200px] ${darkMode ? 'border-gray-700 bg-gray-800 text-gray-300 placeholder-gray-500' : 'border-gray-300 bg-white text-gray-900 placeholder-gray-400'}`}
+              />
+              {searchResults.length > 0 && (
+                <div className={`absolute top-full left-0 right-0 mt-1 rounded-lg border shadow-lg z-50 max-h-64 overflow-y-auto transition-colors ${darkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-300'}`}>
+                  {searchResults.map((ev) => {
+                    const eventDate = new Date(ev.eventDate + 'T00:00:00');
+                    const dateStr = eventDate.toLocaleDateString('es', { month: 'short', day: 'numeric', year: '2-digit' });
+                    return (
+                      <button
+                        key={ev.id}
+                        onClick={() => {
+                          const d = toLocalDate(ev.eventDate);
+                          if (d) {
+                            setFilterMonth(d.getMonth());
+                            setFilterYear(d.getFullYear());
+                            setCurrent({ y: d.getFullYear(), m: d.getMonth() });
+                          }
+                          setSelectedEvent(ev);
+                          setFilterPhone('');
+                        }}
+                        className={`w-full text-left px-3 py-2 transition-colors border-b last:border-b-0 hover:${darkMode ? 'bg-gray-800' : 'bg-gray-50'} ${darkMode ? 'text-gray-200' : 'text-gray-900'}`}
+                      >
+                        <div className="font-medium text-sm">{ev.clientName}</div>
+                        <div className={`text-xs mt-0.5 transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                          {dateStr} {ev.eventTime ? `- ${ev.eventTime}` : ''}
+                        </div>
+                        {ev.eventLocation && (
+                          <div className={`text-xs mt-0.5 transition-colors ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                            {ev.eventLocation}
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
             <button onClick={goToday} className="px-4 py-0.5 rounded-full bg-gray-600 text-white font-medium hover:opacity-90 transition-opacity mt-0.5">Hoy</button>
             <button onClick={()=> setAdding(true)} className="p-2 rounded-full bg-green-600 text-white hover:bg-green-700 transition-colors" title="Añadir evento"><Plus size={18}/></button>
             <button onClick={syncCalendarWithContracts} disabled={syncing} className={`p-2 rounded-full transition-colors ${syncing ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'} bg-blue-600 text-white`} title="Sincronizar eventos sin contrato"><RefreshCw size={18} className={syncing ? 'animate-spin' : ''}/></button>
