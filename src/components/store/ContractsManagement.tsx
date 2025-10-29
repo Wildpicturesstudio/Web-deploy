@@ -659,7 +659,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
             return (
               <div key={c.id} className="hidden md:grid grid-cols-12 p-2 md:p-3 items-center hover:bg-gray-50 hover:text-black cursor-pointer border-b text-xs md:text-sm transition-colors admin-contract-row" onClick={() => openView(c)}>
                 <div className="col-span-2 text-sm">{c.eventDate || '-'}</div>
-                <div className="col-span-3 lowercase first-letter:uppercase">{c.clientName || 'Trabajo'}</div>
+                <div className="col-span-3 lowercase first-letter:uppercase flex items-center gap-2">{c.clientName || 'Trabajo'}{c.isNew && <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-blue-600 text-white text-xs font-semibold">Nuevo</span>}</div>
                 <div className="col-span-2 text-sm">{((c as any).clientPhone || (c as any).phone || (c as any).client_phone || (c as any).formSnapshot?.phone || '') || '-'}</div>
                 <div className="col-span-1 text-sm">{c.eventType || '-'}</div>
                 <div className="col-span-1 font-semibold">R$ {Number(c.totalAmount || 0).toFixed(0)}</div>
@@ -669,6 +669,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
                     finalPaymentPaid={c.finalPaymentPaid}
                     isEditing={c.isEditing}
                     eventCompleted={c.eventCompleted}
+                    isNew={c.isNew}
                     onUpdate={async (updates) => {
                       try {
                         await updateDoc(doc(db, 'contracts', c.id), updates as any);
