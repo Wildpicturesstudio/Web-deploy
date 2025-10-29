@@ -1213,6 +1213,13 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
                 </div>
               )}
 
+              {viewing.couponCode && (
+                <div>
+                  <div className="text-sm font-medium mb-1">Cupón aplicado</div>
+                  <div className="text-sm text-gray-800 font-semibold bg-green-100 text-green-800 px-3 py-2 rounded inline-block">{viewing.couponCode}</div>
+                </div>
+              )}
+
               <div className="flex items-center gap-2">
                 <button onClick={scheduleFinalPaymentEmail} className="border-2 border-black text-black px-3 py-2 rounded-none hover:bg-black hover:text-white">Programar email de saldo (−30 min)</button>
                 {viewing.reminders?.find(r=>r.type==='finalPayment') && (
