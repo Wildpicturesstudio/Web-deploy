@@ -1177,7 +1177,8 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
                 <div><span className="text-gray-600">Duración:</span> <span className="font-medium">{(viewing as any).packageDuration || '-'}</span></div>
                 <div><span className="text-gray-600">Método de pago:</span> <span className="font-medium">{viewing.paymentMethod || '-'}</span></div>
                 {(() => {
-                  const calc = computeAmounts(viewing);
+                  const customPackagePrice = (viewing as any).formSnapshot?.customPackagePrice;
+                  const calc = computeAmounts(viewing, viewing.couponCode, customPackagePrice);
                   return (
                     <>
                       <div className="flex items-center gap-2">
@@ -1201,7 +1202,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
                     </>
                   );
                 })()}
-                <div><span className="text-gray-600">Total:</span> <span className="font-medium">R$ {computeAmounts(viewing).totalAmount.toFixed(0)}</span></div>
+                <div><span className="text-gray-600">Total:</span> <span className="font-medium">R$ {computeAmounts(viewing, viewing.couponCode, (viewing as any).formSnapshot?.customPackagePrice).totalAmount.toFixed(0)}</span></div>
                 <div><span className="text-gray-600">Deslocamiento:</span> <span className="font-medium">R$ {(viewing.travelFee ?? 0).toFixed(0)}</span></div>
               </div>
 
