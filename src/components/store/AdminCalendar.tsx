@@ -315,10 +315,17 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
       travelFee: Number(addForm.travelFee || 0) || 0,
       status: 'booked' as const,
     };
-    await addDoc(collection(db, 'contracts'), payload);
+    const docRef = await addDoc(collection(db, 'contracts'), payload);
     setAdding(false);
     setAddForm({ clientName: '', eventType: '', eventDate: '', eventTime: '', eventLocation: '', paymentMethod: 'pix' });
     await load();
+
+    // Open contract editor for the newly created contract
+    try {
+      window.dispatchEvent(new CustomEvent('adminOpenContract', { detail: { id: docRef.id } }));
+    } catch (e) {
+      console.error('Error opening contract editor:', e);
+    }
   };
 
   const openContractPreview = (c: ContractItem) => {
