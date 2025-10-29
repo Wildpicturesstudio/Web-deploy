@@ -115,7 +115,7 @@ const CouponsManagement: React.FC = () => {
   }, []);
 
   const filtered = useMemo(() => {
-    return coupons.filter(c => {
+    return coupons.filter((c: DBCoupon) => {
       if (filterStatus === 'active' && c.status === false) return false;
       if (filterStatus === 'inactive' && c.status !== false) return false;
       if (filterType !== 'all' && c.discountType !== filterType) return false;
@@ -244,7 +244,7 @@ const CouponsManagement: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {filtered.map(c => (
+            {filtered.map((c: DBCoupon) => (
               <tr key={c.id} className="border-t">
                 <td className="p-2 font-mono">{c.code}</td>
                 <td className="p-2">{c.description}</td>
