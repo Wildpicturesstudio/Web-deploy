@@ -91,6 +91,8 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
   const [selectedEvent, setSelectedEvent] = useState<ContractItem | null>(null);
   const [statusFilter, setStatusFilter] = useState<'deposit_pending' | 'editing' | 'completed' | null>(null);
   const [syncing, setSyncing] = useState(false);
+  const [deleteConfirmEvent, setDeleteConfirmEvent] = useState<ContractItem | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const load = async () => {
     setLoading(true);
