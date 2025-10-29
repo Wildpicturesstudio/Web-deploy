@@ -22,6 +22,7 @@ export const WorkflowStatusButtons: React.FC<WorkflowStatusButtonsProps> = ({
   finalPaymentPaid = false,
   isEditing = false,
   eventCompleted = false,
+  isNew = false,
   onUpdate,
   disabled = false,
 }) => {
@@ -38,7 +39,7 @@ export const WorkflowStatusButtons: React.FC<WorkflowStatusButtonsProps> = ({
       onClick: async () => {
         setUpdatingButton('deposit');
         try {
-          await onUpdate({ depositPaid: !depositPaid });
+          await onUpdate({ depositPaid: !depositPaid, ...(isNew && !depositPaid ? { isNew: false } : {}) });
         } finally {
           setUpdatingButton(null);
         }
