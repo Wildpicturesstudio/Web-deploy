@@ -133,9 +133,9 @@ export async function generatePDF(element: HTMLElement, opts: GeneratePdfOptions
       y += sl.heightPx;
     }
 
-    const imgData = pageCanvas.toDataURL('image/png');
+    const imgData = pageCanvas.toDataURL('image/jpeg', quality);
     const renderHeightPt = usedHeightPx * ratio;
-    pdf.addImage(imgData, 'PNG', 0, marginTopPt, pageWidthPt, renderHeightPt);
+    pdf.addImage(imgData, 'JPEG', 0, marginTopPt, pageWidthPt, renderHeightPt);
   }
 
   const blob = pdf.output('blob') as Blob;
