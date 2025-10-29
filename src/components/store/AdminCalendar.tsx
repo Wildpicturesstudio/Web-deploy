@@ -791,7 +791,7 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
 
       {/* Detailed Event Modal */}
       {selectedEvent && (
-        <div className={`fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 transition-colors ${darkMode ? 'bg-black/70' : 'bg-white/70'}`} onClick={() => setSelectedEvent(null)}>
+        <div className={`fixed inset-0 z-[51] flex items-center justify-center p-2 sm:p-4 transition-colors ${darkMode ? 'bg-black/70' : 'bg-white/70'}`} onClick={() => setSelectedEvent(null)}>
           <div className={`rounded-xl w-full max-w-5xl p-4 md:p-6 overflow-hidden max-h-[90vh] overflow-y-auto transition-colors ${darkMode ? 'bg-black border border-gray-800' : 'bg-white border border-gray-200'}`} onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <div>
