@@ -79,6 +79,7 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
   const [dressOptions, setDressOptions] = useState<{ id: string; name: string; image: string; color?: string }[]>([]);
   const [showDailyList, setShowDailyList] = useState<string | null>(null);
   const [expandedDay, setExpandedDay] = useState<string | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<ContractItem | null>(null);
 
   const load = async () => {
     setLoading(true);
