@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { DollarSign, CheckCircle, Pencil, Flag } from 'lucide-react';
+import { DollarSign, CheckCircle, Flag } from 'lucide-react';
 
 interface WorkflowStatusButtonsProps {
   depositPaid?: boolean;
