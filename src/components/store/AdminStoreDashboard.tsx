@@ -123,7 +123,7 @@ const AdminStoreDashboard: React.FC<AdminProps> = ({ onNavigate }) => {
         const productsSnap = await getCountFromServer(collection(db, 'products'));
         const ordersSnap = await getCountFromServer(collection(db, 'orders'));
         const customersSnap = await getCountFromServer(collection(db, 'customers'));
-        setStats(s => ({
+        setStats((s: any) => ({
           ...s,
           products: productsSnap.data().count || 0,
           orders: ordersSnap.data().count || 0,
@@ -171,7 +171,7 @@ const AdminStoreDashboard: React.FC<AdminProps> = ({ onNavigate }) => {
         const snap = await getDocs(collection(db, 'orders'));
         all = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) })) as OrderItem[];
         setAllOrders(all);
-        setStats(s => ({ ...s, income: all.reduce((sum, o) => sum + Number(o.total || 0), 0) }));
+        setStats((s: any) => ({ ...s, income: all.reduce((sum: number, o) => sum + Number(o.total || 0), 0) }));
       } catch {
         all = [];
         setAllOrders([]);
@@ -293,13 +293,13 @@ const AdminStoreDashboard: React.FC<AdminProps> = ({ onNavigate }) => {
   }, [contracts, period]);
 
   const salesTotals = useMemo(() => {
-    const packages = filteredContracts.reduce((sum, c: any) => sum + contractAmounts(c).services, 0);
-    const services = filteredContracts.reduce((sum, c: any) => sum + contractAmounts(c).storeTotal, 0);
+    const packages = filteredContracts.reduce((sum: number, c: any) => sum + contractAmounts(c).services, 0);
+    const services = filteredContracts.reduce((sum: number, c: any) => sum + contractAmounts(c).storeTotal, 0);
     return { services, packages };
   }, [filteredContracts]);
 
   const statCards = useMemo(() => {
-    const income = filteredContracts.reduce((sum, c: any) => sum + contractAmounts(c).total, 0);
+    const income = filteredContracts.reduce((sum: number, c: any) => sum + contractAmounts(c).total, 0);
     const totalContracts = filteredContracts.length;
     return ([
       { label: 'Ventas Serv. Adicionales', value: `R$ ${salesTotals.services.toFixed(0)}` , icon: <DollarSign className="text-amber-500" size={18} /> },
@@ -318,7 +318,7 @@ const AdminStoreDashboard: React.FC<AdminProps> = ({ onNavigate }) => {
       const future = time >= today.getTime();
       return { c, diff, future };
     });
-    withDiff.sort((a, b) => a.diff - b.diff);
+    withDiff.sort((a: any, b: any) => a.diff - b.diff);
     return withDiff.slice(0, 5);
   }, [contracts]);
 
