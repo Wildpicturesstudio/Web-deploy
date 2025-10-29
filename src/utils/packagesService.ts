@@ -25,6 +25,7 @@ export interface DBPackage {
   features?: string[];
   image_url: string;
   category?: string;
+  serviceType?: string;
   created_at?: any;
   updated_at?: any;
   active?: boolean;
