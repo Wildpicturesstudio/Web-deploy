@@ -336,6 +336,79 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
     setSelected(null);
   };
 
+  const syncCalendarWithContracts = async () => {
+    try {
+      // Load all events from calendar (contracts collection)
+      const contractsSnap = await getDocs(collection(db, 'contracts'));
+      const existingContracts = contractsSnap.docs.map(d => d.id);
+
+      // Load all events from a separate events collection if it exists
+      try {
+        const eventsSnap = await getDocs(collection(db, 'events'));
+        const eventsList = eventsSnap.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
+
+        let createdCount = 0;
+
+        for (const event of eventsList) {
+          // Check if this event already has a contract
+          const contractExists = existingContracts.some(cId => {
+            // Check if contract references this event
+            const contractData = contractsSnap.docs.find(d => d.id === cId)?.data();
+            return contractData?.eventId === event.id || contractData?.originalEventId === event.id;
+          });
+
+          if (!contractExists && event.clientName && event.eventDate) {
+            // Create contract for this event
+            const payload: any = {
+              clientName: event.clientName,
+              clientEmail: event.clientEmail || '',
+              eventType: event.eventType || 'Evento',
+              eventDate: event.eventDate,
+              eventTime: event.eventTime || '00:00',
+              eventLocation: event.eventLocation || '',
+              phone: event.phone || '',
+              paymentMethod: event.paymentMethod || 'pix',
+              depositPaid: false,
+              finalPaymentPaid: false,
+              eventCompleted: false,
+              isEditing: false,
+              createdAt: new Date().toISOString(),
+              totalAmount: Number(event.totalAmount || 0) || 0,
+              travelFee: Number(event.travelFee || 0) || 0,
+              status: 'booked' as const,
+              eventId: event.id,
+              originalEventId: event.id,
+            };
+
+            await addDoc(collection(db, 'contracts'), payload);
+            createdCount++;
+          }
+        }
+
+        if (createdCount > 0) {
+          window.dispatchEvent(new CustomEvent('adminToast', {
+            detail: { message: `${createdCount} contrato(s) creado(s)`, type: 'success' }
+          }));
+          await load();
+        } else {
+          window.dispatchEvent(new CustomEvent('adminToast', {
+            detail: { message: 'No hay eventos sin contrato', type: 'info' }
+          }));
+        }
+      } catch (e) {
+        // Events collection doesn't exist, that's OK
+        window.dispatchEvent(new CustomEvent('adminToast', {
+          detail: { message: 'No hay eventos externos para sincronizar', type: 'info' }
+        }));
+      }
+    } catch (e) {
+      console.error('Error syncing calendar:', e);
+      window.dispatchEvent(new CustomEvent('adminToast', {
+        detail: { message: 'Error al sincronizar', type: 'error' }
+      }));
+    }
+  };
+
   return (
     <div className={`flex h-full w-full transition-colors ${darkMode ? 'bg-black' : 'bg-white'}`}>
       {/* Left Sidebar - Mini Calendar */}
