@@ -827,6 +827,31 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
                 </div>
               </div>
 
+              {/* Vestidos / Dresses */}
+              {Array.isArray((selectedEvent as any).formSnapshot?.selectedDresses) && (selectedEvent as any).formSnapshot.selectedDresses.length > 0 && (
+                <div className={`border-t pt-4 transition-colors ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                  <div className="text-sm font-medium mb-3">Vestidos Seleccionados</div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                    {(selectedEvent as any).formSnapshot.selectedDresses
+                      .map((id: string) => dressOptions.find(d => d.id === id))
+                      .filter(Boolean)
+                      .map((dress: any) => (
+                        <div key={(dress as any).id} className="flex flex-col items-center">
+                          <div className={`w-full aspect-square rounded-lg overflow-hidden mb-2 border transition-colors ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-200 border-gray-300'}`}>
+                            {(dress as any).image ? (
+                              <img src={(dress as any).image} alt={(dress as any).name} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className={`w-full h-full flex items-center justify-center text-xs transition-colors ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Sin foto</div>
+                            )}
+                          </div>
+                          <span className={`text-xs text-center w-full truncate transition-colors ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>{(dress as any).name}</span>
+                          {(dress as any).color && <span className={`text-[10px] text-center w-full transition-colors ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>{(dress as any).color}</span>}
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+
               {/* Payment Information */}
               <div className={`border-t pt-4 transition-colors ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
                 <div className="text-sm font-medium mb-3">Información de Pago</div>
