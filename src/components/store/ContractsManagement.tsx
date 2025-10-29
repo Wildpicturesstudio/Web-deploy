@@ -1505,7 +1505,9 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
             </div>
             <div>
               <label className="text-xs text-gray-600">Total</label>
-              <input type="number" step="0.01" value={editForm.totalAmount ?? 0} onChange={e => setEditForm((f: any) => ({ ...f, totalAmount: e.target.value }))} className="w-full px-3 py-2 border rounded-none" />
+              <div className="px-3 py-2 border rounded-none bg-gray-100 text-gray-700 font-medium">
+                R$ {editing && computeAmounts(editing, editForm.couponCode, editForm.isCustomPackage ? editForm.customPackagePrice : undefined).totalAmount.toFixed(0)}
+              </div>
             </div>
             <div>
               <label className="text-xs text-gray-600">Deslocamento</label>
