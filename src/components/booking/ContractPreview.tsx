@@ -185,19 +185,6 @@ const ContractPreview = ({ data, onConfirm, onBack }: ContractPreviewProps) => {
                 ...storeLines
               ].filter(Boolean).join('\n');
 
-              try {
-                await gcalUpsertBooking({
-                  startISO,
-                  endISO,
-                  location,
-                  title,
-                  description,
-                  attendees: [{ email: data.email }, { email: 'wildpicturesstudio@gmail.com' }],
-                  external_reference: `booking_${Date.now()}`,
-                });
-              } catch (e) {
-                console.error('gcalUpsertBooking failed', e);
-              }
             }
           }
         } catch (e) {
