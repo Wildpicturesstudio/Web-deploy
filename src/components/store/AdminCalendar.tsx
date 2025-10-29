@@ -584,9 +584,9 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
               <div className={`text-xs transition-colors ${darkMode ? 'text-gray-500' : 'text-gray-600'}`}>Eventos Finalizados</div>
               <div className={`text-2xl font-bold transition-colors ${darkMode ? 'text-green-400' : 'text-green-600'}`}>{eventSummary.completed}</div>
             </button>
-            <div className={`p-3 rounded-lg border transition-colors ${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-gray-50 border-gray-200'}`}>
+            <div className={`p-3 rounded-lg border transition-colors flex flex-col ${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-gray-50 border-gray-200'}`}>
               <div className={`text-xs transition-colors ${darkMode ? 'text-gray-500' : 'text-gray-600'}`}>Eventos Totales</div>
-              <div className={`text-2xl font-bold transition-colors ${darkMode ? 'text-purple-400' : 'text-purple-600'}`}>{eventSummary.allTotal}</div>
+              <div className={`text-2xl font-bold transition-colors mx-auto ${darkMode ? 'text-purple-400' : 'text-purple-600'}`}>{eventSummary.allTotal}</div>
             </div>
           </div>
         </div>
