@@ -565,7 +565,7 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
           />
         </div>
 
-        {/* Event Summary */}
+        {/* Event Summary - REMOVE THIS LINE */}
         <div className="space-y-2 mb-4">
           {/* First Row - Two cards */}
           <div className="grid grid-cols-2 gap-2">
