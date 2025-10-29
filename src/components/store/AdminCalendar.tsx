@@ -908,12 +908,12 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
                   const dateStr = new Date(showDailyList).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
                   pdf.setFontSize(16);
-                  pdf.setFont(undefined, 'bold');
+                  pdf.setFont('', 'bold');
                   pdf.text('Eventos del día', margin, yPosition);
                   yPosition += 10;
 
                   pdf.setFontSize(12);
-                  pdf.setFont(undefined, 'normal');
+                  pdf.setFont('', 'normal');
                   pdf.text(dateStr, margin, yPosition);
                   yPosition += 12;
 
@@ -945,12 +945,12 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
                     }
 
                     pdf.setFontSize(11);
-                    pdf.setFont(undefined, 'bold');
+                    pdf.setFont('', 'bold');
                     pdf.text(`${events.indexOf(ev) + 1}. ${ev.clientName || 'Evento sin nombre'}`, margin, yPosition);
                     yPosition += 7;
 
                     pdf.setFontSize(9);
-                    pdf.setFont(undefined, 'normal');
+                    pdf.setFont('', 'normal');
 
                     const details = [
                       `Hora: ${ev.eventTime || '-'}`,
@@ -967,7 +967,7 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
 
                     if (Array.isArray((ev as any).formSnapshot?.selectedDresses) && (ev as any).formSnapshot.selectedDresses.length > 0) {
                       yPosition += 3;
-                      pdf.setFont(undefined, 'bold');
+                      pdf.setFont('', 'bold');
                       pdf.text('Vestidos:', margin + 3, yPosition);
                       yPosition += 8;
 
@@ -1008,7 +1008,7 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
                         }
 
                         pdf.setFontSize(8);
-                        pdf.setFont(undefined, 'normal');
+                        pdf.setFont('', 'normal');
                         const dressName = (dress as any).name || 'Vestido';
                         const wrappedName = pdf.splitTextToSize(dressName, dressWidth - 1);
                         let nameY = yPosition + dressHeight + 1;
@@ -1025,11 +1025,11 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
                     }
 
                     pdf.setFontSize(9);
-                    pdf.setFont(undefined, 'bold');
+                    pdf.setFont('', 'bold');
                     pdf.text('Resumen de Pago:', margin + 3, yPosition);
                     yPosition += 5;
 
-                    pdf.setFont(undefined, 'normal');
+                    pdf.setFont('', 'normal');
                     const paymentLines = [
                       `Total: R$ ${Number(ev.totalAmount || 0).toFixed(0)}`,
                       `Entrada (20%): R$ ${(Number(ev.totalAmount || 0) * 0.2).toFixed(0)} ${ev.depositPaid ? '✓ Pago' : 'Pendiente'}`,
