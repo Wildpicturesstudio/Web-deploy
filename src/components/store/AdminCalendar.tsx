@@ -137,9 +137,26 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
   useEffect(() => { load(); }, []);
 
   useEffect(() => {
-    const handler = () => load();
-    window.addEventListener('contractsUpdated', handler as EventListener);
-    return () => window.removeEventListener('contractsUpdated', handler as EventListener);
+    const updateHandler = () => load();
+    const deleteHandler = (e: any) => {
+      const contractId = e?.detail?.contractId;
+      console.log('Contract deleted:', contractId);
+      // Remove the deleted contract from the current events
+      setEvents(prev => prev.filter(ev => {
+        const baseId = String(ev.id || '').split('__')[0];
+        return baseId !== contractId;
+      }));
+      // Reload to ensure fresh data from Firestore
+      setTimeout(() => load(), 100);
+    };
+
+    window.addEventListener('contractsUpdated', updateHandler as EventListener);
+    window.addEventListener('contractDeleted', deleteHandler as EventListener);
+
+    return () => {
+      window.removeEventListener('contractsUpdated', updateHandler as EventListener);
+      window.removeEventListener('contractDeleted', deleteHandler as EventListener);
+    };
   }, []);
 
   useEffect(() => {
