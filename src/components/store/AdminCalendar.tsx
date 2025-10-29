@@ -238,16 +238,25 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
 
   const eventSummary = useMemo(() => {
     let pending = 0;
+    let editing = 0;
     let completed = 0;
+
     filteredEvents.forEach(ev => {
-      const status = getEventStatus(ev);
-      if (status === 'completed') {
-        completed++;
-      } else {
+      // "Pendiente": Only "✓ Depósito Realizado" is marked
+      if (ev.depositPaid === true && ev.finalPaymentPaid !== true && ev.eventCompleted !== true) {
         pending++;
       }
+      // "Por Editar": "✓ Depósito Realizado" and "✓ Pago Final" are marked
+      else if (ev.depositPaid === true && ev.finalPaymentPaid === true && ev.eventCompleted !== true) {
+        editing++;
+      }
+      // "Eventos Finalizados": All three ("✓ Depósito Realizado", "✓ Pago Final", "Evento Completado") are marked
+      else if (ev.depositPaid === true && ev.finalPaymentPaid === true && ev.eventCompleted === true) {
+        completed++;
+      }
     });
-    return { pending, completed, total: pending + completed };
+
+    return { pending, editing, completed, total: pending + editing + completed };
   }, [filteredEvents]);
 
   const goToday = () => {
