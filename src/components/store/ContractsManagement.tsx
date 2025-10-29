@@ -533,7 +533,12 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
       if (customPackagePrice !== undefined && customPackagePrice !== 0) newSnapshot.customPackagePrice = customPackagePrice;
       (payload as any).formSnapshot = newSnapshot;
 
-      await updateDoc(doc(db, 'contracts', id), payload as any);
+      // Remove undefined values from payload before saving to Firebase
+      const cleanPayload = Object.fromEntries(
+        Object.entries(payload).filter(([_, value]) => value !== undefined)
+      );
+
+      await updateDoc(doc(db, 'contracts', id), cleanPayload as any);
       setViewing(v => v && v.id === id ? ({ ...v, ...payload }) as any : v);
       setEditing(null);
       await fetchContracts();
