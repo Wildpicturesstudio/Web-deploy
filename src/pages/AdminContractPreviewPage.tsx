@@ -25,29 +25,15 @@ const AdminContractPreviewPage = () => {
     const rg = String(contract.formSnapshot?.rg || '');
     const address = String(contract.formSnapshot?.address || '');
 
-    let services: CartItem[] = (Array.isArray(contract.services) ? contract.services : []).map((it: any, idx: number) => {
-      const qty = Number(it.quantity ?? 1);
-      const priceNum = Number(String(it.price || '').replace(/[^0-9]/g, ''));
-      const duration = String(contract.packageDuration || it.duration || '');
-      const type = String(contract.eventType || it.type || '');
-      return {
-        id: String(it.id || `service-${idx}`),
-        name: String(it.name || it.id || 'Serviço'),
-        price: formatBRL(priceNum),
-        duration,
-        type,
-        quantity: qty,
-        image: '',
-        features: []
-      };
-    });
+    let services: CartItem[] = [];
 
-    if ((!services || services.length === 0) && Array.isArray(contract.formSnapshot?.cartItems)) {
+    // Try to get services from formSnapshot.cartItems first (most recent source)
+    if (Array.isArray(contract.formSnapshot?.cartItems)) {
       services = (contract.formSnapshot.cartItems as any[]).map((it: any, idx: number) => {
         const qty = Number(it.quantity ?? 1);
         const priceNum = Number(String(it.price || '').replace(/[^0-9]/g, ''));
-        const duration = String(contract.packageDuration || it.duration || '');
-        const rawType = String(contract.eventType || it.type || it.category || '');
+        const duration = String(it.duration || contract.packageDuration || '');
+        const rawType = String(it.type || contract.eventType || it.category || '');
         const type = (/matern|gestant|pregnan/i.test(rawType) ? 'maternity' : (/event/i.test(rawType) ? 'events' : (/retr|portrait/i.test(rawType) ? 'portrait' : rawType)));
         return {
           id: String(it.id || `service-${idx}`),
@@ -59,6 +45,24 @@ const AdminContractPreviewPage = () => {
           image: '',
           features: []
         } as CartItem;
+      });
+    } else if (Array.isArray(contract.services)) {
+      // Fallback to contract.services if formSnapshot doesn't have cartItems
+      services = (contract.services as any[]).map((it: any, idx: number) => {
+        const qty = Number(it.quantity ?? 1);
+        const priceNum = Number(String(it.price || '').replace(/[^0-9]/g, ''));
+        const duration = String(it.duration || contract.packageDuration || '');
+        const type = String(contract.eventType || it.type || '');
+        return {
+          id: String(it.id || `service-${idx}`),
+          name: String(it.name || it.id || 'Serviço'),
+          price: formatBRL(priceNum),
+          duration,
+          type,
+          quantity: qty,
+          image: '',
+          features: []
+        };
       });
     }
 
