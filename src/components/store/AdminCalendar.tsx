@@ -240,7 +240,12 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
     return { pending, completed, total: pending + completed };
   }, [filteredEvents]);
 
-  const goToday = () => { const t = new Date(); setCurrent({ y: t.getFullYear(), m: t.getMonth() }); setFilterMonth(t.getMonth()); setFilterYear(t.getFullYear()); };
+  const goToday = () => {
+    const t = new Date();
+    setCurrent({ y: t.getFullYear(), m: t.getMonth() });
+    setFilterMonth(t.getMonth());
+    setFilterYear(t.getFullYear());
+  };
   const prevMonth = () => setCurrent(c => { const y = c.m === 0 ? c.y - 1 : c.y; const m = c.m === 0 ? 11 : c.m - 1; return { y, m }; });
   const nextMonth = () => setCurrent(c => { const y = c.m === 11 ? c.y + 1 : c.y; const m = c.m === 11 ? 0 : c.m + 1; return { y, m }; });
 
