@@ -104,6 +104,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
   const [savingWf, setSavingWf] = useState(false);
   const [wfEditMode, setWfEditMode] = useState(false);
   const [contractsTab, setContractsTab] = useState<'events' | 'finished' | 'pending' | 'new'>('events');
+  const [coupons, setCoupons] = useState<DBCoupon[]>([]);
   const seenContractIdsRef = useRef<Set<string>>(new Set());
   const [hasShownPageNotification, setHasShownPageNotification] = useState(false);
 
@@ -1297,7 +1298,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
                         </div>
                       </div>
                     ))}
-                    <button onClick={()=> setTplEditing(v=> v? { ...v, categories: [...v.categories, { id: uid(), name: 'Nueva categoría', tasks: [] }] }: v)} className="border px-3 py-2 rounded-none inline-flex items-center gap-2"><Plus size={14}/> Añadir categoría</button>
+                    <button onClick={()=> setTplEditing(v=> v? { ...v, categories: [...v.categories, { id: uid(), name: 'Nueva categor��a', tasks: [] }] }: v)} className="border px-3 py-2 rounded-none inline-flex items-center gap-2"><Plus size={14}/> Añadir categoría</button>
                   </div>
                   <div className="flex items-center gap-2">
                     <button onClick={async()=>{
