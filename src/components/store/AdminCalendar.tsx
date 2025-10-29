@@ -510,6 +510,7 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
           <div className="flex items-center gap-2">
             <button onClick={goToday} className="px-4 py-0.5 rounded-full bg-gray-600 text-white font-medium hover:opacity-90 transition-opacity mt-0.5">Hoy</button>
             <button onClick={()=> setAdding(true)} className="p-2 rounded-full bg-green-600 text-white hover:bg-green-700 transition-colors" title="Añadir evento"><Plus size={18}/></button>
+            <button onClick={syncCalendarWithContracts} disabled={syncing} className={`p-2 rounded-full transition-colors ${syncing ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'} bg-blue-600 text-white`} title="Sincronizar eventos sin contrato"><RefreshCw size={18} className={syncing ? 'animate-spin' : ''}/></button>
           </div>
         </div>
 
