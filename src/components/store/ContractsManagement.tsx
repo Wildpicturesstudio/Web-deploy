@@ -1465,7 +1465,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
               <label className="text-xs text-gray-600">Código de Cupón</label>
               <select value={editForm.couponCode || ''} onChange={e => setEditForm((f: any) => ({ ...f, couponCode: e.target.value }))} className="w-full px-3 py-2 border rounded-none">
                 <option value="">— Sin cupón —</option>
-                {getAvailableCouponsForContract(editForm.eventType).map(c => (
+                {coupons.map(c => (
                   <option key={c.id} value={c.code}>{c.code} — {c.description || ''}</option>
                 ))}
               </select>
