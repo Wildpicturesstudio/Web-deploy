@@ -234,9 +234,15 @@ exports.gcalUpsertBooking = functions.https.onCall(async (data, _context) => {
     }
     if (!startISO || !endISO || !title) throw new functions.https.HttpsError('invalid-argument', 'Campos obrigatórios ausentes');
 
-    const auth = new google.auth.GoogleAuth({ scopes: ['https://www.googleapis.com/auth/calendar'] });
-    const client = await auth.getClient();
-    const calendar = google.calendar({ version: 'v3', auth: client });
+    let auth, client, calendar;
+    try {
+      auth = new google.auth.GoogleAuth({ scopes: ['https://www.googleapis.com/auth/calendar'] });
+      client = await auth.getClient();
+      calendar = google.calendar({ version: 'v3', auth: client });
+    } catch (e) {
+      console.error('gcalUpsertBooking auth error', e && e.stack ? e.stack : e);
+      throw new functions.https.HttpsError('internal', 'Erro ao autenticar com Google Calendar');
+    }
 
     const eventBody = {
       summary: title,
@@ -249,28 +255,39 @@ exports.gcalUpsertBooking = functions.https.onCall(async (data, _context) => {
     };
 
     let result;
-    if (eventId) {
-      result = await calendar.events.update({ calendarId, eventId, requestBody: eventBody });
-    } else {
-      result = await calendar.events.insert({ calendarId, requestBody: eventBody });
+    try {
+      if (eventId) {
+        result = await calendar.events.update({ calendarId, eventId, requestBody: eventBody });
+      } else {
+        result = await calendar.events.insert({ calendarId, requestBody: eventBody });
+      }
+    } catch (e) {
+      console.error('gcalUpsertBooking calendar.events error', e && e.stack ? e.stack : e);
+      const errorMsg = e?.message || 'Erro ao criar/atualizar evento no Google Calendar';
+      throw new functions.https.HttpsError('internal', errorMsg);
     }
 
     const ev = result.data;
     const db = admin.firestore();
-    await db.collection('calendar_bookings').doc(ev.id).set({
-      calendarId,
-      eventId: ev.id,
-      start: ev.start,
-      end: ev.end,
-      location: ev.location || null,
-      summary: ev.summary || null,
-      external_reference: external_reference || null,
-      updatedAt: new Date().toISOString(),
-    }, { merge: true });
+    try {
+      await db.collection('calendar_bookings').doc(ev.id).set({
+        calendarId,
+        eventId: ev.id,
+        start: ev.start,
+        end: ev.end,
+        location: ev.location || null,
+        summary: ev.summary || null,
+        external_reference: external_reference || null,
+        updatedAt: new Date().toISOString(),
+      }, { merge: true });
+    } catch (e) {
+      console.error('gcalUpsertBooking firestore error', e && e.stack ? e.stack : e);
+      throw new functions.https.HttpsError('internal', 'Erro ao salvar booking no Firestore');
+    }
 
     return { eventId: ev.id, htmlLink: ev.htmlLink || null };
   } catch (err) {
-    console.error('gcalUpsertBooking error', err);
+    console.error('gcalUpsertBooking error', err && err.stack ? err.stack : err);
     if (err instanceof functions.https.HttpsError) throw err;
     throw new functions.https.HttpsError('unknown', err?.message || 'Erro gcalUpsertBooking');
   }
