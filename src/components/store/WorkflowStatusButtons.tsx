@@ -60,20 +60,6 @@ export const WorkflowStatusButtons: React.FC<WorkflowStatusButtonsProps> = ({
       },
     },
     {
-      id: 'editing',
-      label: 'Editando',
-      icon: Pencil,
-      active: isEditing,
-      onClick: async () => {
-        setUpdatingButton('editing');
-        try {
-          await onUpdate({ isEditing: !isEditing });
-        } finally {
-          setUpdatingButton(null);
-        }
-      },
-    },
-    {
       id: 'completed',
       label: 'Terminado',
       icon: Flag,
@@ -89,7 +75,7 @@ export const WorkflowStatusButtons: React.FC<WorkflowStatusButtonsProps> = ({
     },
   ];
 
-  const allActive = depositPaid && finalPaymentPaid && isEditing && eventCompleted;
+  const allActive = depositPaid && finalPaymentPaid && eventCompleted;
 
   const handleMouseEnter = (buttonId: string) => {
     if (tooltipTimers.current[buttonId]) {
