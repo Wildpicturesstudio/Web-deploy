@@ -561,11 +561,30 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
       } as any;
 
       const existingSnapshot = (editing as any).formSnapshot || {};
-      const newSnapshot: any = { ...existingSnapshot, selectedDresses: editSelectedDresses };
+      const newSnapshot: any = {
+        ...existingSnapshot,
+        selectedDresses: editSelectedDresses,
+        cartItems: (editForm as any).formSnapshot?.cartItems || existingSnapshot.cartItems
+      };
+
+      // Preserve per-service dates, times, locations, and coupons from editForm
+      if ((editForm as any).formSnapshot?.cartItems && Array.isArray((editForm as any).formSnapshot.cartItems)) {
+        ((editForm as any).formSnapshot.cartItems as any[]).forEach((_, idx) => {
+          if ((editForm as any).formSnapshot?.[`date_${idx}`]) newSnapshot[`date_${idx}`] = (editForm as any).formSnapshot[`date_${idx}`];
+          if ((editForm as any).formSnapshot?.[`time_${idx}`]) newSnapshot[`time_${idx}`] = (editForm as any).formSnapshot[`time_${idx}`];
+          if ((editForm as any).formSnapshot?.[`eventLocation_${idx}`]) newSnapshot[`eventLocation_${idx}`] = (editForm as any).formSnapshot[`eventLocation_${idx}`];
+          if ((editForm as any).formSnapshot?.[`discountCoupon_${idx}`]) newSnapshot[`discountCoupon_${idx}`] = (editForm as any).formSnapshot[`discountCoupon_${idx}`];
+        });
+      }
+
       if (editForm.isCustomPackage !== undefined) newSnapshot.isCustomPackage = editForm.isCustomPackage;
       if (editForm.customPackageType !== undefined) newSnapshot.customPackageType = editForm.customPackageType;
       if (editForm.customPackageDuration !== undefined) newSnapshot.customPackageDuration = editForm.customPackageDuration;
       if (customPackagePrice !== undefined && customPackagePrice !== 0) newSnapshot.customPackagePrice = customPackagePrice;
+
+      // Also save contractDate if it was changed
+      if (editForm.contractDate) newSnapshot.contractDate = editForm.contractDate;
+
       (payload as any).formSnapshot = newSnapshot;
 
       // Remove undefined values from payload before saving to Firebase
