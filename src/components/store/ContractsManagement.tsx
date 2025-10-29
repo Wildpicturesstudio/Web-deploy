@@ -1253,7 +1253,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
                 )}
               </div>
 
-              {Array.isArray((viewing as any).formSnapshot?.selectedDresses) && (viewing as any).formSnapshot.selectedDresses.length > 0 && (
+              {viewing.eventType === 'Gestantes' && Array.isArray((viewing as any).formSnapshot?.selectedDresses) && (viewing as any).formSnapshot.selectedDresses.length > 0 && (
                 <div>
                   <div className="text-sm font-medium mb-2">Vestidos seleccionados</div>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
