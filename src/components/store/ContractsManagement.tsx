@@ -811,7 +811,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
           <div className="flex items-center justify-between p-4 border-b">
             <div>
               <div className="text-lg font-medium">{viewing.clientName} — {viewing.eventType || 'Trabajo'}</div>
-              <div className="text-xs text-gray-500">Fecha principal: {viewing.eventDate || '-' } ��� Hora: {viewing.eventTime || (viewing as any).eventTime || '-'}</div>
+              <div className="text-xs text-gray-500">Fecha principal: {viewing.eventDate || '-' } ���� Hora: {viewing.eventTime || (viewing as any).eventTime || '-'}</div>
             </div>
             <div className="flex items-center gap-2">
               <button onClick={()=> viewing && openEdit(viewing)} className="border px-3 py-2 rounded-none text-sm">Modificar datos</button>
@@ -1427,6 +1427,10 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
             <div className="md:col-span-2">
               <label className="text-xs text-gray-600">Notas</label>
               <textarea value={editForm.message || ''} onChange={e => setEditForm((f: any) => ({ ...f, message: e.target.value }))} className="w-full px-3 py-2 border rounded-none max-h-24" rows={2} />
+            </div>
+            <div className="md:col-span-2">
+              <label className="text-xs text-gray-600">Código de Cupón</label>
+              <input value={editForm.couponCode || ''} onChange={e => setEditForm((f: any) => ({ ...f, couponCode: e.target.value }))} placeholder="Ej: DESC10, PROMO2024" className="w-full px-3 py-2 border rounded-none" />
             </div>
 
             <div className="md:col-span-2 border-t pt-3">
