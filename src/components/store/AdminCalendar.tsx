@@ -446,7 +446,7 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
               const key = cell.date ? `${cell.date.getFullYear()}-${String(cell.date.getMonth()+1).padStart(2,'0')}-${String(cell.date.getDate()).padStart(2,'0')}` : `empty-${idx}`;
               const hasEvents = cell.date ? (eventsByDay.get(key) || []).length > 0 : false;
               return (
-                <button key={key} className={`text-center text-xs py-1 rounded transition-colors font-medium ${isToday ? 'bg-secondary text-black' : hasEvents ? (darkMode ? 'bg-blue-600 text-white' : 'bg-blue-200 text-blue-800') : (darkMode ? 'text-gray-400 hover:bg-gray-800' : 'text-gray-600 hover:bg-gray-200')}`}>
+                <button key={key} onClick={() => { if (cell.date) { setFilterMonth(cell.date.getMonth()); setFilterYear(cell.date.getFullYear()); setSidebarOpen(false); } }} className={`text-center text-xs py-1 rounded transition-colors font-medium ${isToday ? 'bg-secondary text-black' : hasEvents ? (darkMode ? 'bg-blue-600 text-white' : 'bg-blue-200 text-blue-800') : (darkMode ? 'text-gray-400 hover:bg-gray-800' : 'text-gray-600 hover:bg-gray-200')}`}>
                   {cell.date ? cell.date.getDate() : ''}
                 </button>
               );
