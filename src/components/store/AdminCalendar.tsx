@@ -476,6 +476,76 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
     }
   };
 
+  // Save a newly created event (contract) from the add-event modal
+  const saveNewEvent = async () => {
+    try {
+      // determine package price
+      let baseAmount = Number(addForm.totalAmount || 0);
+      if (addForm.packageId) {
+        const pkg = packages.find(p => p.id === addForm.packageId);
+        if (pkg) baseAmount = Number(pkg.price || baseAmount);
+      }
+
+      const totalWithDiscount = computeTotalFromBase(baseAmount);
+
+      const payload: any = {
+        clientName: addForm.clientName || 'Sin nombre',
+        clientEmail: addForm.clientEmail || '',
+        eventType: addForm.eventType || 'Evento',
+        eventDate: addForm.eventDate || '',
+        eventTime: addForm.eventTime || '00:00',
+        eventLocation: addForm.eventLocation || '',
+        phone: addForm.phone || '',
+        paymentMethod: addForm.paymentMethod || 'pix',
+        depositPaid: false,
+        finalPaymentPaid: false,
+        eventCompleted: false,
+        isEditing: false,
+        createdAt: new Date().toISOString(),
+        totalAmount: Number(totalWithDiscount) || 0,
+        travelFee: Number(addForm.travelFee || 0) || 0,
+        status: 'booked' as const,
+        packageId: addForm.packageId || null,
+        packageTitle: addForm.packageTitle || '',
+        appliedCoupons: appliedCoupons.slice(),
+      };
+
+      const ref = await addDoc(collection(db, 'contracts'), payload);
+
+      // reload events and reset states
+      await load();
+      setShowAddEventModal(false);
+      setAdding(false);
+      setAddForm({ clientName: '', eventType: '', eventDate: '', eventTime: '', eventLocation: '', paymentMethod: 'pix' });
+      setAppliedCoupons([]);
+
+      window.dispatchEvent(new CustomEvent('contractsUpdated'));
+      window.dispatchEvent(new CustomEvent('adminToast', { detail: { message: 'Evento creado correctamente', type: 'success' } }));
+    } catch (e) {
+      console.error('Error creating event:', e);
+      window.dispatchEvent(new CustomEvent('adminToast', { detail: { message: 'Error al crear el evento', type: 'error' } }));
+    }
+  };
+
+  // Save a newly created contact
+  const saveNewContact = async () => {
+    try {
+      const payload = {
+        name: contactForm.name || 'Sin nombre',
+        email: contactForm.email || '',
+        phone: contactForm.phone || '',
+        createdAt: new Date().toISOString(),
+      };
+      await addDoc(collection(db, 'contacts'), payload);
+      setShowAddContactModal(false);
+      setContactForm({ name: '', email: '', phone: '' });
+      window.dispatchEvent(new CustomEvent('adminToast', { detail: { message: 'Contacto creado correctamente', type: 'success' } }));
+    } catch (e) {
+      console.error('Error creating contact:', e);
+      window.dispatchEvent(new CustomEvent('adminToast', { detail: { message: 'Error al crear el contacto', type: 'error' } }));
+    }
+  };
+
   const syncCalendarWithContracts = async () => {
     setSyncing(true);
     try {
