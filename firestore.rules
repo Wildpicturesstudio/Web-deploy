@@ -57,6 +57,20 @@ service cloud.firestore {
       allow update, delete: if request.auth != null && request.auth.token.email == "wildpicturesstudio@gmail.com";
     }
 
+    // Contacts: creación abierta para leads/seguimiento, lectura pública, actualización/borrado solo admin
+    match /contacts/{contactId} {
+      allow create: if true;
+      allow read: if true;
+      allow update, delete: if request.auth != null && request.auth.token.email == "wildpicturesstudio@gmail.com";
+    }
+
+    // Calendar events (calendar-only items): creaci��n abierta, lectura pública, actualización/borrado solo admin
+    match /calendar_events/{eventId} {
+      allow create: if true;
+      allow read: if true;
+      allow update, delete: if request.auth != null && request.auth.token.email == "wildpicturesstudio@gmail.com";
+    }
+
     // Orders: creación abierta, lectura/actualización/borrado solo admin
     match /orders/{orderId} {
       allow create: if true;
