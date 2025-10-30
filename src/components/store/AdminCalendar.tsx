@@ -109,7 +109,7 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
   // Add / Create flow states
   const [showAddEventModal, setShowAddEventModal] = useState(false);
   const [showAddContactModal, setShowAddContactModal] = useState(false);
-  const [contactForm, setContactForm] = useState<{ name: string; email: string; phone: string; packageId?: string; notes?: string }>({ name: '', email: '', phone: '', packageId: '', notes: '' });
+  const [contactForm, setContactForm] = useState<{ name: string; email?: string; phone: string; packageId?: string; notes?: string; eventDate?: string; eventTime?: string }>({ name: '', email: '', phone: '', packageId: '', notes: '', eventDate: '', eventTime: '' });
 
   const load = async () => {
     setLoading(true);
