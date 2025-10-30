@@ -1004,7 +1004,7 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
                   <div className="flex flex-wrap gap-0.5 flex-1 pointer-events-none">
                     {dayEvents.slice(0, 3).map((ev) => (
                       <div key={ev.id} onClick={(e) => { e.stopPropagation(); setSelectedEvent(ev); }} title={ev.clientName} className={`text-xs px-1 py-0.5 rounded text-white truncate transition-colors cursor-pointer pointer-events-auto ${getEventColor(ev)}`}>
-                        <span className="inline-block align-middle max-w-[120px] break-words">{ev.clientName}</span>
+                        <span className="inline-block align-middle max-w-[220px] break-words">{ev.clientName}</span>
                       </div>
                     ))}
                     {dayEvents.length > 3 && (
