@@ -171,6 +171,56 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
     };
   }, []);
 
+  useEffect(() => {
+    const loadPackagesAndCoupons = async () => {
+      try {
+        const pkgs = await fetchPackages();
+        setPackages(pkgs);
+      } catch (e) {
+        console.error('Error loading packages:', e);
+      }
+      try {
+        const cps = await fetchCoupons();
+        setCoupons(cps.filter(c => isCouponActiveNow(c)));
+      } catch (e) {
+        console.error('Error loading coupons:', e);
+      }
+    };
+    loadPackagesAndCoupons();
+  }, []);
+
+  const calculateTotalWithDiscount = () => {
+    if (!selectedEvent) return 0;
+    let total = Number(selectedEvent.totalAmount || 0);
+    appliedCoupons.forEach(couponId => {
+      const coupon = coupons.find(c => c.id === couponId);
+      if (coupon) {
+        switch (coupon.discountType) {
+          case 'percentage':
+            total -= total * ((coupon.discountValue || 0) / 100);
+            break;
+          case 'fixed':
+            total -= (coupon.discountValue || 0);
+            break;
+          case 'full':
+            total = 0;
+            break;
+        }
+      }
+    });
+    return Math.max(0, total);
+  };
+
+  const calculateDepositWithDiscount = () => {
+    const total = calculateTotalWithDiscount();
+    return total * 0.2;
+  };
+
+  const calculateRemainingWithDiscount = () => {
+    const total = calculateTotalWithDiscount();
+    return total * 0.8;
+  };
+
   const searchResults = useMemo(() => {
     if (!filterPhone.trim()) return [];
     return events.filter(ev => {
@@ -860,7 +910,7 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
                 </div>
                 <div className="flex flex-col md:flex-row items-center gap-2">
                   <button
-                    onClick={() => { setEditingEvent(selectedEvent); setEditForm({}); }}
+                    onClick={() => { setEditingEvent(selectedEvent); setEditForm({}); setAppliedCoupons([]); }}
                     className="hidden md:flex px-4 py-2 bg-green-600 text-white rounded text-sm font-medium hover:bg-green-700 transition-colors items-center gap-2"
                     title="Editar evento"
                   >
@@ -881,7 +931,7 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
             {!editingEvent && (
               <div className="flex md:hidden gap-2 mb-4">
                 <button
-                  onClick={() => { setEditingEvent(selectedEvent); setEditForm({}); }}
+                  onClick={() => { setEditingEvent(selectedEvent); setEditForm({}); setAppliedCoupons([]); }}
                   className="flex-1 p-2 bg-green-600 text-white rounded transition-colors hover:bg-green-700 flex items-center justify-center"
                   title="Editar evento"
                 >
@@ -908,13 +958,27 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
                   <input type="date" placeholder="Fecha evento" value={editForm.eventDate || editingEvent.eventDate} onChange={(e) => setEditForm({...editForm, eventDate: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
                   <input type="time" placeholder="Hora" value={editForm.eventTime || editingEvent.eventTime} onChange={(e) => setEditForm({...editForm, eventTime: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
                   <input type="text" placeholder="Ubicación" value={editForm.eventLocation || editingEvent.eventLocation} onChange={(e) => setEditForm({...editForm, eventLocation: e.target.value})} className={`px-3 py-2 border rounded text-sm md:col-span-2 ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+                  <select value={editForm.packageTitle || editingEvent.packageTitle || ''} onChange={(e) => setEditForm({...editForm, packageTitle: e.target.value, totalAmount: packages.find(p => p.title === e.target.value)?.price || editForm.totalAmount})} className={`px-3 py-2 border rounded text-sm md:col-span-2 ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`}>
+                    <option value="">Seleccionar paquete</option>
+                    {packages.map(pkg => (
+                      <option key={pkg.id} value={pkg.title}>
+                        {pkg.title} - R$ {pkg.price}
+                      </option>
+                    ))}
+                  </select>
                   <input type="number" placeholder="Monto total" value={editForm.totalAmount || editingEvent.totalAmount} onChange={(e) => setEditForm({...editForm, totalAmount: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
                   <input type="number" placeholder="Deslocamiento" value={editForm.travelFee || editingEvent.travelFee || ''} onChange={(e) => setEditForm({...editForm, travelFee: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
                   <input type="text" placeholder="Método de pago" value={editForm.paymentMethod || editingEvent.paymentMethod} onChange={(e) => setEditForm({...editForm, paymentMethod: e.target.value})} className={`px-3 py-2 border rounded text-sm md:col-span-2 ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
                 </div>
-                <div className="flex gap-2 mt-3">
-                  <button onClick={saveEventChanges} className="flex-1 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors text-sm font-medium">Guardar</button>
-                  <button onClick={() => { setEditingEvent(null); setEditForm({}); }} className={`flex-1 px-4 py-2 border rounded text-sm font-medium transition-colors ${darkMode ? 'border-gray-600 text-gray-400 hover:bg-gray-800' : 'border-gray-300 text-gray-600 hover:bg-gray-100'}`}>Cancelar</button>
+                <div className="flex gap-2 mt-3 flex-col">
+                  <button onClick={() => setShowCouponModal(true)} className="flex-1 px-4 py-2 bg-amber-600 text-white rounded hover:bg-amber-700 transition-colors text-sm font-medium flex items-center justify-center gap-2">
+                    <Percent size={16} />
+                    Aplicar Cupones ({appliedCoupons.length})
+                  </button>
+                  <div className="flex gap-2">
+                    <button onClick={saveEventChanges} className="flex-1 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors text-sm font-medium">Guardar</button>
+                    <button onClick={() => { setEditingEvent(null); setEditForm({}); setAppliedCoupons([]); }} className={`flex-1 px-4 py-2 border rounded text-sm font-medium transition-colors ${darkMode ? 'border-gray-600 text-gray-400 hover:bg-gray-800' : 'border-gray-300 text-gray-600 hover:bg-gray-100'}`}>Cancelar</button>
+                  </div>
                 </div>
               </div>
             )}
@@ -967,15 +1031,15 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div className="flex items-center gap-2">
                     <span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Depósito (20%):</span>
-                    <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>R$ {(Number(selectedEvent.totalAmount || 0) * 0.2).toFixed(0)}</span>
+                    <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>R$ {calculateDepositWithDiscount().toFixed(0)}</span>
                     <span className={`px-2 py-0.5 rounded text-xs ${selectedEvent.depositPaid ? (darkMode ? 'bg-green-900/30 text-green-400' : 'bg-green-100 text-green-700') : (darkMode ? 'bg-red-900/30 text-red-400' : 'bg-red-100 text-red-700')}`}>{selectedEvent.depositPaid ? 'Pagado' : 'No pagado'}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Restante (80%):</span>
-                    <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>R$ {(Number(selectedEvent.totalAmount || 0) * 0.8).toFixed(0)}</span>
+                    <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>R$ {calculateRemainingWithDiscount().toFixed(0)}</span>
                     <span className={`px-2 py-0.5 rounded text-xs ${selectedEvent.finalPaymentPaid ? (darkMode ? 'bg-green-900/30 text-green-400' : 'bg-green-100 text-green-700') : (darkMode ? 'bg-red-900/30 text-red-400' : 'bg-red-100 text-red-700')}`}>{selectedEvent.finalPaymentPaid ? 'Pagado' : 'No pagado'}</span>
                   </div>
-                  <div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>R$ {Number(selectedEvent.totalAmount || 0).toFixed(0)}</span></div>
+                  <div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>R$ {calculateTotalWithDiscount().toFixed(0)}</span></div>
                   <div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Deslocamiento:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>R$ {(selectedEvent.travelFee ?? 0).toFixed(0)}</span></div>
                 </div>
               </div>
