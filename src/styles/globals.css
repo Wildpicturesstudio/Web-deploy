@@ -301,3 +301,14 @@ button {
   background-color: #1a1a1a;
   color: #ffffff;
 }
+
+/* Contract modal overlay mobile adjustment */
+.contract-modal-overlay {
+  margin-top: 24px;
+}
+
+@media (max-width: 640px) {
+  .contract-modal-overlay {
+    margin-top: 50px;
+  }
+}
