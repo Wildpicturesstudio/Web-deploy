@@ -348,6 +348,44 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
     }
   };
 
+  const saveEventChanges = async () => {
+    if (!editingEvent) return;
+
+    try {
+      const baseId = String(editingEvent.id || '').split('__')[0] || editingEvent.id;
+      const updates = {
+        clientName: editForm.clientName || editingEvent.clientName,
+        clientEmail: editForm.clientEmail || editingEvent.clientEmail,
+        phone: editForm.phone || editingEvent.phone,
+        eventType: editForm.eventType || editingEvent.eventType,
+        eventDate: editForm.eventDate || editingEvent.eventDate,
+        eventTime: editForm.eventTime || editingEvent.eventTime,
+        eventLocation: editForm.eventLocation || editingEvent.eventLocation,
+        totalAmount: editForm.totalAmount ? Number(editForm.totalAmount) : editingEvent.totalAmount,
+        travelFee: editForm.travelFee ? Number(editForm.travelFee) : editingEvent.travelFee,
+        paymentMethod: editForm.paymentMethod || editingEvent.paymentMethod,
+      };
+
+      await updateDoc(doc(db, 'contracts', baseId), updates);
+
+      const updated = { ...editingEvent, ...updates };
+      setEvents(prev => prev.map(e => e.id === editingEvent.id ? updated : e));
+      setSelectedEvent(updated);
+      setEditingEvent(null);
+      setEditForm({});
+
+      window.dispatchEvent(new CustomEvent('contractsUpdated'));
+      window.dispatchEvent(new CustomEvent('adminToast', {
+        detail: { message: 'Evento actualizado correctamente', type: 'success' }
+      }));
+    } catch (e) {
+      console.error('Error updating event:', e);
+      window.dispatchEvent(new CustomEvent('adminToast', {
+        detail: { message: 'Error al actualizar el evento', type: 'error' }
+      }));
+    }
+  };
+
   const syncCalendarWithContracts = async () => {
     setSyncing(true);
     try {
