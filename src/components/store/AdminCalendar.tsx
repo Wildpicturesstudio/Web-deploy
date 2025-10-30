@@ -1,4 +1,5 @@
-import { useState, useMemo, useEffect } from 'react';
+'use client';
+
 import { db } from '../../utils/firebaseClient';
 import { addDoc, collection, doc, getDocs, orderBy, query, updateDoc, deleteDoc } from 'firebase/firestore';
 import { ChevronLeft, ChevronRight, Plus, X, ExternalLink, MapPin, Phone, Calendar as IconCalendar, Clock, DollarSign, FileText, Download, Printer, RefreshCw, Trash2, Eye, EyeOff, Edit, Percent } from 'lucide-react';
@@ -8,6 +9,7 @@ import jsPDF from 'jspdf';
 import { WorkflowStatusButtons } from './WorkflowStatusButtons';
 import { fetchPackages, DBPackage } from '../../utils/packagesService';
 import { fetchCoupons, DBCoupon, isCouponActiveNow } from '../../utils/couponsService';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 
 interface ContractItem {
   id: string;
@@ -420,6 +422,7 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
         totalAmount: editForm.totalAmount ? Number(editForm.totalAmount) : editingEvent.totalAmount,
         travelFee: editForm.travelFee ? Number(editForm.travelFee) : editingEvent.travelFee,
         paymentMethod: editForm.paymentMethod || editingEvent.paymentMethod,
+        packageTitle: editForm.packageTitle || editingEvent.packageTitle,
       };
 
       await updateDoc(doc(db, 'contracts', baseId), updates);
@@ -429,6 +432,7 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
       setSelectedEvent(updated);
       setEditingEvent(null);
       setEditForm({});
+      setAppliedCoupons([]);
 
       window.dispatchEvent(new CustomEvent('contractsUpdated'));
       window.dispatchEvent(new CustomEvent('adminToast', {
@@ -575,7 +579,7 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
             <div className="flex-1">
               <div className={`text-xs transition-colors ${darkMode ? 'text-gray-500' : 'text-gray-600'}`}>Ingresos del Mes</div>
               <div className={`text-3xl font-bold transition-colors ${darkMode ? 'text-green-400' : 'text-green-600'}`}>
-                {showRevenue ? `R$ ${eventSummary.totalRevenue.toFixed(0)}` : '••••••'}
+                {showRevenue ? `R$ ${eventSummary.totalRevenue.toFixed(0)}` : '****'}
               </div>
             </div>
             <button
@@ -895,6 +899,147 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
         </div>
       )}
 
+      {showCouponModal && (
+        <div className={`fixed inset-0 z-[52] flex items-center justify-center p-4 transition-colors ${darkMode ? 'bg-black/70' : 'bg-black/50'}`} onClick={() => setShowCouponModal(false)}>
+          <div className={`rounded-xl w-full max-w-2xl p-6 overflow-y-auto max-h-[80vh] transition-colors ${darkMode ? 'bg-gray-900 border border-gray-800' : 'bg-white border border-gray-200'}`} onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className={`text-lg font-bold transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>
+                Aplicar Cupones de Descuento
+              </h3>
+              <button onClick={() => setShowCouponModal(false)} className={`p-1 rounded transition-colors ${darkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-100'}`}>
+                <X size={20} className={darkMode ? 'text-gray-400' : 'text-gray-600'} />
+              </button>
+            </div>
+
+            {coupons.length === 0 ? (
+              <p className={`text-sm transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                No hay cupones disponibles en este momento.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {coupons.map(coupon => {
+                  const isApplied = appliedCoupons.includes(coupon.id);
+                  const discountAmount = (() => {
+                    const baseAmount = Number(editingEvent?.totalAmount || selectedEvent?.totalAmount || 0);
+                    if (coupon.discountType === 'percentage') {
+                      return baseAmount * ((coupon.discountValue || 0) / 100);
+                    } else if (coupon.discountType === 'fixed') {
+                      return coupon.discountValue || 0;
+                    } else if (coupon.discountType === 'full') {
+                      return baseAmount;
+                    }
+                    return 0;
+                  })();
+
+                  return (
+                    <label key={coupon.id} className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
+                      isApplied
+                        ? darkMode
+                          ? 'bg-amber-900/20 border-amber-700'
+                          : 'bg-amber-50 border-amber-300'
+                        : darkMode
+                        ? 'bg-gray-800 border-gray-700 hover:bg-gray-700'
+                        : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                    }`}>
+                      <input
+                        type="checkbox"
+                        checked={isApplied}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setAppliedCoupons([...appliedCoupons, coupon.id]);
+                          } else {
+                            setAppliedCoupons(appliedCoupons.filter(id => id !== coupon.id));
+                          }
+                        }}
+                        className="mt-1 w-4 h-4 cursor-pointer flex-shrink-0"
+                      />
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>
+                              {coupon.code}
+                            </p>
+                            {coupon.description && (
+                              <p className={`text-sm transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                                {coupon.description}
+                              </p>
+                            )}
+                          </div>
+                          <div className="text-right">
+                            <p className={`font-medium transition-colors ${darkMode ? 'text-amber-400' : 'text-amber-600'}`}>
+                              {coupon.discountType === 'percentage' && `${coupon.discountValue}%`}
+                              {coupon.discountType === 'fixed' && `R$ ${coupon.discountValue}`}
+                              {coupon.discountType === 'full' && '100%'}
+                            </p>
+                            <p className={`text-xs transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                              Ahorro: R$ {discountAmount.toFixed(0)}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </label>
+                  );
+                })}</div>
+            )}
+
+            <div className={`mt-6 p-4 rounded-lg border transition-colors ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>Monto original:</span>
+                  <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>
+                    R$ {Number(editingEvent?.totalAmount || selectedEvent?.totalAmount || 0).toFixed(0)}
+                  </span>
+                </div>
+                {appliedCoupons.length > 0 && (
+                  <>
+                    <div className="flex justify-between">
+                      <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>Descuento total:</span>
+                      <span className={`font-medium transition-colors ${darkMode ? 'text-amber-400' : 'text-amber-600'}`}>
+                        -R$ {(Number(editingEvent?.totalAmount || selectedEvent?.totalAmount || 0) - calculateTotalWithDiscount()).toFixed(0)}
+                      </span>
+                    </div>
+                    <div className="border-t border-gray-400/20 pt-2 flex justify-between">
+                      <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>Total con descuento:</span>
+                      <span className={`font-bold transition-colors ${darkMode ? 'text-green-400' : 'text-green-600'}`}>
+                        R$ {calculateTotalWithDiscount().toFixed(0)}
+                      </span>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            <div className="flex gap-2 mt-6">
+              <button
+                onClick={() => {
+                  setShowCouponModal(false);
+                }}
+                className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
+                  darkMode
+                    ? 'bg-green-600 hover:bg-green-700 text-white'
+                    : 'bg-green-600 hover:bg-green-700 text-white'
+                }`}
+              >
+                Aceptar
+              </button>
+              <button
+                onClick={() => {
+                  setAppliedCoupons([]);
+                  setShowCouponModal(false);
+                }}
+                className={`flex-1 px-4 py-2 rounded-lg font-medium border transition-colors ${
+                  darkMode
+                    ? 'border-gray-700 text-gray-300 hover:bg-gray-800'
+                    : 'border-gray-300 text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                Limpiar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {selectedEvent && (
         <div className={`fixed inset-0 z-[51] flex items-center justify-center p-2 sm:p-4 transition-colors ${darkMode ? 'bg-black/70' : 'bg-white/70'}`} onClick={() => setSelectedEvent(null)}>
           <div className={`rounded-xl w-full max-w-5xl p-4 md:p-6 overflow-hidden max-h-[90vh] overflow-y-auto transition-colors ${darkMode ? 'bg-black border border-gray-800' : 'bg-white border border-gray-200'}`} onClick={(e) => e.stopPropagation()}>
@@ -994,7 +1139,7 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
                 <div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Tipo de evento:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{selectedEvent.eventType || '-'}</span></div>
                 <div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Fecha contrato:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{selectedEvent.contractDate || '-'}</span></div>
                 <div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Hora firma:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{(selectedEvent as any).signatureTime || '-'}</span></div>
-                <div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Método de pago:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{selectedEvent.paymentMethod || '-'}</span></div>
+                <div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>M��todo de pago:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{selectedEvent.paymentMethod || '-'}</span></div>
               </div>
 
               <div className={`border-t pt-4 transition-colors ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
