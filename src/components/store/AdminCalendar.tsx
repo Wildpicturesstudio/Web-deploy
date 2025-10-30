@@ -1174,7 +1174,7 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
               <textarea placeholder="Observaciones" value={contactForm.notes || ''} onChange={(e)=> setContactForm({...contactForm, notes: e.target.value})} className={`px-3 py-2 border rounded text-sm h-24 ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
             </div>
             <div className="flex gap-2 mt-4">
-              <button onClick={saveNewContact} className="flex-1 px-4 py-2 bg-green-600 text-white rounded">Crear Contacto</button>
+              <button onClick={saveNewContact} className="flex-1 px-4 py-2 bg-green-600 text-white rounded">{editingContactIds && editingContactIds.contactId ? 'Guardar cambios' : 'Crear Contacto'}</button>
               <button onClick={() => setShowAddContactModal(false)} className={`flex-1 px-4 py-2 border rounded ${darkMode ? 'border-gray-600 text-gray-300' : 'border-gray-300 text-gray-700'}`}>Cancelar</button>
             </div>
           </div>
