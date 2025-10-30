@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { db } from '../../utils/firebaseClient';
 import { addDoc, collection, doc, getDocs, orderBy, query, updateDoc, deleteDoc } from 'firebase/firestore';
-import { ChevronLeft, ChevronRight, Plus, X, ExternalLink, MapPin, Phone, Calendar as IconCalendar, Clock, DollarSign, FileText, Download, Printer, RefreshCw, Trash2, Eye, EyeOff } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, X, ExternalLink, MapPin, Phone, Calendar as IconCalendar, Clock, DollarSign, FileText, Download, Printer, RefreshCw, Trash2, Eye, EyeOff, Edit } from 'lucide-react';
 import { parseDurationToMinutes } from '../../utils/calendar';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
