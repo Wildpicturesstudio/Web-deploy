@@ -759,7 +759,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
           <button onClick={async ()=> {
             const names = ['María García', 'Juan López', 'Ana Martínez', 'Carlos Rodríguez', 'Sofia Hernández', 'Pablo Torres', 'Laura Sánchez', 'Miguel Ángel'];
             const eventTypes = ['Matrimonio', 'Cumpleaños', 'Sesión de Fotos', 'Evento Corporativo', 'Quinceañera'];
-            const packageTypes = ['Paquete Básico', 'Paquete Estándar', 'Paquete Premium', 'Paquete Personalizado'];
+            const packageTypes = ['Paquete B��sico', 'Paquete Estándar', 'Paquete Premium', 'Paquete Personalizado'];
             const randomName = names[Math.floor(Math.random() * names.length)];
             const randomType = eventTypes[Math.floor(Math.random() * eventTypes.length)];
             const randomPackage = packageTypes[Math.floor(Math.random() * packageTypes.length)];
@@ -821,7 +821,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 flex flex-col max-h-96 overflow-hidden">
+      <div className="bg-white rounded-xl border border-gray-200 flex flex-col md:max-h-96 overflow-hidden md:overflow-hidden">
         <div className="hidden md:grid grid-cols-12 p-3 text-xs font-medium border-b bg-gray-50 flex-shrink-0">
           <div className="col-span-2">Fecha principal</div>
           <div className="col-span-3">Nombre del trabajo</div>
