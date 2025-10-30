@@ -775,7 +775,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
               console.error('Error creating test contract:', e);
               window.dispatchEvent(new CustomEvent('adminToast', { detail: { message: 'Error al crear contrato de test', type: 'error' } }));
             }
-          }} className="border-2 border-gray-400 text-gray-600 px-2 py-1 rounded-none hover:bg-gray-100 inline-flex items-center justify-center gap-1 text-xs flex-1 sm:flex-initial" title="Generar contrato aleatorio para testing">Test</button>
+          }} className="border-2 border-gray-400 text-gray-600 px-2 py-1 rounded-none hover:bg-gray-100 inline-flex items-center justify-center gap-1 text-xs" title="Generar contrato aleatorio para testing">Test</button>
           </div>
         </div>
       </div>
