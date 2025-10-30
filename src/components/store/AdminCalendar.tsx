@@ -1150,6 +1150,25 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
         </div>
       )}
 
+      {/* Image lightbox modal for thumbnails */}
+      {imageModal.open && (
+        <div className={`fixed inset-0 z-[70] flex items-center justify-center p-4 transition-colors ${darkMode ? 'bg-black/80' : 'bg-black/60'}`} onClick={() => closeImageModal()}>
+          <div className={`rounded-xl w-full max-w-3xl p-4 transition-colors ${darkMode ? 'bg-black border border-gray-800' : 'bg-white border border-gray-200'}`} onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-end justify-end mb-2">
+              <button onClick={() => closeImageModal()} className={`text-2xl transition-colors ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-black'}`}>✕</button>
+            </div>
+            <div className="w-full flex items-center justify-center">
+              {imageModal.src ? (
+                <img src={imageModal.src} alt={imageModal.alt || 'Imagen'} className="max-h-[70vh] w-auto object-contain" />
+              ) : null}
+            </div>
+            {imageModal.alt && (
+              <div className="text-center text-sm mt-3 text-gray-400">{imageModal.alt}</div>
+            )}
+          </div>
+        </div>
+      )}
+
       {statusFilter && (
         <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-colors ${darkMode ? 'bg-black/70' : 'bg-white/70'}`} onClick={() => setStatusFilter(null)}>
           <div className={`rounded-lg w-full max-w-2xl max-h-[80vh] overflow-y-auto p-6 border transition-colors ${darkMode ? 'bg-black border-gray-800' : 'bg-white border-gray-200'}`} onClick={e => e.stopPropagation()}>
