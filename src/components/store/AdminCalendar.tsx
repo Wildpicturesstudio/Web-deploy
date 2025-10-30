@@ -1073,7 +1073,7 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
       )}
 
       {showCouponModal && (
-        <div className={`fixed inset-0 z-[52] flex items-center justify-center p-4 transition-colors ${darkMode ? 'bg-black/70' : 'bg-black/50'}`} onClick={() => setShowCouponModal(false)}>
+        <div className={`fixed inset-0 z-[60] flex items-center justify-center p-4 transition-colors ${darkMode ? 'bg-black/70' : 'bg-black/50'}`} onClick={() => setShowCouponModal(false)}>
           <div className={`rounded-xl w-full max-w-2xl p-6 overflow-y-auto max-h-[80vh] transition-colors ${darkMode ? 'bg-gray-900 border border-gray-800' : 'bg-white border border-gray-200'}`} onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h3 className={`text-lg font-bold transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>
