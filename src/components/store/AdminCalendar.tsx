@@ -808,6 +808,14 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
                 <div className={`text-xs transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Fecha principal: {selectedEvent.eventDate || '-'} | Hora: {selectedEvent.eventTime || '-'}</div>
               </div>
               <div className="flex items-center gap-2">
+                <button
+                  onClick={() => window.dispatchEvent(new CustomEvent('adminOpenContract', { detail: { id: selectedEvent.id } }))}
+                  className="px-4 py-2 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 transition-colors flex items-center gap-2"
+                  title="Ir al contrato"
+                >
+                  <ExternalLink size={16} />
+                  Ir al contrato
+                </button>
                 <button onClick={() => deleteEvent(selectedEvent)} className={`p-2 rounded-full transition-colors ${darkMode ? 'text-red-400 hover:bg-red-900/20' : 'text-red-600 hover:bg-red-100'}`} title="Eliminar evento"><Trash2 size={20}/></button>
                 <button onClick={() => setSelectedEvent(null)} className={`text-2xl transition-colors ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-black'}`}>✕</button>
               </div>
