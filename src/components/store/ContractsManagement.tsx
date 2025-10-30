@@ -819,7 +819,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
         </div>
         {loading && <div className="p-3 md:p-4 text-sm text-gray-500">Cargando...</div>}
         {!loading && filtered.length === 0 && <div className="p-3 md:p-4 text-sm text-gray-500">Sin resultados</div>}
-        <div className="divide-y overflow-y-auto flex-1">
+        <div className="divide-y overflow-y-auto" style={{ height: 'calc(100vh - 16px)', marginBottom: '16px' }}>
           {filtered.map((c: ContractItem) => {
             return (
               <div key={c.id} className="hidden md:grid grid-cols-12 p-2 md:p-3 items-center hover:bg-gray-50 hover:text-black cursor-pointer border-b text-xs md:text-sm transition-colors admin-contract-row" onClick={() => openView(c)}>
