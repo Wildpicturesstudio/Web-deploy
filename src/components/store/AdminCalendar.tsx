@@ -1569,7 +1569,7 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
                   <Edit size={16} />
                 </button>
                 <button
-                  onClick={() => window.dispatchEvent(new CustomEvent('adminOpenContract', { detail: { id: selectedEvent.id } }))}
+                  onClick={() => window.dispatchEvent(new CustomEvent('adminOpenContract', { detail: { id: String(selectedEvent.id).split('__')[0] } }))}
                   className="flex-1 p-2 bg-blue-600 text-white rounded transition-colors hover:bg-blue-700 flex items-center justify-center"
                   title="Ir al contrato"
                 >
