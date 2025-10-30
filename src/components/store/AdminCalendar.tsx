@@ -1360,7 +1360,7 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
               </div>
             )}
 
-            {editingEvent && (
+            {editingEvent && !isSelectedCalendarContact && (
               <div className={`p-4 rounded-lg border mb-4 ${darkMode ? 'bg-gray-900 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
                 <h3 className={`font-semibold mb-3 ${darkMode ? 'text-white' : 'text-black'}`}>Editar Evento</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
