@@ -1428,6 +1428,11 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
               {(selectedEvent as any).packageTitle ? (<div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Paquete de interés:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{(selectedEvent as any).packageTitle}</span></div>) : null}
               {(selectedEvent as any).notes ? (<div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Observaciones:</span> <div className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{(selectedEvent as any).notes}</div></div>) : null}
               {selectedEvent.eventDate ? (<div className="grid grid-cols-2 gap-2"><div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Fecha:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{selectedEvent.eventDate}</span></div><div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Hora:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{selectedEvent.eventTime || '-'}</span></div></div>) : null}
+
+              <div className="flex gap-2 mt-4">
+                <button onClick={() => markContactAttended(selectedEvent)} className="flex-1 px-4 py-2 bg-green-600 text-white rounded">Marcar atendido</button>
+                <button onClick={() => { setDeleteConfirmEvent(selectedEvent); }} className="flex-1 px-4 py-2 border rounded text-red-600">Eliminar</button>
+              </div>
             </div>
           </div>
         </div>
