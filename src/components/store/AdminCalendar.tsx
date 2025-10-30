@@ -842,24 +842,54 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
       {selectedEvent && (
         <div className={`fixed inset-0 z-[51] flex items-center justify-center p-2 sm:p-4 transition-colors ${darkMode ? 'bg-black/70' : 'bg-white/70'}`} onClick={() => setSelectedEvent(null)}>
           <div className={`rounded-xl w-full max-w-5xl p-4 md:p-6 overflow-hidden max-h-[90vh] overflow-y-auto transition-colors ${darkMode ? 'bg-black border border-gray-800' : 'bg-white border border-gray-200'}`} onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-3">
               <div>
                 <div className={`text-lg font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{selectedEvent.clientName} — {selectedEvent.eventType || 'Trabajo'}</div>
                 <div className={`text-xs transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Fecha principal: {selectedEvent.eventDate || '-'} | Hora: {selectedEvent.eventTime || '-'}</div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 justify-between">
+                <div className="flex items-center gap-2">
+                  <button onClick={() => deleteEvent(selectedEvent)} className={`p-2 rounded-full transition-colors ${darkMode ? 'text-red-400 hover:bg-red-900/20' : 'text-red-600 hover:bg-red-100'}`} title="Eliminar evento"><Trash2 size={20}/></button>
+                  <button onClick={() => setSelectedEvent(null)} className={`text-2xl transition-colors ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-black'}`}>✕</button>
+                </div>
+                <div className="flex flex-col md:flex-row items-center gap-2">
+                  <button
+                    onClick={() => { setEditingEvent(selectedEvent); setEditForm({}); }}
+                    className="hidden md:flex px-4 py-2 bg-green-600 text-white rounded text-sm font-medium hover:bg-green-700 transition-colors items-center gap-2"
+                    title="Editar evento"
+                  >
+                    <Edit size={16} />
+                    Editar
+                  </button>
+                  <button
+                    onClick={() => window.dispatchEvent(new CustomEvent('adminOpenContract', { detail: { id: selectedEvent.id } }))}
+                    className="hidden md:flex px-4 py-2 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 transition-colors items-center gap-2"
+                    title="Ir al contrato"
+                  >
+                    <ExternalLink size={16} />
+                    Ir al contrato
+                  </button>
+                </div>
+              </div>
+            </div>
+            {!editingEvent && (
+              <div className="flex md:hidden gap-2 mb-4">
+                <button
+                  onClick={() => { setEditingEvent(selectedEvent); setEditForm({}); }}
+                  className="flex-1 p-2 bg-green-600 text-white rounded transition-colors hover:bg-green-700 flex items-center justify-center"
+                  title="Editar evento"
+                >
+                  <Edit size={16} />
+                </button>
                 <button
                   onClick={() => window.dispatchEvent(new CustomEvent('adminOpenContract', { detail: { id: selectedEvent.id } }))}
-                  className="px-4 py-2 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 transition-colors flex items-center gap-2"
+                  className="flex-1 p-2 bg-blue-600 text-white rounded transition-colors hover:bg-blue-700 flex items-center justify-center"
                   title="Ir al contrato"
                 >
                   <ExternalLink size={16} />
-                  Ir al contrato
                 </button>
-                <button onClick={() => deleteEvent(selectedEvent)} className={`p-2 rounded-full transition-colors ${darkMode ? 'text-red-400 hover:bg-red-900/20' : 'text-red-600 hover:bg-red-100'}`} title="Eliminar evento"><Trash2 size={20}/></button>
-                <button onClick={() => setSelectedEvent(null)} className={`text-2xl transition-colors ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-black'}`}>✕</button>
               </div>
-            </div>
+            )}
 
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3 text-sm">
