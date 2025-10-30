@@ -904,7 +904,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
         </div>
       </div>
     {viewing && workflow && (
-      <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2 sm:p-4" onClick={()=>setViewing(null)}>
+      <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2 sm:p-4" style={{ marginTop: '24px' }} onClick={()=>setViewing(null)}>
         <div className="bg-white rounded-xl border border-gray-200 w-full max-w-5xl p-4 md:p-6 overflow-hidden max-h-[90vh] overflow-y-auto" onClick={(e)=>e.stopPropagation()}>
           <div className="flex items-center justify-between p-4 border-b">
             <div>
