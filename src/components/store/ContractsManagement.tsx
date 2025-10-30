@@ -754,9 +754,11 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
             </div>
           </div>
         </div>
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-          <button onClick={()=> setCreating(true)} className="border-2 border-black bg-black text-white px-3 py-2 rounded-none hover:opacity-90 inline-flex items-center justify-center sm:justify-start gap-2 text-sm sm:text-base"><Plus size={14}/> <span className="hidden sm:inline">Nuevo contrato</span><span className="sm:hidden">Nuevo</span></button>
-          <button onClick={async ()=> {
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full">
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar..." className="px-3 py-2 border rounded-none text-sm flex-1 sm:flex-initial" />
+          <div className="flex items-center gap-1 w-2/3 sm:w-auto">
+            <button onClick={()=> setCreating(true)} className="border-2 border-black bg-black text-white px-2 py-1 rounded-none hover:opacity-90 inline-flex items-center justify-center gap-1 text-xs flex-1 sm:flex-initial"><Plus size={12}/> <span>Nuevo</span></button>
+            <button onClick={async ()=> {
             const names = ['María García', 'Juan López', 'Ana Martínez', 'Carlos Rodríguez', 'Sofia Hernández', 'Pablo Torres', 'Laura Sánchez', 'Miguel Ángel'];
             const eventTypes = ['Matrimonio', 'Cumpleaños', 'Sesión de Fotos', 'Evento Corporativo', 'Quinceañera'];
             const packageTypes = ['Paquete B��sico', 'Paquete Estándar', 'Paquete Premium', 'Paquete Personalizado'];
@@ -797,8 +799,8 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
               console.error('Error creating test contract:', e);
               window.dispatchEvent(new CustomEvent('adminToast', { detail: { message: 'Error al crear contrato de test', type: 'error' } }));
             }
-          }} className="border-2 border-gray-400 text-gray-600 px-3 py-2 rounded-none hover:bg-gray-100 inline-flex items-center justify-center gap-2 text-sm" title="Generar contrato aleatorio para testing">Test</button>
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar..." className="px-3 py-2 border rounded-none text-sm w-full sm:w-auto" />
+          }} className="border-2 border-gray-400 text-gray-600 px-2 py-1 rounded-none hover:bg-gray-100 inline-flex items-center justify-center gap-1 text-xs flex-1 sm:flex-initial" title="Generar contrato aleatorio para testing">Test</button>
+          </div>
         </div>
       </div>
 
