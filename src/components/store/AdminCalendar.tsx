@@ -1006,7 +1006,7 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
             <p className={`text-sm mt-2 transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Selecciona el tipo de elemento a crear</p>
             <div className="mt-4 flex gap-2">
               <button onClick={() => { setShowAddEventModal(true); setAdding(false); }} className="flex-1 px-4 py-2 bg-blue-600 text-white rounded">Evento</button>
-              <button onClick={() => { setShowAddContactModal(true); setAdding(false); }} className="flex-1 px-4 py-2 bg-gray-200">Contacto Cliente</button>
+              <button onClick={() => { setShowAddContactModal(true); setAdding(false); }} className="flex-1 px-4 py-2 bg-green-600 text-white rounded">Contacto Cliente</button>
             </div>
             <div className="mt-4">
               <button onClick={() => setAdding(false)} className="w-full px-4 py-2 border rounded">Cancelar</button>
