@@ -92,6 +92,8 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
   const [statusFilter, setStatusFilter] = useState<'deposit_pending' | 'editing' | 'completed' | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [deleteConfirmEvent, setDeleteConfirmEvent] = useState<ContractItem | null>(null);
+  const [editingEvent, setEditingEvent] = useState<ContractItem | null>(null);
+  const [editForm, setEditForm] = useState<any>({});
   const [isDeleting, setIsDeleting] = useState(false);
   const [showRevenue, setShowRevenue] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
