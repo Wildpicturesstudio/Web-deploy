@@ -437,30 +437,99 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
     setDeleteConfirmEvent(ev);
   };
 
+  const markContactAttended = async (ev: ContractItem) => {
+    try {
+      const calId = String(ev.id || '').startsWith('cal_') ? String(ev.id).replace(/^cal_/, '') : undefined;
+      const contactId = (ev as any).contactRef || undefined;
+
+      if (contactId) {
+        try {
+          await updateDoc(doc(db, 'contacts', contactId), { attended: true, attendedAt: new Date().toISOString() });
+        } catch (e) {
+          console.error('Error marking contact attended (contacts):', e);
+        }
+      }
+
+      if (calId) {
+        try {
+          await updateDoc(doc(db, 'calendar_events', calId), { attended: true, attendedAt: new Date().toISOString() });
+        } catch (e) {
+          console.error('Error marking contact attended (calendar_events):', e);
+        }
+      }
+
+      await load();
+      setSelectedEvent(null);
+      window.dispatchEvent(new CustomEvent('adminToast', { detail: { message: 'Contacto marcado como atendido', type: 'success' } }));
+      window.dispatchEvent(new CustomEvent('contactsUpdated'));
+      window.dispatchEvent(new CustomEvent('calendarUpdated'));
+    } catch (e) {
+      console.error('Error marking contact attended:', e);
+      window.dispatchEvent(new CustomEvent('adminToast', { detail: { message: 'Error al marcar como atendido', type: 'error' } }));
+    }
+  };
+
   const confirmDelete = async () => {
     if (!deleteConfirmEvent) return;
 
     setIsDeleting(true);
     try {
       const baseId = String(deleteConfirmEvent.id || '').split('__')[0] || deleteConfirmEvent.id;
-      await deleteDoc(doc(db, 'contracts', baseId));
 
-      setEvents(prev => prev.filter(e => {
-        const id = String(e.id || '').split('__')[0];
-        return id !== baseId;
-      }));
+      // If this is a calendar-only event (our synthetic id starts with cal_)
+      if (typeof baseId === 'string' && baseId.startsWith('cal_')) {
+        const realId = baseId.replace(/^cal_/, '');
+        // delete calendar event
+        try {
+          await deleteDoc(doc(db, 'calendar_events', realId));
+        } catch (e) {
+          console.error('Error deleting calendar_event:', e);
+        }
+        // also delete linked contact if present
+        const contactRef = (deleteConfirmEvent as any).contactRef;
+        if (contactRef) {
+          try {
+            await deleteDoc(doc(db, 'contacts', contactRef));
+          } catch (e) {
+            console.error('Error deleting linked contact:', e);
+          }
+        }
 
-      setDeleteConfirmEvent(null);
-      setSelectedEvent(null);
+        setEvents(prev => prev.filter(e => String(e.id || '').replace(/^cal_/, '') !== realId));
 
-      try {
-        window.dispatchEvent(new CustomEvent('contractDeleted', { detail: { contractId: baseId } }));
-        window.dispatchEvent(new CustomEvent('contractsUpdated'));
-      } catch {}
+        setDeleteConfirmEvent(null);
+        setSelectedEvent(null);
 
-      window.dispatchEvent(new CustomEvent('adminToast', {
-        detail: { message: 'Evento eliminado correctamente', type: 'success' }
-      }));
+        window.dispatchEvent(new CustomEvent('adminToast', {
+          detail: { message: 'Evento de contacto eliminado correctamente', type: 'success' }
+        }));
+        window.dispatchEvent(new CustomEvent('contactsUpdated'));
+        window.dispatchEvent(new CustomEvent('calendarUpdated'));
+      } else {
+        // default behaviour: delete contract
+        try {
+          await deleteDoc(doc(db, 'contracts', baseId));
+        } catch (e) {
+          console.error('Error deleting contract:', e);
+        }
+
+        setEvents(prev => prev.filter(e => {
+          const id = String(e.id || '').split('__')[0];
+          return id !== baseId;
+        }));
+
+        setDeleteConfirmEvent(null);
+        setSelectedEvent(null);
+
+        try {
+          window.dispatchEvent(new CustomEvent('contractDeleted', { detail: { contractId: baseId } }));
+          window.dispatchEvent(new CustomEvent('contractsUpdated'));
+        } catch {}
+
+        window.dispatchEvent(new CustomEvent('adminToast', {
+          detail: { message: 'Evento eliminado correctamente', type: 'success' }
+        }));
+      }
     } catch (e) {
       console.error('Error deleting event:', e);
       window.dispatchEvent(new CustomEvent('adminToast', {
