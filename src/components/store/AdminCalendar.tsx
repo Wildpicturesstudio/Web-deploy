@@ -891,6 +891,28 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
               </div>
             )}
 
+            {editingEvent && (
+              <div className={`p-4 rounded-lg border mb-4 ${darkMode ? 'bg-gray-900 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
+                <h3 className={`font-semibold mb-3 ${darkMode ? 'text-white' : 'text-black'}`}>Editar Evento</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <input type="text" placeholder="Nombre" value={editForm.clientName || editingEvent.clientName} onChange={(e) => setEditForm({...editForm, clientName: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+                  <input type="email" placeholder="Email" value={editForm.clientEmail || editingEvent.clientEmail} onChange={(e) => setEditForm({...editForm, clientEmail: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+                  <input type="tel" placeholder="Teléfono" value={editForm.phone || editingEvent.phone || ''} onChange={(e) => setEditForm({...editForm, phone: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+                  <input type="text" placeholder="Tipo de evento" value={editForm.eventType || editingEvent.eventType} onChange={(e) => setEditForm({...editForm, eventType: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+                  <input type="date" placeholder="Fecha evento" value={editForm.eventDate || editingEvent.eventDate} onChange={(e) => setEditForm({...editForm, eventDate: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+                  <input type="time" placeholder="Hora" value={editForm.eventTime || editingEvent.eventTime} onChange={(e) => setEditForm({...editForm, eventTime: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+                  <input type="text" placeholder="Ubicación" value={editForm.eventLocation || editingEvent.eventLocation} onChange={(e) => setEditForm({...editForm, eventLocation: e.target.value})} className={`px-3 py-2 border rounded text-sm md:col-span-2 ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+                  <input type="number" placeholder="Monto total" value={editForm.totalAmount || editingEvent.totalAmount} onChange={(e) => setEditForm({...editForm, totalAmount: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+                  <input type="number" placeholder="Deslocamiento" value={editForm.travelFee || editingEvent.travelFee || ''} onChange={(e) => setEditForm({...editForm, travelFee: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+                  <input type="text" placeholder="Método de pago" value={editForm.paymentMethod || editingEvent.paymentMethod} onChange={(e) => setEditForm({...editForm, paymentMethod: e.target.value})} className={`px-3 py-2 border rounded text-sm md:col-span-2 ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+                </div>
+                <div className="flex gap-2 mt-3">
+                  <button onClick={saveEventChanges} className="flex-1 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors text-sm font-medium">Guardar</button>
+                  <button onClick={() => { setEditingEvent(null); setEditForm({}); }} className={`flex-1 px-4 py-2 border rounded text-sm font-medium transition-colors ${darkMode ? 'border-gray-600 text-gray-400 hover:bg-gray-800' : 'border-gray-300 text-gray-600 hover:bg-gray-100'}`}>Cancelar</button>
+                </div>
+              </div>
+            )}
+
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Nombre:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{selectedEvent.clientName}</span></div>
