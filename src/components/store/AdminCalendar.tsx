@@ -752,7 +752,7 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
                       key={ev.id}
                       className={`w-full text-left p-4 rounded-lg border transition-colors ${darkMode ? 'bg-gray-900 border-gray-700' : 'bg-gray-50 border-gray-200'}`}
                     >
-                      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                      <div className="flex flex-col md:flex-row md:items-center gap-3">
                         <button
                           onClick={() => setSelectedEvent(ev)}
                           className="text-left flex-1 hover:opacity-80 transition-opacity"
@@ -764,17 +764,17 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
                             {ev.eventDate} {ev.eventTime ? `· ${ev.eventTime}` : ''} {ev.eventType ? `· ${ev.eventType}` : ''}
                           </div>
                         </button>
-                        <div className={`text-xs px-2 py-1 rounded whitespace-nowrap self-start md:self-auto ${darkMode ? 'bg-gray-800 text-gray-300' : 'bg-gray-200 text-gray-700'}`}>
+                        <div className={`text-xs px-2 py-1 rounded whitespace-nowrap ${darkMode ? 'bg-gray-800 text-gray-300' : 'bg-gray-200 text-gray-700'}`}>
                           R$ {Number(ev.totalAmount || 0).toFixed(0)}
                         </div>
+                        <button
+                          onClick={() => window.dispatchEvent(new CustomEvent('adminOpenContract', { detail: { id: ev.id } }))}
+                          className="w-full md:w-auto px-4 py-2 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                        >
+                          <ExternalLink size={16} />
+                          Ir al contrato
+                        </button>
                       </div>
-                      <button
-                        onClick={() => window.dispatchEvent(new CustomEvent('adminOpenContract', { detail: { id: ev.id } }))}
-                        className="w-full md:w-auto mt-3 md:mt-0 md:ml-3 px-4 py-2 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
-                      >
-                        <ExternalLink size={16} />
-                        Ir al contrato
-                      </button>
                     </div>
                   ))}
                 </div>
