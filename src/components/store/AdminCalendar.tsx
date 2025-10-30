@@ -682,6 +682,10 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
   };
 
   const isSelectedCalendarContact = selectedEvent && (String(selectedEvent.id || '').startsWith('cal_') || (selectedEvent as any).type === 'contact' || (selectedEvent as any).type === 'Contacto');
+  const selectedEmail = selectedEvent ? (selectedEvent.clientEmail || (selectedEvent as any).email || '') : '';
+  const selectedPhone = selectedEvent ? (selectedEvent.phone || (selectedEvent as any).clientPhone || (selectedEvent as any).phone || '') : '';
+  const selectedPackageTitle = selectedEvent ? ((selectedEvent as any).packageTitle || (selectedEvent as any).packageTitle || '') : '';
+  const selectedNotes = selectedEvent ? ((selectedEvent as any).notes || '') : '';
 
   return (
     <div className={`flex h-full w-full transition-colors relative ${darkMode ? 'bg-black' : 'bg-white'}`}>
