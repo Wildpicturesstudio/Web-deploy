@@ -1076,110 +1076,17 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
+                    strokeWidth={2}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
                     data-loc="src/components/store/AdminCalendar.tsx:1072:226"
-                    $name="AdminCalendar"
-                    css={{
-                      display: "block",
-                      fill: "none",
-                      fontWeight: "400",
-                      height: "20px",
-                      overflowClipMargin: "content-box",
-                      overflowX: "hidden",
-                      overflowY: "hidden",
-                      stroke: "rgb(248, 113, 113)",
-                      strokeLinecap: "round",
-                      strokeLinejoin: "round",
-                      strokeWidth: "2px",
-                      width: "20px",
-                    }}
+                    style={{ display: 'block', height: '20px', width: '20px', stroke: 'rgb(248, 113, 113)' }}
                   >
-                    <path
-                      d="M3 6h18"
-                      data-loc="src/components/store/AdminCalendar.tsx:1072:226"
-                      $name="AdminCalendar"
-                      css={{
-                        display: "inline",
-                        d: 'path("M 3 6 H 21")',
-                        fill: "none",
-                        fontWeight: "400",
-                        stroke: "rgb(248, 113, 113)",
-                        strokeLinecap: "round",
-                        strokeLinejoin: "round",
-                        strokeWidth: "2px",
-                        transformOrigin: "0px 0px",
-                      }}
-                    />
-                    <path
-                      d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"
-                      data-loc="src/components/store/AdminCalendar.tsx:1072:226"
-                      $name="AdminCalendar"
-                      css={{
-                        display: "inline",
-                        d: 'path("M 19 6 V 20 C 19 21 18 22 17 22 H 7 C 6 22 5 21 5 20 V 6")',
-                        fill: "none",
-                        fontWeight: "400",
-                        stroke: "rgb(248, 113, 113)",
-                        strokeLinecap: "round",
-                        strokeLinejoin: "round",
-                        strokeWidth: "2px",
-                        transformOrigin: "0px 0px",
-                      }}
-                    />
-                    <path
-                      d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"
-                      data-loc="src/components/store/AdminCalendar.tsx:1072:226"
-                      $name="AdminCalendar"
-                      css={{
-                        display: "inline",
-                        d: 'path("M 8 6 V 4 C 8 3 9 2 10 2 H 14 C 15 2 16 3 16 4 V 6")',
-                        fill: "none",
-                        fontWeight: "400",
-                        stroke: "rgb(248, 113, 113)",
-                        strokeLinecap: "round",
-                        strokeLinejoin: "round",
-                        strokeWidth: "2px",
-                        transformOrigin: "0px 0px",
-                      }}
-                    />
-                    <line
-                      x1="10"
-                      x2="10"
-                      y1="11"
-                      y2="17"
-                      data-loc="src/components/store/AdminCalendar.tsx:1072:226"
-                      $name="AdminCalendar"
-                      css={{
-                        display: "inline",
-                        fill: "none",
-                        fontWeight: "400",
-                        stroke: "rgb(248, 113, 113)",
-                        strokeLinecap: "round",
-                        strokeLinejoin: "round",
-                        strokeWidth: "2px",
-                        transformOrigin: "0px 0px",
-                      }}
-                    />
-                    <line
-                      x1="14"
-                      x2="14"
-                      y1="11"
-                      y2="17"
-                      data-loc="src/components/store/AdminCalendar.tsx:1072:226"
-                      $name="AdminCalendar"
-                      css={{
-                        display: "inline",
-                        fill: "none",
-                        fontWeight: "400",
-                        stroke: "rgb(248, 113, 113)",
-                        strokeLinecap: "round",
-                        strokeLinejoin: "round",
-                        strokeWidth: "2px",
-                        transformOrigin: "0px 0px",
-                      }}
-                    />
+                    <path d="M3 6h18" data-loc="src/components/store/AdminCalendar.tsx:1072:226" fill="none" stroke="rgb(248, 113, 113)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" data-loc="src/components/store/AdminCalendar.tsx:1072:226" fill="none" stroke="rgb(248, 113, 113)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" data-loc="src/components/store/AdminCalendar.tsx:1072:226" fill="none" stroke="rgb(248, 113, 113)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                    <line x1="10" x2="10" y1="11" y2="17" data-loc="src/components/store/AdminCalendar.tsx:1072:226" stroke="rgb(248, 113, 113)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                    <line x1="14" x2="14" y1="11" y2="17" data-loc="src/components/store/AdminCalendar.tsx:1072:226" stroke="rgb(248, 113, 113)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                   <button onClick={() => setSelectedEvent(null)} className={`text-2xl transition-colors ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-black'}`}>✕</button>
                 </div>
