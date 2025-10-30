@@ -94,6 +94,7 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
   const [deleteConfirmEvent, setDeleteConfirmEvent] = useState<ContractItem | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showRevenue, setShowRevenue] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const load = async () => {
     setLoading(true);
