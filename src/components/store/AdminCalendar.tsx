@@ -90,6 +90,26 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
   const [adding, setAdding] = useState(false);
   const [addForm, setAddForm] = useState<any>({ clientName: '', eventType: '', eventDate: '', eventTime: '', eventLocation: '', paymentMethod: 'pix' });
   const [dressOptions, setDressOptions] = useState<{ id: string; name: string; image: string; color?: string }[]>([]);
+
+  // Load dresses (same logic as ContractsManagement) so we can show selected dresses in event details
+  useEffect(() => {
+    const loadDresses = async () => {
+      try {
+        const snap = await getDocs(collection(db, 'products'));
+        const list = snap.docs
+          .map(d => ({ id: d.id, ...(d.data() as any) }))
+          .filter((p: any) => {
+            const c = String((p as any).category || '').toLowerCase();
+            return c.includes('vestid') || c.includes('dress');
+          })
+          .map((p: any) => ({ id: p.id, name: p.name || 'Vestido', image: p.image_url || p.image || '', color: Array.isArray(p.tags) && p.tags.length ? String(p.tags[0]) : '' }));
+        setDressOptions(list);
+      } catch (e) {
+        setDressOptions([]);
+      }
+    };
+    loadDresses();
+  }, []);
   const [showDailyList, setShowDailyList] = useState<string | null>(null);
   const [expandedDay, setExpandedDay] = useState<string | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<ContractItem | null>(null);
