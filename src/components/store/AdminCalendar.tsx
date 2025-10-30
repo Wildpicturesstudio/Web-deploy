@@ -1289,49 +1289,57 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
                 <div className={`text-lg font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{selectedEvent.clientName} — {selectedEvent.eventType || 'Trabajo'}</div>
                 <div className={`text-xs transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Fecha principal: {selectedEvent.eventDate || '-'} | Hora: {selectedEvent.eventTime || '-'}</div>
               </div>
-              <div className="flex items-center gap-2 justify-between">
-                <div className="flex items-center gap-2">
-                  <button onClick={() => deleteEvent(selectedEvent)} className={`p-2 rounded-full transition-colors ${darkMode ? 'text-red-400 hover:bg-red-900/20' : 'text-red-600 hover:bg-red-100'}`} title="Eliminar evento" />
+              {!isSelectedCalendarContact && (
+                <div className="flex items-center gap-2 justify-between">
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => deleteEvent(selectedEvent)} className={`p-2 rounded-full transition-colors ${darkMode ? 'text-red-400 hover:bg-red-900/20' : 'text-red-600 hover:bg-red-100'}`} title="Eliminar evento" />
+                  </div>
+                  <div className="flex flex-col md:flex-row items-center gap-2">
+                    <button
+                      onClick={() => { setEditingEvent(selectedEvent); setEditForm({}); setAppliedCoupons([]); }}
+                      className="hidden md:flex px-4 py-2 bg-green-600 text-white rounded text-sm font-medium hover:bg-green-700 transition-colors items-center gap-2"
+                      title="Editar evento"
+                    >
+                      <Edit size={16} />
+                      Editar
+                    </button>
+                    <button
+                      onClick={() => window.dispatchEvent(new CustomEvent('adminOpenContract', { detail: { id: selectedEvent.id } }))}
+                      className="hidden md:flex px-4 py-2 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 transition-colors items-center gap-2"
+                      title="Ir al contrato"
+                    >
+                      <ExternalLink size={16} />
+                      Ir al contrato
+                    </button>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      data-loc="src/components/store/AdminCalendar.tsx:1072:226"
+                      style={{ display: 'block', height: '20px', width: '20px', stroke: 'rgb(248, 113, 113)' }}
+                    >
+                      <path d="M3 6h18" data-loc="src/components/store/AdminCalendar.tsx:1072:226" fill="none" stroke="rgb(248, 113, 113)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                      <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" data-loc="src/components/store/AdminCalendar.tsx:1072:226" fill="none" stroke="rgb(248, 113, 113)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" data-loc="src/components/store/AdminCalendar.tsx:1072:226" fill="none" stroke="rgb(248, 113, 113)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                      <line x1="10" x2="10" y1="11" y2="17" data-loc="src/components/store/AdminCalendar.tsx:1072:226" stroke="rgb(248, 113, 113)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                      <line x1="14" x2="14" y1="11" y2="17" data-loc="src/components/store/AdminCalendar.tsx:1072:226" stroke="rgb(248, 113, 113)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    <button onClick={() => setSelectedEvent(null)} className={`text-2xl transition-colors ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-black'}`}>✕</button>
+                  </div>
                 </div>
-                <div className="flex flex-col md:flex-row items-center gap-2">
-                  <button
-                    onClick={() => { setEditingEvent(selectedEvent); setEditForm({}); setAppliedCoupons([]); }}
-                    className="hidden md:flex px-4 py-2 bg-green-600 text-white rounded text-sm font-medium hover:bg-green-700 transition-colors items-center gap-2"
-                    title="Editar evento"
-                  >
-                    <Edit size={16} />
-                    Editar
-                  </button>
-                  <button
-                    onClick={() => window.dispatchEvent(new CustomEvent('adminOpenContract', { detail: { id: selectedEvent.id } }))}
-                    className="hidden md:flex px-4 py-2 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 transition-colors items-center gap-2"
-                    title="Ir al contrato"
-                  >
-                    <ExternalLink size={16} />
-                    Ir al contrato
-                  </button>
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    data-loc="src/components/store/AdminCalendar.tsx:1072:226"
-                    style={{ display: 'block', height: '20px', width: '20px', stroke: 'rgb(248, 113, 113)' }}
-                  >
-                    <path d="M3 6h18" data-loc="src/components/store/AdminCalendar.tsx:1072:226" fill="none" stroke="rgb(248, 113, 113)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" data-loc="src/components/store/AdminCalendar.tsx:1072:226" fill="none" stroke="rgb(248, 113, 113)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" data-loc="src/components/store/AdminCalendar.tsx:1072:226" fill="none" stroke="rgb(248, 113, 113)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-                    <line x1="10" x2="10" y1="11" y2="17" data-loc="src/components/store/AdminCalendar.tsx:1072:226" stroke="rgb(248, 113, 113)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-                    <line x1="14" x2="14" y1="11" y2="17" data-loc="src/components/store/AdminCalendar.tsx:1072:226" stroke="rgb(248, 113, 113)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
+              )}
+              {isSelectedCalendarContact && (
+                <div className="flex items-center gap-2 justify-between">
+                  <div />
                   <button onClick={() => setSelectedEvent(null)} className={`text-2xl transition-colors ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-black'}`}>✕</button>
                 </div>
-              </div>
+              )}
             </div>
             {!editingEvent && (
               <div className="flex md:hidden gap-2 mb-4">
