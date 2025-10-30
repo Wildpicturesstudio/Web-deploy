@@ -1095,7 +1095,7 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
                     <div className="flex justify-between">
                       <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>Descuento total:</span>
                       <span className={`font-medium transition-colors ${darkMode ? 'text-amber-400' : 'text-amber-600'}`}>
-                        -R$ {(Number(editingEvent?.totalAmount || selectedEvent?.totalAmount || 0) - calculateTotalWithDiscount()).toFixed(0)}
+                        -R$ {(Number(editingEvent?.totalAmount || selectedEvent?.totalAmount || addForm.totalAmount || 0) - computeTotalFromBase(Number(editingEvent?.totalAmount || selectedEvent?.totalAmount || addForm.totalAmount || 0))).toFixed(0)}
                       </span>
                     </div>
                     <div className="border-t border-gray-400/20 pt-2 flex justify-between">
