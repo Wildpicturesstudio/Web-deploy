@@ -1181,7 +1181,7 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
                       }}
                     />
                   </svg>
-                  <div className={`text-2xl transition-colors ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-black'}`}>✕</div>
+                  <button onClick={() => setSelectedEvent(null)} className={`text-2xl transition-colors ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-black'}`}>✕</button>
                 </div>
               </div>
             </div>
