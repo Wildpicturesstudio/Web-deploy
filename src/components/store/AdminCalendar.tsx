@@ -1045,7 +1045,20 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
                       </div>
                       {ev.phone && (
                         <div className={`text-sm mt-1 transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                          Tel: {ev.phone}
+                          Tel: {ev.phone || (ev as any).clientPhone || (ev as any).formSnapshot?.phone}
+                        </div>
+                      )}
+
+                      {/* Thumbnails for selected dresses in daily list */}
+                      {Array.isArray((ev as any).formSnapshot?.selectedDresses) && (ev as any).formSnapshot.selectedDresses.length > 0 && (
+                        <div className="flex gap-2 mt-2">
+                          {(ev as any).formSnapshot.selectedDresses.map((id: string) => {
+                            const dress = dressOptions.find(d => d.id === id);
+                            if (!dress || !dress.image) return null;
+                            return (
+                              <img key={id} src={dress.image} alt={dress.name} onClick={(e) => { e.stopPropagation(); openImageModal(dress.image, dress.name); }} className="w-10 h-10 object-cover rounded-lg border cursor-pointer" />
+                            );
+                          })}
                         </div>
                       )}
                     </button>
