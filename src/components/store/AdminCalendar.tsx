@@ -1216,7 +1216,7 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
                           R$ {Number(ev.totalAmount || 0).toFixed(0)}
                         </div>
                         <button
-                          onClick={() => window.dispatchEvent(new CustomEvent('adminOpenContract', { detail: { id: ev.id } }))}
+                          onClick={() => window.dispatchEvent(new CustomEvent('adminOpenContract', { detail: { id: String(ev.id).split('__')[0] } }))}
                           className="w-full md:w-auto px-4 py-2 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
                         >
                           <ExternalLink size={16} />
