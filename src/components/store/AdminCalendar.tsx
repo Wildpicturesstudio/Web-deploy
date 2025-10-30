@@ -90,6 +90,7 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
   const [adding, setAdding] = useState(false);
   const [addForm, setAddForm] = useState<any>({ clientName: '', eventType: '', eventDate: '', eventTime: '', eventLocation: '', paymentMethod: 'pix' });
   const [dressOptions, setDressOptions] = useState<{ id: string; name: string; image: string; color?: string }[]>([]);
+  const [imageModal, setImageModal] = useState<{ open: boolean; src?: string; alt?: string }>({ open: false });
 
   // Load dresses (same logic as ContractsManagement) so we can show selected dresses in event details
   useEffect(() => {
@@ -110,6 +111,9 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
     };
     loadDresses();
   }, []);
+
+  const openImageModal = (src?: string, alt?: string) => setImageModal({ open: true, src, alt });
+  const closeImageModal = () => setImageModal({ open: false });
   const [showDailyList, setShowDailyList] = useState<string | null>(null);
   const [expandedDay, setExpandedDay] = useState<string | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<ContractItem | null>(null);
