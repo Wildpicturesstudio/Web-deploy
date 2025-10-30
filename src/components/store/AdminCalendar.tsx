@@ -1330,7 +1330,26 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
                 <div className={`text-lg font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{selectedEvent.clientName}</div>
                 <div className={`text-xs transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{(selectedEvent as any).type === 'contact' ? 'Contacto' : (selectedEvent.eventType || '')}</div>
               </div>
-              <button onClick={() => setSelectedEvent(null)} className={`text-2xl transition-colors ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-black'}`}>✕</button>
+              <div className="flex items-center gap-2">
+                <button onClick={() => {
+                  // prepare contact form for editing
+                  const calId = String(selectedEvent.id || '').startsWith('cal_') ? String(selectedEvent.id).replace(/^cal_/, '') : undefined;
+                  const contactId = (selectedEvent as any).contactRef || undefined;
+                  setEditingContactIds({ contactId, calendarEventId: calId });
+                  setContactForm({
+                    name: selectedEvent.clientName || '',
+                    email: selectedEvent.clientEmail || (selectedEvent as any).email || '',
+                    phone: selectedEvent.phone || (selectedEvent as any).phone || '',
+                    packageId: (selectedEvent as any).packageId || (selectedEvent as any).packageId || '',
+                    notes: (selectedEvent as any).notes || '',
+                    eventDate: selectedEvent.eventDate || '',
+                    eventTime: selectedEvent.eventTime || ''
+                  });
+                  setShowAddContactModal(true);
+                  setSelectedEvent(null);
+                }} className="px-3 py-1 rounded bg-yellow-500 text-white text-sm">Editar</button>
+                <button onClick={() => setSelectedEvent(null)} className={`text-2xl transition-colors ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-black'}`}>✕</button>
+              </div>
             </div>
 
             <div className="space-y-3 text-sm">
