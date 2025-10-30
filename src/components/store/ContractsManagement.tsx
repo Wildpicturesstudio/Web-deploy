@@ -732,7 +732,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
             <option value="pending">Filtrar por - Pendiente de Aprobación</option>
           </select>
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar..." className="px-3 py-2 border rounded-none text-sm flex-1" />
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 sm:justify-start justify-end sm:gap-1">
             <button onClick={()=> setCreating(true)} className="border-2 border-black bg-black text-white px-2 py-1 rounded-none hover:opacity-90 inline-flex items-center justify-center gap-1 text-xs"><Plus size={12}/> <span>Nuevo</span></button>
             <button onClick={async ()=> {
             const names = ['María García', 'Juan López', 'Ana Martínez', 'Carlos Rodríguez', 'Sofia Hernández', 'Pablo Torres', 'Laura Sánchez', 'Miguel Ángel'];
@@ -1007,7 +1007,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
                           <p>2.1. Realizar o pagamento conforme estipulado: 20% do valor total como sinal de reserva e o restante no dia do evento.</p>
                           <p>2.2. Fornecer todas as informações necessárias sobre o evento (horários, locais, pessoas importantes).</p>
                           <p>2.3. Garantir acesso aos locais do evento e cooperação das pessoas envolvidas.</p>
-                          <p>2.4. Comunicar qualquer alteração com antecedência mínima de 48 horas.</p>
+                          <p>2.4. Comunicar qualquer altera��ão com antecedência mínima de 48 horas.</p>
                         </div>
                       </section>
                       <section>
