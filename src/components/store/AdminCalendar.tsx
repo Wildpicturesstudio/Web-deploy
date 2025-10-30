@@ -1,11 +1,13 @@
 import { useState, useMemo, useEffect } from 'react';
 import { db } from '../../utils/firebaseClient';
 import { addDoc, collection, doc, getDocs, orderBy, query, updateDoc, deleteDoc } from 'firebase/firestore';
-import { ChevronLeft, ChevronRight, Plus, X, ExternalLink, MapPin, Phone, Calendar as IconCalendar, Clock, DollarSign, FileText, Download, Printer, RefreshCw, Trash2, Eye, EyeOff, Edit } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, X, ExternalLink, MapPin, Phone, Calendar as IconCalendar, Clock, DollarSign, FileText, Download, Printer, RefreshCw, Trash2, Eye, EyeOff, Edit, Percent } from 'lucide-react';
 import { parseDurationToMinutes } from '../../utils/calendar';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { WorkflowStatusButtons } from './WorkflowStatusButtons';
+import { fetchPackages, DBPackage } from '../../utils/packagesService';
+import { fetchCoupons, DBCoupon, isCouponActiveNow } from '../../utils/couponsService';
 
 interface ContractItem {
   id: string;
@@ -97,6 +99,10 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showRevenue, setShowRevenue] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [packages, setPackages] = useState<DBPackage[]>([]);
+  const [coupons, setCoupons] = useState<DBCoupon[]>([]);
+  const [appliedCoupons, setAppliedCoupons] = useState<string[]>([]);
+  const [showCouponModal, setShowCouponModal] = useState(false);
 
   const load = async () => {
     setLoading(true);
