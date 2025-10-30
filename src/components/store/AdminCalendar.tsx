@@ -1341,7 +1341,7 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
                 </div>
               )}
             </div>
-            {!editingEvent && (
+            {!editingEvent && !isSelectedCalendarContact && (
               <div className="flex md:hidden gap-2 mb-4">
                 <button
                   onClick={() => { setEditingEvent(selectedEvent); setEditForm({}); setAppliedCoupons([]); }}
