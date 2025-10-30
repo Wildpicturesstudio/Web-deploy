@@ -1087,7 +1087,7 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
                 <div className="flex justify-between">
                   <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>Monto original:</span>
                   <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>
-                    R$ {Number(editingEvent?.totalAmount || selectedEvent?.totalAmount || 0).toFixed(0)}
+                    R$ {Number(editingEvent?.totalAmount || selectedEvent?.totalAmount || addForm.totalAmount || 0).toFixed(0)}
                   </span>
                 </div>
                 {appliedCoupons.length > 0 && (
