@@ -822,7 +822,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
         <div className="divide-y overflow-y-auto" style={{ height: 'calc(100vh - 16px)', marginBottom: '16px' }}>
           {filtered.map((c: ContractItem) => {
             return (
-              <div key={c.id} className="hidden md:grid grid-cols-12 p-2 md:p-3 items-center hover:bg-gray-50 hover:text-black cursor-pointer border-b text-xs md:text-sm transition-colors admin-contract-row" onClick={() => openView(c)}>
+              <div key={c.id} className="hidden md:grid grid-cols-12 p-1.5 items-center hover:bg-gray-50 hover:text-black cursor-pointer border-b text-xs md:text-sm transition-colors admin-contract-row" onClick={() => openView(c)}>
                 <div className="col-span-2 text-sm">{c.eventDate || '-'}</div>
                 <div className="col-span-3 lowercase first-letter:uppercase flex items-center gap-2">{c.clientName || 'Trabajo'}{c.isNew && <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-green-600 text-white text-xs font-semibold">Nuevo</span>}</div>
                 <div className="col-span-2 text-sm">{((c as any).clientPhone || (c as any).phone || (c as any).client_phone || (c as any).formSnapshot?.phone || '') || '-'}</div>
@@ -1037,7 +1037,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
                         </div>
                       </section>
                       <section>
-                        <h3 className="text-base font-medium text-primary mb-2">CLÁUSULA 5ª – DAS DISPOSIÇÕES GERAIS</h3>
+                        <h3 className="text-base font-medium text-primary mb-2">CLÁUSULA 5ª ��� DAS DISPOSIÇÕES GERAIS</h3>
                         <div className="space-y-2">
                           <p>5.1. Este contrato é regido pelas leis brasileiras.</p>
                           <p>5.2. Eventuais conflitos serão resolvidos preferencialmente por mediação.</p>
@@ -1756,7 +1756,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
                 <div>
                   <label className="text-xs text-gray-600">Tipo de servicio</label>
                   <select value={createForm.customPackageType || ''} onChange={(e)=> setCreateForm((f:any)=> ({ ...f, customPackageType: e.target.value }))} className="w-full px-3 py-2 border rounded-none">
-                    <option value="">— Selecciona tipo —</option>
+                    <option value="">��� Selecciona tipo —</option>
                     <option value="foto">Fotos</option>
                     <option value="video">Video</option>
                     <option value="foto_video">Fotos + Video</option>
