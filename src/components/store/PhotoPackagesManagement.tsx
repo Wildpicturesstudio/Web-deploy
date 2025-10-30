@@ -207,7 +207,7 @@ const PhotoPackagesManagement = () => {
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-6 px-6">
             {grouped[type].map((p: DBPackage) => (
               <div key={p.id} className="bg-white rounded-lg border border-gray-200 overflow-hidden aspect-square flex flex-col">
-                <div className="relative flex-shrink-0 h-1/2">
+                <div className="relative flex-shrink-0 h-1/3">
                   <img loading="lazy" src={p.image_url} alt={p.title} className="w-full h-full object-cover" data-pkg-id={p.id} />
                   {(p as any).active === false && (
                     <span className="absolute top-1 left-1 text-xs px-1.5 py-0.5 rounded bg-gray-200 text-gray-700">inactivo</span>
@@ -220,19 +220,6 @@ const PhotoPackagesManagement = () => {
                       <span className="text-primary font-bold text-xs flex-shrink-0">R$ {Number(p.price).toFixed(0)}</span>
                     </div>
                     <p className="text-gray-600 text-xs mt-0.5 line-clamp-1">{p.description}</p>
-
-                    {(p as any).storeItemsIncluded && Array.isArray((p as any).storeItemsIncluded) && (p as any).storeItemsIncluded.length > 0 && (
-                      <div className="mt-1 p-1.5 bg-gray-50 rounded border border-gray-200 overflow-hidden">
-                        <div className="text-xs text-gray-600 mb-1">Prod.</div>
-                        <ul className="grid grid-cols-1 gap-0.5 text-xs overflow-y-auto max-h-12">
-                          {(p as any).storeItemsIncluded.map((it: any, idx: number) => (
-                            <li key={idx} className="text-xs text-gray-800 line-clamp-1">
-                              {(() => { const isPkg = String(it.productId).startsWith('pkg:'); const pkgName = isPkg ? (packages.find((pk: DBPackage) => `pkg:${pk.id}` === String(it.productId))?.title) : undefined; const baseName = pkgName || storeProducts[it.productId]?.name || String(it.productId); return (<span>{`${baseName}${it.variantName ? ` — ${it.variantName}` : ''}`}</span>); })()}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
                   </div>
 
                   <div className="flex items-center gap-1">
