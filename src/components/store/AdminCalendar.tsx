@@ -145,7 +145,41 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
         }
         return [c];
       });
-      setEvents(expanded);
+
+      // load calendar-only events (like contact follow-ups)
+      const calendarEventsCol = collection(db, 'calendar_events');
+      let calendarList: ContractItem[] = [];
+      try {
+        const csnap = await getDocs(calendarEventsCol);
+        calendarList = csnap.docs.map(d => {
+          const data: any = d.data();
+          return {
+            id: `cal_${d.id}`,
+            clientName: data.name || data.title || 'Contacto',
+            clientEmail: data.email || '',
+            phone: data.phone || '',
+            eventDate: data.eventDate || '',
+            eventTime: data.eventTime || '',
+            eventLocation: data.eventLocation || '',
+            eventType: data.type || 'Contacto',
+            packageTitle: data.packageTitle || '',
+            notes: data.notes || '',
+            createdAt: data.createdAt || ''
+          } as ContractItem;
+        });
+      } catch (e) {
+        calendarList = [];
+      }
+
+      const combined = [...expanded, ...calendarList];
+      // sort by createdAt desc if available
+      combined.sort((a: any, b: any) => {
+        const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return tb - ta;
+      });
+
+      setEvents(combined);
     } catch (e) {
       console.error('Error loading contracts:', e);
     } finally {
