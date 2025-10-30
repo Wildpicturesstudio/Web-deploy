@@ -864,7 +864,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
         </div>
 
         {/* Mobile view - Card layout */}
-        <div className="md:hidden space-y-2">
+        <div className="md:hidden space-y-2" style={{ maxHeight: 'calc(100vh - 16px)', marginBottom: '16px', overflowY: 'auto' }}>
           {filtered.map((c: ContractItem) => (
             <div key={c.id} className="p-3 border-b hover:bg-gray-50 hover:text-black cursor-pointer space-y-2 transition-colors admin-contract-row" onClick={() => openView(c)}>
               <div className="flex justify-between items-start gap-2">
