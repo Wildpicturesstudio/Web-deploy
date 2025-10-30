@@ -748,25 +748,34 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
               return filtered.length > 0 ? (
                 <div className="space-y-2">
                   {filtered.map((ev, idx) => (
-                    <button
+                    <div
                       key={ev.id}
-                      onClick={() => setSelectedEvent(ev)}
-                      className={`w-full text-left p-4 rounded-lg border transition-colors cursor-pointer hover:shadow-md ${darkMode ? 'bg-gray-900 border-gray-700 hover:bg-gray-800' : 'bg-gray-50 border-gray-200 hover:bg-gray-100'}`}
+                      className={`w-full text-left p-4 rounded-lg border transition-colors ${darkMode ? 'bg-gray-900 border-gray-700' : 'bg-gray-50 border-gray-200'}`}
                     >
-                      <div className="flex items-center justify-between gap-2">
-                        <div>
+                      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                        <button
+                          onClick={() => setSelectedEvent(ev)}
+                          className="text-left flex-1 hover:opacity-80 transition-opacity"
+                        >
                           <div className={`font-semibold transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>
                             {idx + 1}. {ev.clientName || 'Evento sin nombre'}
                           </div>
                           <div className={`text-sm mt-1 transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                             {ev.eventDate} {ev.eventTime ? `· ${ev.eventTime}` : ''} {ev.eventType ? `· ${ev.eventType}` : ''}
                           </div>
-                        </div>
-                        <div className={`text-xs px-2 py-1 rounded whitespace-nowrap ${darkMode ? 'bg-gray-800 text-gray-300' : 'bg-gray-200 text-gray-700'}`}>
+                        </button>
+                        <div className={`text-xs px-2 py-1 rounded whitespace-nowrap self-start md:self-auto ${darkMode ? 'bg-gray-800 text-gray-300' : 'bg-gray-200 text-gray-700'}`}>
                           R$ {Number(ev.totalAmount || 0).toFixed(0)}
                         </div>
                       </div>
-                    </button>
+                      <button
+                        onClick={() => window.dispatchEvent(new CustomEvent('adminOpenContract', { detail: { id: ev.id } }))}
+                        className="w-full md:w-auto mt-3 md:mt-0 md:ml-3 px-4 py-2 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                      >
+                        <ExternalLink size={16} />
+                        Ir al contrato
+                      </button>
+                    </div>
                   ))}
                 </div>
               ) : (
