@@ -298,10 +298,10 @@ const AdminStorePage: React.FC = () => {
                 <button onClick={() => { if (productFilter==='dresses') { setEditingDress(null); setDressEditorOpen(true); } else { setEditingProduct(null); setEditorOpen(true); } }} className="px-4 py-2 border-2 border-black text-black rounded-none hover:bg-black hover:text-white flex items-center gap-2">+ Nuevo</button>
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-6 gap-2">
               {getFiltered().map(product => (
-                <div key={product.id} className="bg-white rounded-lg border border-gray-200 overflow-hidden aspect-square flex flex-col">
-                  <div className="relative flex-shrink-0 h-1/2">
+                <div key={product.id} className="bg-white rounded border border-gray-200 overflow-hidden aspect-square flex flex-col">
+                  <div className="relative flex-shrink-0 h-1/3">
                     <img loading="lazy" src={safeImageSrc(product.image_url)} alt={product.name} className="w-full h-full object-cover" />
                     {(product as any).active === false && (
                       <span className="absolute top-1 left-1 text-xs px-1.5 py-0.5 rounded bg-gray-200 text-gray-700">inactivo</span>
@@ -391,7 +391,7 @@ const AdminStorePage: React.FC = () => {
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
                   {getFiltered().map(product => (
                     <div key={product.id} className="bg-white rounded border border-gray-200 overflow-hidden aspect-square flex flex-col">
-                      <div className="relative flex-shrink-0 h-2/5">
+                      <div className="relative flex-shrink-0 h-1/3">
                         <img loading="lazy" src={safeImageSrc(product.image_url)} alt={product.name} className="w-full h-full object-cover" />
                         {(product as any).active === false && (
                           <span className="absolute top-1 left-1 text-xs px-1.5 py-0.5 rounded bg-gray-200 text-gray-700">inactivo</span>
