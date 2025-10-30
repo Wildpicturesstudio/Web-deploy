@@ -681,6 +681,8 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
     }
   };
 
+  const isSelectedCalendarContact = selectedEvent && (String(selectedEvent.id || '').startsWith('cal_') || (selectedEvent as any).type === 'contact' || (selectedEvent as any).type === 'Contacto');
+
   return (
     <div className={`flex h-full w-full transition-colors relative ${darkMode ? 'bg-black' : 'bg-white'}`}>
       {/* Mobile Overlay */}
@@ -1406,7 +1408,7 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
                   <div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Hora:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{selectedEvent.eventTime || '-'}</span></div>
                   <div className="col-span-2"><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Ubicación:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{selectedEvent.eventLocation || '-'}</span></div>
                   <div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Paquete:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{(selectedEvent as any).packageTitle || '-'}</span></div>
-                  <div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Duración:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{selectedEvent.packageDuration || '-'}</span></div>
+                  <div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Duraci��n:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{selectedEvent.packageDuration || '-'}</span></div>
                 </div>
               </div>
 
