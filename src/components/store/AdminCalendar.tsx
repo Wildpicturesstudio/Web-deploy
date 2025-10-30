@@ -1157,7 +1157,7 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
         <div className={`fixed inset-0 z-[53] flex items-center justify-center p-4 transition-colors ${darkMode ? 'bg-black/70' : 'bg-black/50'}`} onClick={() => setShowAddContactModal(false)}>
           <div className={`rounded-xl w-full max-w-md p-6 transition-colors ${darkMode ? 'bg-black border border-gray-800' : 'bg-white border border-gray-200'}`} onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className={`text-lg font-bold transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>Crear Contacto</h3>
+              <h3 className={`text-lg font-bold transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{editingContactIds && editingContactIds.contactId ? 'Editar Contacto' : 'Crear Contacto'}</h3>
               <button onClick={() => setShowAddContactModal(false)} className={`p-1 rounded transition-colors ${darkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-100'}`}>✕</button>
             </div>
             <div className="grid grid-cols-1 gap-3">
