@@ -1058,6 +1058,10 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
             <div className="grid grid-cols-1 gap-3">
               <input type="text" placeholder="Nombre" value={contactForm.name} onChange={(e)=> setContactForm({...contactForm, name: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
               <input type="tel" placeholder="Teléfono" value={contactForm.phone} onChange={(e)=> setContactForm({...contactForm, phone: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+              <div className="grid grid-cols-2 gap-2">
+                <input type="date" value={contactForm.eventDate || ''} onChange={(e)=> setContactForm({...contactForm, eventDate: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`}/>
+                <input type="time" value={contactForm.eventTime || ''} onChange={(e)=> setContactForm({...contactForm, eventTime: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`}/>
+              </div>
               <select value={contactForm.packageId || ''} onChange={(e)=> setContactForm({...contactForm, packageId: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`}>
                 <option value="">Paquete de interés</option>
                 {packages.map(pkg => (<option key={pkg.id} value={pkg.id}>{pkg.title}</option>))}
