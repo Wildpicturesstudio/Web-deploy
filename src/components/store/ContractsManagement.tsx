@@ -361,6 +361,8 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
         return c.eventCompleted === true;
       } else if (contractsTab === 'new') {
         return c.isNew === true;
+      } else if (contractsTab === 'completed_events') {
+        return c.eventCompleted !== true && isPast(c);
       } else if (contractsTab === 'events') {
         return c.eventCompleted !== true && !isPast(c);
       }
