@@ -418,8 +418,19 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
   };
 
   return (
-    <div className={`flex h-full w-full transition-colors ${darkMode ? 'bg-black' : 'bg-white'}`}>
-      <div className={`w-64 border-r p-4 flex flex-col overflow-y-auto flex-shrink-0 transition-colors ${darkMode ? 'bg-black border-gray-800' : 'bg-white border-gray-200'}`}>
+    <div className={`flex h-full w-full transition-colors relative ${darkMode ? 'bg-black' : 'bg-white'}`}>
+      {/* Mobile Overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-10 bg-black/50 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Left Sidebar */}
+      <div className={`fixed md:static md:w-64 h-full z-20 border-r p-4 flex flex-col overflow-y-auto flex-shrink-0 transition-all duration-300 transform ${
+        sidebarOpen ? 'translate-x-0' : 'max-md:-translate-x-full'
+      } w-64 ${darkMode ? 'bg-black border-gray-800' : 'bg-white border-gray-200'}`}>
         <div className="mb-6">
           <div className="flex items-center justify-between gap-2 mb-3">
             <button onClick={prevMonth} className={`p-2 rounded-full transition-colors flex-shrink-0 ${darkMode ? 'text-gray-400 hover:text-white hover:bg-gray-800' : 'text-gray-600 hover:text-black hover:bg-gray-200'}`}><ChevronLeft size={16}/></button>
