@@ -534,11 +534,13 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
         name: contactForm.name || 'Sin nombre',
         email: contactForm.email || '',
         phone: contactForm.phone || '',
+        packageId: contactForm.packageId || null,
+        notes: contactForm.notes || '',
         createdAt: new Date().toISOString(),
       };
       await addDoc(collection(db, 'contacts'), payload);
       setShowAddContactModal(false);
-      setContactForm({ name: '', email: '', phone: '' });
+      setContactForm({ name: '', email: '', phone: '', packageId: '', notes: '' });
       window.dispatchEvent(new CustomEvent('adminToast', { detail: { message: 'Contacto creado correctamente', type: 'success' } }));
     } catch (e) {
       console.error('Error creating contact:', e);
