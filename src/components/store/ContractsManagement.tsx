@@ -716,11 +716,12 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
 
   const counts = useMemo(() => {
     const events = contracts.filter((c: ContractItem) => c.eventCompleted !== true && !isPast(c)).length;
+    const completedEvents = contracts.filter((c: ContractItem) => c.eventCompleted !== true && isPast(c)).length;
     const finished = contracts.filter((c: ContractItem) => c.eventCompleted === true).length;
     const pending = contracts.filter((c: ContractItem) => String((c as any).status || '') === 'pending_approval').length;
     const newContracts = contracts.filter((c: ContractItem) => c.isNew === true).length;
-    const total = events + finished;
-    return { events, finished, pending, total, newContracts };
+    const total = events + completedEvents + finished;
+    return { events, completedEvents, finished, pending, total, newContracts };
   }, [contracts]);
 
   return (
