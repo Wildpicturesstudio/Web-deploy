@@ -573,36 +573,72 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
         notes: contactForm.notes || '',
         createdAt: new Date().toISOString(),
       };
-      const contactRef = await addDoc(collection(db, 'contacts'), payload);
 
-      // if a date/time was provided, create a calendar-only event (not a contract)
-      if (contactForm.eventDate) {
+      // If editing an existing contact, update instead of creating
+      if (editingContactIds && editingContactIds.contactId) {
         try {
-          const calPayload: any = {
-            name: contactForm.name || 'Contacto',
-            email: contactForm.email || '',
-            phone: contactForm.phone || '',
-            packageId: contactForm.packageId || null,
-            packageTitle: packages.find(p=>p.id===contactForm.packageId)?.title || '',
-            notes: contactForm.notes || '',
-            eventDate: contactForm.eventDate,
-            eventTime: contactForm.eventTime || '00:00',
-            eventLocation: '',
-            type: 'contact',
-            contactRef: contactRef.id,
-            createdAt: new Date().toISOString(),
-          };
-          await addDoc(collection(db, 'calendar_events'), calPayload);
-          // reload events so the calendar shows the new calendar-only event
-          await load();
+          await updateDoc(doc(db, 'contacts', editingContactIds.contactId), payload);
         } catch (e) {
-          console.error('Error creating calendar event for contact:', e);
+          console.error('Error updating contact:', e);
+        }
+
+        // Update calendar event if exists
+        if (editingContactIds.calendarEventId) {
+          try {
+            const calPayload: any = {
+              name: contactForm.name || 'Contacto',
+              email: contactForm.email || '',
+              phone: contactForm.phone || '',
+              packageId: contactForm.packageId || null,
+              packageTitle: packages.find(p=>p.id===contactForm.packageId)?.title || '',
+              notes: contactForm.notes || '',
+              eventDate: contactForm.eventDate || '',
+              eventTime: contactForm.eventTime || '00:00',
+              eventLocation: '',
+              type: 'contact',
+              contactRef: editingContactIds.contactId,
+              createdAt: new Date().toISOString(),
+            };
+            await updateDoc(doc(db, 'calendar_events', editingContactIds.calendarEventId), calPayload);
+            await load();
+          } catch (e) {
+            console.error('Error updating calendar event for contact:', e);
+          }
+        }
+
+        setEditingContactIds(null);
+      } else {
+        const contactRef = await addDoc(collection(db, 'contacts'), payload);
+
+        // if a date/time was provided, create a calendar-only event (not a contract)
+        if (contactForm.eventDate) {
+          try {
+            const calPayload: any = {
+              name: contactForm.name || 'Contacto',
+              email: contactForm.email || '',
+              phone: contactForm.phone || '',
+              packageId: contactForm.packageId || null,
+              packageTitle: packages.find(p=>p.id===contactForm.packageId)?.title || '',
+              notes: contactForm.notes || '',
+              eventDate: contactForm.eventDate,
+              eventTime: contactForm.eventTime || '00:00',
+              eventLocation: '',
+              type: 'contact',
+              contactRef: contactRef.id,
+              createdAt: new Date().toISOString(),
+            };
+            await addDoc(collection(db, 'calendar_events'), calPayload);
+            // reload events so the calendar shows the new calendar-only event
+            await load();
+          } catch (e) {
+            console.error('Error creating calendar event for contact:', e);
+          }
         }
       }
 
       setShowAddContactModal(false);
       setContactForm({ name: '', email: '', phone: '', packageId: '', notes: '', eventDate: '', eventTime: '' });
-      window.dispatchEvent(new CustomEvent('adminToast', { detail: { message: 'Contacto creado correctamente', type: 'success' } }));
+      window.dispatchEvent(new CustomEvent('adminToast', { detail: { message: editingContactIds ? 'Contacto actualizado correctamente' : 'Contacto creado correctamente', type: 'success' } }));
       window.dispatchEvent(new CustomEvent('contactsUpdated'));
       window.dispatchEvent(new CustomEvent('calendarUpdated'));
     } catch (e) {
