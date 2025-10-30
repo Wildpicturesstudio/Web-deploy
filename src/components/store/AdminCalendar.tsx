@@ -1019,6 +1019,11 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
                       <div className={`text-sm mt-1 transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                         {ev.eventLocation || ''}
                       </div>
+                      {ev.phone && (
+                        <div className={`text-sm mt-1 transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                          Tel: {ev.phone}
+                        </div>
+                      )}
                     </button>
                   </div>
                   <button
