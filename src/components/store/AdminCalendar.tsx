@@ -515,7 +515,7 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
               }
               setCurrent(c => { const y = c.m === 0 ? c.y - 1 : c.y; const m = c.m === 0 ? 11 : c.m - 1; return { y, m }; });
             }} className={`p-2 rounded-full transition-colors flex-shrink-0 ${darkMode ? 'text-gray-400 hover:text-white hover:bg-gray-800' : 'text-gray-600 hover:text-black hover:bg-gray-200'}`}><ChevronLeft size={18}/></button>
-            <div className={`text-lg md:text-lg text-base font-semibold transition-colors whitespace-nowrap ${darkMode ? 'text-white' : 'text-black'}`}>
+            <div className={`text-base md:text-lg font-semibold transition-colors whitespace-nowrap ${darkMode ? 'text-white' : 'text-black'}`}>
               {new Date(filterYear, filterMonth, 1).toLocaleString('es', { month: 'long', year: 'numeric' })}
             </div>
             <button onClick={() => {
