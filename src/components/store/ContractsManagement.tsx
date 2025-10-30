@@ -723,41 +723,17 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
-          <div className="inline-flex border rounded overflow-visible flex-wrap sm:flex-nowrap gap-0.5">
-            <button onClick={()=> setContractsTab('events')} className={`px-3 py-1 text-sm ${contractsTab==='events' ? 'bg-black text-white' : ''}`}>Eventos futuros</button>
-            <button onClick={()=> setContractsTab('finished')} className={`px-3 py-1 text-sm ${contractsTab==='finished' ? 'bg-black text-white' : ''}`}>Finalizados</button>
-            <div className="relative">
-              <button onClick={()=> setContractsTab('new')} className={`px-3 py-1 text-sm ${contractsTab==='new' ? 'bg-black text-white' : ''}`}>
-                Nuevos
-              </button>
-              {contracts.filter((c: ContractItem) => c.isNew === true).length > 0 && (
-                <span className={`absolute -top-3 -right-3 w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center ${
-                  contractsTab === 'new' ? 'bg-white text-black' : 'bg-red-600 text-white'
-                }`}>
-                  {contracts.filter((c: ContractItem) => c.isNew === true).length}
-                </span>
-              )}
-            </div>
-            <div className="relative">
-              <button onClick={()=> setContractsTab('pending')} className={`px-3 py-1 text-sm ${contractsTab==='pending' ? 'bg-black text-white' : ''}`}>
-                Pendiente de Aprobacion
-              </button>
-              {contracts.filter((c: ContractItem) => String((c as any).status || '') === 'pending_approval').length > 0 && (
-                <span className={`absolute -top-3 -right-3 w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center ${
-                  contractsTab === 'pending' ? 'bg-white text-black' : 'bg-red-600 text-white'
-                }`}>
-                  {contracts.filter((c: ContractItem) => String((c as any).status || '') === 'pending_approval').length}
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
+      <div className="flex flex-col gap-3">
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full">
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar..." className="px-3 py-2 border rounded-none text-sm flex-1 sm:flex-initial" />
-          <div className="flex items-center gap-1 w-2/3 sm:w-auto">
-            <button onClick={()=> setCreating(true)} className="border-2 border-black bg-black text-white px-2 py-1 rounded-none hover:opacity-90 inline-flex items-center justify-center gap-1 text-xs flex-1 sm:flex-initial"><Plus size={12}/> <span>Nuevo</span></button>
+          <select value={contractsTab} onChange={(e) => setContractsTab(e.target.value as any)} className="px-3 py-2 border rounded-none text-sm bg-white">
+            <option value="events">Filtrar por - Eventos futuros</option>
+            <option value="finished">Filtrar por - Finalizados</option>
+            <option value="new">Filtrar por - Nuevos</option>
+            <option value="pending">Filtrar por - Pendiente de Aprobación</option>
+          </select>
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar..." className="px-3 py-2 border rounded-none text-sm flex-1" />
+          <div className="flex items-center gap-1">
+            <button onClick={()=> setCreating(true)} className="border-2 border-black bg-black text-white px-2 py-1 rounded-none hover:opacity-90 inline-flex items-center justify-center gap-1 text-xs"><Plus size={12}/> <span>Nuevo</span></button>
             <button onClick={async ()=> {
             const names = ['María García', 'Juan López', 'Ana Martínez', 'Carlos Rodríguez', 'Sofia Hernández', 'Pablo Torres', 'Laura Sánchez', 'Miguel Ángel'];
             const eventTypes = ['Matrimonio', 'Cumpleaños', 'Sesión de Fotos', 'Evento Corporativo', 'Quinceañera'];
