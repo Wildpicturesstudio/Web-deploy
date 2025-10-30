@@ -730,6 +730,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full">
           <select value={contractsTab} onChange={(e) => setContractsTab(e.target.value as any)} className="px-3 py-2 border rounded-none text-sm bg-white">
             <option value="events">Filtrar por - Eventos futuros</option>
+            <option value="completed_events">Filtrar por - Por completar</option>
             <option value="finished">Filtrar por - Finalizados</option>
             <option value="new">Filtrar por - Nuevos</option>
             <option value="pending">Filtrar por - Pendiente de Aprobación</option>
