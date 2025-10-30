@@ -298,7 +298,7 @@ const AdminStorePage: React.FC = () => {
                 <button onClick={() => { if (productFilter==='dresses') { setEditingDress(null); setDressEditorOpen(true); } else { setEditingProduct(null); setEditorOpen(true); } }} className="px-4 py-2 border-2 border-black text-black rounded-none hover:bg-black hover:text-white flex items-center gap-2">+ Nuevo</button>
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-5 lg:grid-cols-8 gap-2">
               {getFiltered().map(product => (
                 <div key={product.id} className="bg-white rounded border border-gray-200 overflow-hidden aspect-square flex flex-col">
                   <div className="relative flex-shrink-0 h-1/3">
@@ -388,7 +388,7 @@ const AdminStorePage: React.FC = () => {
                     <button onClick={() => { if (productFilter==='dresses') { setEditingDress(null); setDressEditorOpen(true); } else { setEditingProduct(null); setEditorOpen(true); } }} className="px-4 py-2 border-2 border-black text-black rounded-none hover:bg-black hover:text-white flex items-center gap-2">+ Nuevo</button>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-5 lg:grid-cols-8 gap-2">
                   {getFiltered().map(product => (
                     <div key={product.id} className="bg-white rounded border border-gray-200 overflow-hidden aspect-square flex flex-col">
                       <div className="relative flex-shrink-0 h-1/3">
