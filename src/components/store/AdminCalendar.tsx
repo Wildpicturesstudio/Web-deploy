@@ -106,6 +106,11 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
   const [appliedCoupons, setAppliedCoupons] = useState<string[]>([]);
   const [showCouponModal, setShowCouponModal] = useState(false);
 
+  // Add / Create flow states
+  const [showAddEventModal, setShowAddEventModal] = useState(false);
+  const [showAddContactModal, setShowAddContactModal] = useState(false);
+  const [contactForm, setContactForm] = useState<{ name: string; email: string; phone: string }>({ name: '', email: '', phone: '' });
+
   const load = async () => {
     setLoading(true);
     try {
