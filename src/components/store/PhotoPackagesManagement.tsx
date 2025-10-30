@@ -204,7 +204,7 @@ const PhotoPackagesManagement = () => {
       {(['portrait','maternity','events'] as const).map((type) => (
         <div key={type} className="mb-8">
           <h3 className="text-lg font-semibold mb-3 capitalize">{type === 'portrait' ? 'Retratos' : type === 'maternity' ? 'Gestantes' : 'Eventos'}</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-6 px-6">
             {grouped[type].map((p: DBPackage) => (
               <div key={p.id} className="bg-white rounded-lg border border-gray-200 overflow-hidden aspect-square flex flex-col">
                 <div className="relative flex-shrink-0 h-1/2">
