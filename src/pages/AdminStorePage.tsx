@@ -388,31 +388,31 @@ const AdminStorePage: React.FC = () => {
                     <button onClick={() => { if (productFilter==='dresses') { setEditingDress(null); setDressEditorOpen(true); } else { setEditingProduct(null); setEditorOpen(true); } }} className="px-4 py-2 border-2 border-black text-black rounded-none hover:bg-black hover:text-white flex items-center gap-2">+ Nuevo</button>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
                   {getFiltered().map(product => (
-                    <div key={product.id} className="bg-white rounded-lg border border-gray-200 overflow-hidden aspect-square flex flex-col">
-                      <div className="relative flex-shrink-0 h-1/2">
+                    <div key={product.id} className="bg-white rounded border border-gray-200 overflow-hidden aspect-square flex flex-col">
+                      <div className="relative flex-shrink-0 h-2/5">
                         <img loading="lazy" src={safeImageSrc(product.image_url)} alt={product.name} className="w-full h-full object-cover" />
                         {(product as any).active === false && (
                           <span className="absolute top-1 left-1 text-xs px-1.5 py-0.5 rounded bg-gray-200 text-gray-700">inactivo</span>
                         )}
                       </div>
-                      <div className="p-2 flex flex-col flex-1 overflow-hidden justify-between">
+                      <div className="p-1.5 flex flex-col flex-1 overflow-hidden justify-between">
                         <div>
                           <div className="flex items-start justify-between gap-1">
-                            <h4 className="font-semibold text-xs line-clamp-1">{product.name}</h4>
+                            <h4 className="font-semibold text-xs line-clamp-1 leading-tight">{product.name}</h4>
                             {isDressCategory(product.category) ? (
                               <span className="text-xs text-purple-700 flex-shrink-0 line-clamp-1">{Array.isArray((product as any).tags) && (product as any).tags.length ? String((product as any).tags[0]) : '-'}</span>
                             ) : (
                               <span className="text-primary font-bold text-xs flex-shrink-0">R$ {Number(product.price).toFixed(0)}</span>
                             )}
                           </div>
-                          <p className="text-gray-600 text-xs mt-0.5 line-clamp-1">{product.description || product.category}</p>
+                          <p className="text-gray-600 text-xs mt-0 line-clamp-1 leading-tight hidden sm:block">{product.description || product.category}</p>
                         </div>
                         <div className="flex items-center gap-1">
-                          <button onClick={() => { if (isDressCategory(product.category)) { setEditingDress(product); setDressEditorOpen(true); } else { setEditingProduct(product); setEditorOpen(true); } }} className="flex-1 border border-black text-black px-1 py-1 rounded-none hover:bg-black hover:text-white flex items-center justify-center gap-0.5 text-xs">Editar</button>
-                          <button onClick={() => handleDeactivate(product.id, (product as any).active === false ? true : false)} className={`flex-1 border border-black px-1 py-1 rounded-none flex items-center justify-center gap-0.5 text-xs ${(product as any).active === false ? 'bg-white text-black hover:bg-black hover:text-white' : 'bg-black text-white hover:opacity-90'}`}>{(product as any).active === false ? 'Act.' : 'Des.'}</button>
-                          <button onClick={() => handleDeleteProduct(product.id)} className="border border-black text-black px-1 py-1 rounded hover:bg-black hover:text-white flex items-center justify-center"><Trash2 size={12} /></button>
+                          <button onClick={() => { if (isDressCategory(product.category)) { setEditingDress(product); setDressEditorOpen(true); } else { setEditingProduct(product); setEditorOpen(true); } }} className="flex-1 border border-black text-black px-0.5 py-0.5 rounded-none hover:bg-black hover:text-white flex items-center justify-center gap-0.5 text-xs">Editar</button>
+                          <button onClick={() => handleDeactivate(product.id, (product as any).active === false ? true : false)} className={`flex-1 border border-black px-0.5 py-0.5 rounded-none flex items-center justify-center gap-0.5 text-xs ${(product as any).active === false ? 'bg-white text-black hover:bg-black hover:text-white' : 'bg-black text-white hover:opacity-90'}`}>{(product as any).active === false ? 'Act.' : 'Des.'}</button>
+                          <button onClick={() => handleDeleteProduct(product.id)} className="border border-black text-black px-0.5 py-0.5 rounded hover:bg-black hover:text-white flex items-center justify-center"><Trash2 size={12} /></button>
                         </div>
                       </div>
                     </div>
