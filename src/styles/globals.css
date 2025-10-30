@@ -45,6 +45,16 @@
     body::-webkit-scrollbar {
       display: none; /* Chrome, Safari and Opera */
     }
+
+    /* Hide scrollbars on all scrollable elements on mobile */
+    * {
+      scrollbar-width: none; /* Firefox */
+      -ms-overflow-style: none; /* IE and Edge */
+    }
+
+    *::-webkit-scrollbar {
+      display: none; /* Chrome, Safari and Opera */
+    }
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -290,4 +300,15 @@ button {
 .admin-dark {
   background-color: #1a1a1a;
   color: #ffffff;
+}
+
+/* Contract modal overlay mobile adjustment */
+.contract-modal-overlay {
+  margin-top: 24px;
+}
+
+@media (max-width: 640px) {
+  .contract-modal-overlay {
+    margin-top: 50px;
+  }
 }

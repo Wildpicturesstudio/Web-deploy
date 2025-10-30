@@ -33,11 +33,6 @@ const StoreSettings: React.FC = () => {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h2 className="section-title">Ajustes da Loja</h2>
-        <p className="text-gray-600">Configure a visibilidade de páginas e opções de pagamento.</p>
-      </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white rounded-xl border border-gray-200 p-4">
           <h3 className="font-medium mb-3">Visibilidade de Páginas</h3>

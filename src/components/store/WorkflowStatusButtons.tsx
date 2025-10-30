@@ -1,16 +1,18 @@
 import { useState, useRef } from 'react';
-import { DollarSign, CheckCircle, Pencil, Flag } from 'lucide-react';
+import { DollarSign, CheckCircle, Flag } from 'lucide-react';
 
 interface WorkflowStatusButtonsProps {
   depositPaid?: boolean;
   finalPaymentPaid?: boolean;
   isEditing?: boolean;
   eventCompleted?: boolean;
+  isNew?: boolean;
   onUpdate: (updates: {
     depositPaid?: boolean;
     finalPaymentPaid?: boolean;
     isEditing?: boolean;
     eventCompleted?: boolean;
+    isNew?: boolean;
   }) => Promise<void> | void;
   disabled?: boolean;
 }
@@ -20,12 +22,13 @@ export const WorkflowStatusButtons: React.FC<WorkflowStatusButtonsProps> = ({
   finalPaymentPaid = false,
   isEditing = false,
   eventCompleted = false,
+  isNew = false,
   onUpdate,
   disabled = false,
 }) => {
   const [tooltipVisible, setTooltipVisible] = useState<string | null>(null);
   const [updatingButton, setUpdatingButton] = useState<string | null>(null);
-  const tooltipTimers = useRef<Record<string, NodeJS.Timeout>>({});
+  const tooltipTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   const statusButtons = [
     {
@@ -36,7 +39,7 @@ export const WorkflowStatusButtons: React.FC<WorkflowStatusButtonsProps> = ({
       onClick: async () => {
         setUpdatingButton('deposit');
         try {
-          await onUpdate({ depositPaid: !depositPaid });
+          await onUpdate({ depositPaid: !depositPaid, ...(isNew && !depositPaid ? { isNew: false } : {}) });
         } finally {
           setUpdatingButton(null);
         }
@@ -51,20 +54,6 @@ export const WorkflowStatusButtons: React.FC<WorkflowStatusButtonsProps> = ({
         setUpdatingButton('payment');
         try {
           await onUpdate({ finalPaymentPaid: !finalPaymentPaid });
-        } finally {
-          setUpdatingButton(null);
-        }
-      },
-    },
-    {
-      id: 'editing',
-      label: 'Editando',
-      icon: Pencil,
-      active: isEditing,
-      onClick: async () => {
-        setUpdatingButton('editing');
-        try {
-          await onUpdate({ isEditing: !isEditing });
         } finally {
           setUpdatingButton(null);
         }
@@ -86,7 +75,7 @@ export const WorkflowStatusButtons: React.FC<WorkflowStatusButtonsProps> = ({
     },
   ];
 
-  const allActive = depositPaid && finalPaymentPaid && isEditing && eventCompleted;
+  const allActive = depositPaid && finalPaymentPaid && eventCompleted;
 
   const handleMouseEnter = (buttonId: string) => {
     if (tooltipTimers.current[buttonId]) {

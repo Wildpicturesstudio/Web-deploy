@@ -78,6 +78,17 @@ const Layout = ({ children }: LayoutProps) => {
     return () => { if (obs) obs.disconnect(); };
   }, []);
 
+  // Ensure body background matches admin pages to avoid white stripe at bottom
+  useEffect(() => {
+    const prev = document.body.style.backgroundColor;
+    if (isAdmin) {
+      document.body.style.backgroundColor = '#000000';
+    } else {
+      document.body.style.backgroundColor = prev;
+    }
+    return () => { document.body.style.backgroundColor = prev; };
+  }, [isAdmin]);
+
   if (!mounted) {
     return (
       <div className="fixed inset-0 bg-white flex items-center justify-center">
@@ -91,7 +102,7 @@ const Layout = ({ children }: LayoutProps) => {
   }
 
   return (
-    <div className="flex flex-col min-h-screen opacity-100 transition-opacity duration-500 bg-background text-primary">
+    <div className={`flex flex-col min-h-screen opacity-100 transition-opacity duration-500 ${isAdmin ? 'bg-black text-white' : 'bg-background text-primary'}`}>
       {!isAdmin && <Header />}
       <main className="flex-grow">
         {children}

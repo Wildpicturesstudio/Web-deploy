@@ -1,12 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { db } from '../../utils/firebaseClient';
-import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, orderBy, query, setDoc, updateDoc } from 'firebase/firestore';
-import { ChevronDown, ChevronUp, CheckCircle, Clock, FileText, Loader, Mail, MapPin, Phone, Settings, Trash2, User, DollarSign, Link as LinkIcon, Calendar, Pencil, Plus, X, Trash } from 'lucide-react';
+import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, orderBy, query, setDoc, updateDoc, onSnapshot } from 'firebase/firestore';
+import { ChevronDown, ChevronUp, CheckCircle, Clock, FileText, Loader, Mail, MapPin, Phone, Settings, Trash2, User, DollarSign, Link as LinkIcon, Calendar, Pencil, Plus, X, Trash, Image } from 'lucide-react';
 import { defaultWorkflow, categoryColors, WorkflowTemplate } from './_contractsWorkflowHelper';
 import { generatePDF } from '../../utils/pdf';
-import { useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { WorkflowStatusButtons } from './WorkflowStatusButtons';
+import { fetchCoupons, DBCoupon, computeCouponDiscountForCart, CartItemLike } from '../../utils/couponsService';
 
 interface WorkflowTask { id: string; title: string; done: boolean; due?: string | null; note?: string }
 interface WorkflowCategory { id: string; name: string; tasks: WorkflowTask[] }
@@ -27,6 +27,8 @@ interface ContractItem {
   finalPaymentPaid?: boolean;
   eventCompleted?: boolean;
   isEditing?: boolean;
+  isNew?: boolean;
+  couponCode?: string;
   services?: any[];
   storeItems?: any[];
   message?: string;
@@ -41,6 +43,20 @@ interface ContractItem {
 }
 
 const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
+
+const isWeddingPackage = (contract: ContractItem): boolean => {
+  const eventType = String(contract.eventType || '').toLowerCase();
+  const packageTitle = String(contract.packageTitle || '').toLowerCase();
+  const packageDuration = String(contract.packageDuration || '').toLowerCase();
+
+  const weddingKeywords = ['casamiento', 'boda', 'wedding', 'civil', 'matrimonio', 'nupcia'];
+
+  return weddingKeywords.some(keyword =>
+    eventType.includes(keyword) ||
+    packageTitle.includes(keyword) ||
+    packageDuration.includes(keyword)
+  );
+};
 
 // Resolve local dress image paths to proper URLs via Vite asset handling
 const DRESS_ASSETS_CM: Record<string, string> = import.meta.glob('/src/utils/fotos/vestidos/*', { eager: true, as: 'url' }) as any;
@@ -68,7 +84,16 @@ function resolveDressImageCM(u?: string, name?: string): string {
 }
 
 const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?: () => void }> = ({ openContractId, onOpened }) => {
-  const [contracts, setContracts] = useState<ContractItem[]>([]);
+  const getCachedContracts = () => {
+    try {
+      const cached = localStorage.getItem('contracts_management_cache');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const [contracts, setContracts] = useState(() => getCachedContracts());
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [search, setSearch] = useState('');
@@ -78,7 +103,11 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
   const [workflow, setWorkflow] = useState<WorkflowCategory[] | null>(null);
   const [savingWf, setSavingWf] = useState(false);
   const [wfEditMode, setWfEditMode] = useState(false);
-  const [contractsTab, setContractsTab] = useState<'events' | 'finished' | 'pending'>('events');
+  const [contractsTab, setContractsTab] = useState<'events' | 'finished' | 'pending' | 'new' | 'completed_events'>('events');
+  const [coupons, setCoupons] = useState<DBCoupon[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
+  const seenContractIdsRef = useRef<Set<string>>(new Set());
+  const [hasShownPageNotification, setHasShownPageNotification] = useState(false);
 
   const [templatesOpen, setTemplatesOpen] = useState(false);
   const pdfRef = useRef<HTMLDivElement | null>(null);
@@ -86,6 +115,25 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
   const navigate = useNavigate();
   const [templates, setTemplates] = useState<WorkflowTemplate[]>([]);
   const [tplEditing, setTplEditing] = useState<WorkflowTemplate | null>(null);
+
+  // Cache contracts whenever they change
+  useEffect(() => {
+    localStorage.setItem('contracts_management_cache', JSON.stringify(contracts));
+  }, [contracts]);
+
+  // Fetch coupons on mount
+  useEffect(() => {
+    const loadCoupons = async () => {
+      try {
+        const list = await fetchCoupons();
+        setCoupons(list);
+      } catch (e) {
+        console.warn('Error fetching coupons:', e);
+      }
+    };
+    loadCoupons();
+  }, []);
+
   const [defaults, setDefaults] = useState<{ packages?: string; products?: string }>({});
   const [packagesList, setPackagesList] = useState<{ id: string; title: string; duration?: string; price?: number }[]>([]);
   const [productsList, setProductsList] = useState<any[]>([]);
@@ -141,12 +189,68 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
     }
   };
 
-  useEffect(() => { fetchContracts(); }, []);
+  useEffect(() => {
+    fetchContracts();
+
+    let unsubscribe: (() => void) | null = null;
+
+    const setupRealtimeListener = async () => {
+      try {
+        const q = query(collection(db, 'contracts'), orderBy('createdAt', 'desc'));
+
+        unsubscribe = onSnapshot(q, (snapshot) => {
+          const newItems: ContractItem[] = [];
+          const currentIds = new Set<string>();
+          const newContractIds = new Set<string>();
+
+          snapshot.docs.forEach(d => {
+            const id = d.id;
+            currentIds.add(id);
+            newItems.push({ id, ...(d.data() as any) });
+
+            if (!seenContractIdsRef.current.has(id)) {
+              newContractIds.add(id);
+            }
+          });
+
+          setContracts(newItems);
+
+          if (newContractIds.size > 0 && seenContractIdsRef.current.size > 0) {
+            newContractIds.forEach(id => {
+              const newContract = newItems.find(c => c.id === id);
+              if (newContract) {
+                window.dispatchEvent(new CustomEvent('newContractCreated', {
+                  detail: {
+                    contractId: id,
+                    clientName: newContract.clientName,
+                    eventType: newContract.eventType,
+                    eventDate: newContract.eventDate
+                  }
+                }));
+              }
+            });
+          }
+
+          seenContractIdsRef.current = currentIds;
+        }, (error) => {
+          console.error('Error setting up real-time listener:', error);
+        });
+      } catch (e) {
+        console.warn('Could not setup real-time listener:', e);
+      }
+    };
+
+    setupRealtimeListener();
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     if (!openContractId) return;
     if (loading) return;
-    const found = contracts.find(c => c.id === openContractId);
+    const found = contracts.find((c: ContractItem) => c.id === openContractId);
     if (found) {
       openView(found);
       if (onOpened) onOpened();
@@ -154,6 +258,48 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
       fetchContracts();
     }
   }, [openContractId, contracts, loading]);
+
+  useEffect(() => {
+    if (loading || hasShownPageNotification) return;
+    if (contracts.length === 0) return;
+
+    const lastVisitTimestamp = localStorage.getItem('lastContractsPageVisit');
+    const lastVisitTime = lastVisitTimestamp ? parseInt(lastVisitTimestamp, 10) : 0;
+    const currentTime = Date.now();
+
+    const newContracts = contracts.filter((c: ContractItem) => {
+      if (!c.createdAt) return false;
+      const contractTime = new Date(c.createdAt).getTime();
+      return contractTime > lastVisitTime;
+    });
+
+    const pendingContracts = contracts.filter((c: ContractItem) => String((c as any).status || '') === 'pending_approval');
+
+    if (newContracts.length > 0 || pendingContracts.length > 0) {
+      const messages: string[] = [];
+
+      if (newContracts.length > 0) {
+        const pluralWord = newContracts.length === 1 ? 'contrato' : 'contratos';
+        messages.push(`Se han rellenado ${newContracts.length} ${pluralWord} nuevo${newContracts.length === 1 ? '' : 's'}`);
+      }
+
+      if (pendingContracts.length > 0) {
+        const pluralWord = pendingContracts.length === 1 ? 'contrato' : 'contratos';
+        messages.push(`${pendingContracts.length} ${pluralWord} pendiente${pendingContracts.length === 1 ? '' : 's'} de aprobación`);
+      }
+
+      const notificationMessage = messages.join(' • ');
+      window.dispatchEvent(new CustomEvent('adminToast', {
+        detail: {
+          message: notificationMessage,
+          type: 'info'
+        }
+      }));
+    }
+
+    localStorage.setItem('lastContractsPageVisit', currentTime.toString());
+    setHasShownPageNotification(true);
+  }, [loading, hasShownPageNotification, contracts]);
 
   useEffect(() => {
     const loadDresses = async () => {
@@ -208,11 +354,15 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
   };
 
   const filtered = useMemo(() => {
-    const base = contracts.filter(c => {
+    const base = contracts.filter((c: ContractItem) => {
       if (contractsTab === 'pending') {
         return String((c as any).status || '') === 'pending_approval';
       } else if (contractsTab === 'finished') {
         return c.eventCompleted === true;
+      } else if (contractsTab === 'new') {
+        return c.isNew === true;
+      } else if (contractsTab === 'completed_events') {
+        return c.eventCompleted !== true && isPast(c);
       } else if (contractsTab === 'events') {
         return c.eventCompleted !== true && !isPast(c);
       }
@@ -222,7 +372,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
     const list = (() => {
       if (!search.trim()) return base;
       const s = search.toLowerCase();
-      return base.filter(c => {
+      return base.filter((c: ContractItem) => {
         const nameMatch = (c.clientName || '').toLowerCase().includes(s);
         const typeMatch = (c.eventType || '').toLowerCase().includes(s);
         const phoneSource = (c as any).clientPhone || (c as any).phone || (c as any).client_phone || (c as any).formSnapshot?.phone || '';
@@ -233,47 +383,88 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
     })();
 
     const now = new Date().getTime();
-    const mapped = list.map(c => {
+    const mapped = list.map((c: ContractItem) => {
       const ev = c.eventDate ? new Date(c.eventDate) : undefined;
       const t = ev && !isNaN(ev.getTime()) ? ev.getTime() : new Date(c.contractDate || c.createdAt || Date.now()).getTime();
       const diff = Math.abs(t - now);
       return { c, diff };
     });
 
-    mapped.sort((a, b) => {
+    mapped.sort((a: any, b: any) => {
       const ap = a.c.eventCompleted ? 1 : 0;
       const bp = b.c.eventCompleted ? 1 : 0;
       if (ap !== bp) return ap - bp;
       return a.diff - b.diff;
     });
 
-    return mapped.map(m => m.c);
+    return mapped.map((m: any) => m.c);
   }, [contracts, search, contractsTab]);
 
-  const computeAmounts = (c: ContractItem) => {
+  const computeAmounts = (c: ContractItem, couponCode?: string, customPackagePrice?: number) => {
     const servicesList = Array.isArray(c.services) ? c.services : [];
     let servicesTotal = servicesList.reduce((sum, it: any) => {
       const qty = Number(it.quantity ?? 1);
       const price = Number(String(it.price || '').replace(/[^0-9]/g, ''));
       return sum + (price * qty);
     }, 0);
-    if (servicesTotal === 0 && (c as any).packageTitle) {
+
+    if (customPackagePrice !== undefined && customPackagePrice > 0) {
+      servicesTotal = Number(customPackagePrice);
+    } else if (servicesTotal === 0 && (c as any).packageTitle) {
       const pkg = packagesList.find(p => p.title === (c as any).packageTitle);
       if (pkg && pkg.price && !isNaN(pkg.price)) servicesTotal = Number(pkg.price);
     }
+
     const storeTotal = (Array.isArray(c.storeItems) ? c.storeItems : []).reduce((sum, it: any) => sum + (Number(it.price) * Number(it.quantity || 1)), 0);
     const travel = Number(c.travelFee || 0);
-    const totalAmount = Math.round(servicesTotal + storeTotal + travel);
+    let totalAmount = Math.round(servicesTotal + storeTotal + travel);
+
+    let discountAmount = 0;
+    if (couponCode) {
+      const coupon = coupons.find(cp => cp.code === couponCode);
+      if (coupon) {
+        const cartItems: CartItemLike[] = [
+          ...(Array.isArray(c.services) ? c.services : []).map((it: any) => ({
+            id: it.id,
+            name: it.name,
+            price: Number(String(it.price || '').replace(/[^0-9]/g, '')),
+            quantity: Number(it.quantity ?? 1),
+            type: 'service'
+          })),
+          ...(Array.isArray(c.storeItems) ? c.storeItems : []).map((it: any) => ({
+            id: it.id,
+            name: it.name,
+            price: Number(it.price),
+            quantity: Number(it.quantity || 1),
+            type: 'store'
+          }))
+        ];
+
+        const { discount } = computeCouponDiscountForCart(coupon, cartItems);
+        discountAmount = Math.round(discount);
+        totalAmount = Math.max(0, totalAmount - discountAmount);
+      }
+    }
 
     let depositAmount = 0;
-    if (servicesTotal <= 0 && storeTotal > 0) depositAmount = Math.ceil((storeTotal + travel) * 0.5);
-    else depositAmount = Math.ceil(servicesTotal * 0.2 + storeTotal * 0.5);
+    if (servicesTotal <= 0 && storeTotal > 0) depositAmount = Math.ceil((storeTotal + travel - discountAmount) * 0.5);
+    else depositAmount = Math.ceil(servicesTotal * 0.2 + storeTotal * 0.5 - discountAmount * 0.5);
+    depositAmount = Math.max(0, depositAmount);
     const remainingAmount = Math.max(0, Math.round(totalAmount - depositAmount));
-    return { servicesTotal, storeTotal, travel, totalAmount, depositAmount, remainingAmount };
+    return { servicesTotal, storeTotal, travel, totalAmount, depositAmount, remainingAmount, discountAmount };
+  };
+
+  const getAvailableCouponsForContract = (eventType?: string): DBCoupon[] => {
+    if (!eventType) return [];
+    return coupons.filter(coupon => {
+      if (!coupon.appliesTo) return true;
+      const applies = Array.isArray(coupon.appliesTo) ? coupon.appliesTo : [coupon.appliesTo];
+      return applies.includes('todos') || applies.includes(eventType);
+    });
   };
 
   const toggleFlag = async (id: string, field: keyof ContractItem) => {
-    const current = contracts.find(c => c.id === id);
+    const current = contracts.find((c: ContractItem) => c.id === id);
     if (!current) return;
     const next = !Boolean(current[field]);
     await updateDoc(doc(db, 'contracts', id), { [field]: next } as any);
@@ -296,82 +487,129 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
       eventDate: c.eventDate || '',
       eventTime: (c as any).eventTime || '',
       signatureTime: (c as any).signatureTime || '',
+      contractDate: (c as any).contractDate || '',
       eventLocation: (c as any).eventLocation || '',
       packageTitle: (c as any).packageTitle || '',
       packageDuration: (c as any).packageDuration || '',
       paymentMethod: c.paymentMethod || '',
       totalAmount: Number(c.totalAmount || 0),
       travelFee: Number(c.travelFee || 0),
-      message: c.message || ''
+      couponCode: c.couponCode || '',
+      message: c.message || '',
+      formSnapshot: (c as any).formSnapshot || {}
     });
   };
 
   const saveEdit = async () => {
-    if (!editing) return;
+    if (!editing || isSaving) return;
     const id = editing.id;
+    setIsSaving(true);
 
-    // Handle custom package
-    let packageTitle = editForm.packageTitle || '';
-    let packageDuration = editForm.packageDuration || '';
-    let customPackagePrice = 0;
+    try {
+      // Handle custom package
+      let packageTitle = editForm.packageTitle || '';
+      let packageDuration = editForm.packageDuration || '';
+      let customPackagePrice = 0;
 
-    if (editForm.isCustomPackage) {
-      packageTitle = `Paquete Personalizado (${editForm.customPackageType || 'personalizado'})`;
-      packageDuration = editForm.customPackageDuration || '';
-      customPackagePrice = Number(editForm.customPackagePrice || 0);
+      if (editForm.isCustomPackage) {
+        packageTitle = `Paquete Personalizado (${editForm.customPackageType || 'personalizado'})`;
+        packageDuration = editForm.customPackageDuration || '';
+        customPackagePrice = Number(editForm.customPackagePrice || 0);
+      }
+
+      // Merge editing with form changes to compute correctly
+      const merged: ContractItem = {
+        ...editing,
+        clientName: String(editForm.clientName || editing.clientName || ''),
+        clientEmail: String(editForm.clientEmail || editing.clientEmail || ''),
+        eventType: String(editForm.eventType || editing.eventType || ''),
+        eventDate: String(editForm.eventDate || editing.eventDate || ''),
+        paymentMethod: String(editForm.paymentMethod || editing.paymentMethod || ''),
+        message: String(editForm.message || editing.message || ''),
+        totalAmount: Number(editForm.totalAmount ?? editing.totalAmount ?? 0),
+        travelFee: Number(editForm.travelFee ?? editing.travelFee ?? 0),
+        storeItems: editStoreItems,
+        couponCode: editForm.couponCode || undefined,
+        ...(editForm.eventTime !== undefined ? { eventTime: String(editForm.eventTime || '') } : {}),
+        ...(editForm.eventLocation !== undefined ? { eventLocation: String(editForm.eventLocation || '') } : {}),
+        packageTitle: packageTitle,
+        packageDuration: packageDuration,
+        ...(editForm.signatureTime !== undefined ? { signatureTime: String(editForm.signatureTime || '') } : {}),
+      } as any;
+
+      const calc = computeAmounts(merged, editForm.couponCode, editForm.isCustomPackage ? customPackagePrice : undefined);
+
+      const payload: Partial<ContractItem> = {
+        clientName: merged.clientName,
+        clientEmail: merged.clientEmail,
+        eventType: merged.eventType,
+        eventDate: merged.eventDate,
+        eventCompleted: editing.eventCompleted,
+        totalAmount: calc.totalAmount,
+        travelFee: merged.travelFee,
+        paymentMethod: merged.paymentMethod,
+        message: merged.message,
+        couponCode: editForm.couponCode || undefined,
+        storeItems: merged.storeItems || [],
+        ...(merged.eventTime !== undefined ? { eventTime: merged.eventTime } : {}),
+        ...(merged.eventLocation !== undefined ? { eventLocation: merged.eventLocation } : {}),
+        ...(editForm.contractDate ? { contractDate: editForm.contractDate } : {}),
+        ...(editForm.signatureTime ? { signatureTime: editForm.signatureTime } : {}),
+        packageTitle: packageTitle,
+        packageDuration: packageDuration,
+        ...(editForm.clientPhone ? { clientPhone: String(editForm.clientPhone) } : {}),
+        ...(editForm.clientCPF ? { clientCPF: String(editForm.clientCPF) } : {}),
+        ...(editForm.clientRG ? { clientRG: String(editForm.clientRG) } : {}),
+        ...(editForm.clientAddress ? { clientAddress: String(editForm.clientAddress) } : {}),
+        ...( { depositAmount: calc.depositAmount, remainingAmount: calc.remainingAmount } as any )
+      } as any;
+
+      const existingSnapshot = (editing as any).formSnapshot || {};
+      const newSnapshot: any = {
+        ...existingSnapshot,
+        selectedDresses: editSelectedDresses,
+        cartItems: (editForm as any).formSnapshot?.cartItems || existingSnapshot.cartItems
+      };
+
+      // Preserve per-service dates, times, locations, and coupons from editForm
+      if ((editForm as any).formSnapshot?.cartItems && Array.isArray((editForm as any).formSnapshot.cartItems)) {
+        ((editForm as any).formSnapshot.cartItems as any[]).forEach((_, idx) => {
+          if ((editForm as any).formSnapshot?.[`date_${idx}`]) newSnapshot[`date_${idx}`] = (editForm as any).formSnapshot[`date_${idx}`];
+          if ((editForm as any).formSnapshot?.[`time_${idx}`]) newSnapshot[`time_${idx}`] = (editForm as any).formSnapshot[`time_${idx}`];
+          if ((editForm as any).formSnapshot?.[`eventLocation_${idx}`]) newSnapshot[`eventLocation_${idx}`] = (editForm as any).formSnapshot[`eventLocation_${idx}`];
+          if ((editForm as any).formSnapshot?.[`discountCoupon_${idx}`]) newSnapshot[`discountCoupon_${idx}`] = (editForm as any).formSnapshot[`discountCoupon_${idx}`];
+        });
+      }
+
+      if (editForm.isCustomPackage !== undefined) newSnapshot.isCustomPackage = editForm.isCustomPackage;
+      if (editForm.customPackageType !== undefined) newSnapshot.customPackageType = editForm.customPackageType;
+      if (editForm.customPackageDuration !== undefined) newSnapshot.customPackageDuration = editForm.customPackageDuration;
+      if (customPackagePrice !== undefined && customPackagePrice !== 0) newSnapshot.customPackagePrice = customPackagePrice;
+
+      // Also save contractDate if it was changed
+      if (editForm.contractDate) newSnapshot.contractDate = editForm.contractDate;
+
+      (payload as any).formSnapshot = newSnapshot;
+
+      // Remove undefined values from payload before saving to Firebase
+      const cleanPayload = Object.fromEntries(
+        Object.entries(payload).filter(([_, value]) => value !== undefined)
+      );
+
+      await updateDoc(doc(db, 'contracts', id), cleanPayload as any);
+      const updatedViewing = { ...editing, ...payload } as ContractItem;
+      setViewing(updatedViewing);
+      setEditing(null);
+      await fetchContracts();
+      try { window.dispatchEvent(new CustomEvent('contractsUpdated')); } catch {}
+      window.dispatchEvent(new CustomEvent('adminToast', { detail: { message: '✓ Contrato guardado y actualizado correctamente', type: 'success' } }));
+    } catch (error: any) {
+      console.error('Error saving contract:', error);
+      const errorMsg = error?.message || 'Error desconocido';
+      window.dispatchEvent(new CustomEvent('adminToast', { detail: { message: `Error al guardar: ${errorMsg}`, type: 'error' } }));
+    } finally {
+      setIsSaving(false);
     }
-
-    // Merge editing with form changes to compute correctly
-    const merged: ContractItem = {
-      ...editing,
-      clientName: String(editForm.clientName || editing.clientName || ''),
-      clientEmail: String(editForm.clientEmail || editing.clientEmail || ''),
-      eventType: String(editForm.eventType || editing.eventType || ''),
-      eventDate: String(editForm.eventDate || editing.eventDate || ''),
-      paymentMethod: String(editForm.paymentMethod || editing.paymentMethod || ''),
-      message: String(editForm.message || editing.message || ''),
-      totalAmount: Number(editForm.totalAmount ?? editing.totalAmount ?? 0),
-      travelFee: Number(editForm.travelFee ?? editing.travelFee ?? 0),
-      storeItems: editStoreItems,
-      ...(editForm.eventTime !== undefined ? { eventTime: String(editForm.eventTime || '') } : {}),
-      ...(editForm.eventLocation !== undefined ? { eventLocation: String(editForm.eventLocation || '') } : {}),
-      packageTitle: packageTitle,
-      packageDuration: packageDuration,
-      ...(editForm.signatureTime !== undefined ? { signatureTime: String(editForm.signatureTime || '') } : {}),
-    } as any;
-
-    const calc = computeAmounts(merged);
-
-    const payload: Partial<ContractItem> = {
-      clientName: merged.clientName,
-      clientEmail: merged.clientEmail,
-      eventType: merged.eventType,
-      eventDate: merged.eventDate,
-      eventCompleted: editing.eventCompleted,
-      totalAmount: editForm.isCustomPackage ? customPackagePrice + Number(editForm.travelFee || 0) + (editStoreItems || []).reduce((s,it)=> s + (Number(it.price)||0) * (Number(it.quantity)||1), 0) : calc.totalAmount,
-      travelFee: merged.travelFee,
-      paymentMethod: merged.paymentMethod,
-      message: merged.message,
-      storeItems: merged.storeItems || [],
-      ...(merged.eventTime !== undefined ? { eventTime: merged.eventTime } : {}),
-      ...(merged.eventLocation !== undefined ? { eventLocation: merged.eventLocation } : {}),
-      packageTitle: packageTitle,
-      packageDuration: packageDuration,
-      ...(editForm.clientPhone ? { clientPhone: String(editForm.clientPhone) } : {}),
-      ...(editForm.clientCPF ? { clientCPF: String(editForm.clientCPF) } : {}),
-      ...(editForm.clientRG ? { clientRG: String(editForm.clientRG) } : {}),
-      ...(editForm.clientAddress ? { clientAddress: String(editForm.clientAddress) } : {}),
-      ...( { depositAmount: calc.depositAmount, remainingAmount: calc.remainingAmount } as any )
-    } as any;
-
-    const existingSnapshot = (editing as any).formSnapshot || {};
-    const newSnapshot = { ...existingSnapshot, selectedDresses: editSelectedDresses, isCustomPackage: editForm.isCustomPackage, customPackageType: editForm.customPackageType, customPackageDuration: editForm.customPackageDuration, customPackagePrice: customPackagePrice };
-    (payload as any).formSnapshot = newSnapshot;
-    await updateDoc(doc(db, 'contracts', id), payload as any);
-    setViewing(v => v && v.id === id ? ({ ...v, ...payload }) as any : v);
-    setEditing(null);
-    await fetchContracts();
-    try { window.dispatchEvent(new CustomEvent('contractsUpdated')); } catch {}
   };
 
   const openView = async (c: ContractItem) => {
@@ -435,50 +673,118 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
 
   const remove = async (id: string) => {
     if (!confirm('¿Eliminar este contrato?')) return;
-    await deleteDoc(doc(db, 'contracts', id));
-    await fetchContracts();
-    try { window.dispatchEvent(new CustomEvent('contractsUpdated')); } catch {}
+    try {
+      await deleteDoc(doc(db, 'contracts', id));
+      await fetchContracts();
+
+      // Notify calendar and other components about the deletion
+      try {
+        window.dispatchEvent(new CustomEvent('contractDeleted', { detail: { contractId: id } }));
+        window.dispatchEvent(new CustomEvent('contractsUpdated'));
+      } catch {}
+
+      // Show confirmation
+      window.dispatchEvent(new CustomEvent('adminToast', {
+        detail: { message: 'Contrato eliminado correctamente', type: 'success' }
+      }));
+    } catch (e) {
+      console.error('Error deleting contract:', e);
+      window.dispatchEvent(new CustomEvent('adminToast', {
+        detail: { message: 'Error al eliminar el contrato', type: 'error' }
+      }));
+    }
   };
 
   const colorsFor = (len: number) => categoryColors(len);
 
+  const updateContractCountInFirebase = async () => {
+    try {
+      const newCount = contracts.filter((c: ContractItem) => c.isNew === true).length;
+      await setDoc(doc(db, 'metadata', 'contractsCount'), {
+        newContractsCount: newCount,
+        totalContractsCount: contracts.length,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+    } catch (e) {
+      console.warn('Error updating contract count in Firebase:', e);
+    }
+  };
+
+  useEffect(() => {
+    updateContractCountInFirebase();
+  }, [contracts]);
+
   const counts = useMemo(() => {
-    const events = contracts.filter(c => c.eventCompleted !== true && !isPast(c)).length;
-    const finished = contracts.filter(c => c.eventCompleted === true).length;
-    const pending = contracts.filter(c => String((c as any).status || '') === 'pending_approval').length;
-    const total = events + finished;
-    return { events, finished, pending, total };
+    const events = contracts.filter((c: ContractItem) => c.eventCompleted !== true && !isPast(c)).length;
+    const completedEvents = contracts.filter((c: ContractItem) => c.eventCompleted !== true && isPast(c)).length;
+    const finished = contracts.filter((c: ContractItem) => c.eventCompleted === true).length;
+    const pending = contracts.filter((c: ContractItem) => String((c as any).status || '') === 'pending_approval').length;
+    const newContracts = contracts.filter((c: ContractItem) => c.isNew === true).length;
+    const total = events + completedEvents + finished;
+    return { events, completedEvents, finished, pending, total, newContracts };
   }, [contracts]);
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
-          <h2 className="section-title">Gestión de Contratos</h2>
-          <div className="ml-0 sm:ml-2 inline-flex border rounded overflow-visible flex-wrap sm:flex-nowrap">
-            <button onClick={()=> setContractsTab('events')} className={`px-3 py-1 text-sm ${contractsTab==='events' ? 'bg-black text-white' : ''}`}>Eventos futuros</button>
-            <button onClick={()=> setContractsTab('finished')} className={`px-3 py-1 text-sm ${contractsTab==='finished' ? 'bg-black text-white' : ''}`}>Finalizados</button>
-            <div className="relative">
-              <button onClick={()=> setContractsTab('pending')} className={`px-3 py-1 text-sm ${contractsTab==='pending' ? 'bg-black text-white' : ''}`}>
-                Pendiente de Aprobacion
-              </button>
-              {contracts.filter(c => String((c as any).status || '') === 'pending_approval').length > 0 && (
-                <span className={`absolute -top-3 -right-3 w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center ${
-                  contractsTab === 'pending' ? 'bg-white text-black' : 'bg-red-600 text-white'
-                }`}>
-                  {contracts.filter(c => String((c as any).status || '') === 'pending_approval').length}
-                </span>
-              )}
-            </div>
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full">
+          <select value={contractsTab} onChange={(e) => setContractsTab(e.target.value as any)} className="px-3 py-2 border rounded-none text-sm bg-white">
+            <option value="events">Filtrar por - Eventos futuros</option>
+            <option value="completed_events">Filtrar por - Por completar</option>
+            <option value="finished">Filtrar por - Finalizados</option>
+            <option value="new">Filtrar por - Nuevos</option>
+            <option value="pending">Filtrar por - Pendiente de Aprobación</option>
+          </select>
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar..." className="px-3 py-2 border rounded-none text-sm flex-1" />
+          <div className="flex items-center gap-1 sm:justify-start justify-end sm:gap-1">
+            <button onClick={()=> setCreating(true)} className="border-2 border-black bg-black text-white px-2 py-1 rounded-none hover:opacity-90 inline-flex items-center justify-center gap-1 text-xs"><Plus size={12}/> <span>Nuevo</span></button>
+            <button onClick={async ()=> {
+            const names = ['María García', 'Juan López', 'Ana Martínez', 'Carlos Rodríguez', 'Sofia Hernández', 'Pablo Torres', 'Laura Sánchez', 'Miguel Ángel'];
+            const eventTypes = ['Matrimonio', 'Cumpleaños', 'Sesión de Fotos', 'Evento Corporativo', 'Quinceañera'];
+            const packageTypes = ['Paquete B��sico', 'Paquete Estándar', 'Paquete Premium', 'Paquete Personalizado'];
+            const randomName = names[Math.floor(Math.random() * names.length)];
+            const randomType = eventTypes[Math.floor(Math.random() * eventTypes.length)];
+            const randomPackage = packageTypes[Math.floor(Math.random() * packageTypes.length)];
+            const randomDate = new Date(Date.now() + Math.random() * 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+            const randomTotal = Math.floor(1000 + Math.random() * 5000);
+            const randomPhone = '+55 ' + Math.floor(11000000000 + Math.random() * 89999999999).toString().slice(0, 2) + ' ' + Math.floor(1000000000 + Math.random() * 9000000000);
+
+            try {
+              await addDoc(collection(db, 'contracts'), {
+                clientName: randomName,
+                clientEmail: randomName.toLowerCase().replace(/\s+/g, '.') + '@test.com',
+                clientPhone: randomPhone,
+                eventType: randomType,
+                eventDate: randomDate,
+                eventTime: Math.floor(Math.random() * 24).toString().padStart(2, '0') + ':' + Math.floor(Math.random() * 60).toString().padStart(2, '0'),
+                eventLocation: 'Ubicación de prueba',
+                packageTitle: randomPackage,
+                packageDuration: '4 horas',
+                totalAmount: randomTotal,
+                travelFee: Math.floor(Math.random() * 500),
+                paymentMethod: ['pix', 'cash', 'card'][Math.floor(Math.random() * 3)],
+                depositPaid: false,
+                finalPaymentPaid: false,
+                eventCompleted: false,
+                isEditing: false,
+                isNew: true,
+                createdAt: new Date().toISOString(),
+                status: 'booked',
+                formSnapshot: { phone: randomPhone }
+              });
+              await fetchContracts();
+              window.dispatchEvent(new CustomEvent('contractsUpdated'));
+              window.dispatchEvent(new CustomEvent('adminToast', { detail: { message: 'Contrato de test creado', type: 'success' } }));
+            } catch (e) {
+              console.error('Error creating test contract:', e);
+              window.dispatchEvent(new CustomEvent('adminToast', { detail: { message: 'Error al crear contrato de test', type: 'error' } }));
+            }
+          }} className="border-2 border-gray-400 text-gray-600 px-2 py-1 rounded-none hover:bg-gray-100 hidden sm:inline-flex items-center justify-center gap-1 text-xs" title="Generar contrato aleatorio para testing">Test</button>
           </div>
-        </div>
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-          <button onClick={()=> setCreating(true)} className="border-2 border-black bg-black text-white px-3 py-2 rounded-none hover:opacity-90 inline-flex items-center justify-center sm:justify-start gap-2 text-sm sm:text-base"><Plus size={14}/> <span className="hidden sm:inline">Nuevo contrato</span><span className="sm:hidden">Nuevo</span></button>
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar..." className="px-3 py-2 border rounded-none text-sm w-full sm:w-auto" />
         </div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 mb-2">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 mb-2">
         <div className="bg-white rounded border border-gray-200 px-2 py-1 flex items-center justify-between">
           <div className="text-xs font-medium text-gray-600">Total</div>
           <div className="text-base font-bold text-black">{counts.total}</div>
@@ -486,6 +792,10 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
         <div className="bg-white rounded border border-gray-200 px-2 py-1 flex items-center justify-between">
           <div className="text-xs font-medium text-gray-600">Eventos futuros</div>
           <div className="text-base font-bold text-black">{counts.events}</div>
+        </div>
+        <div className="bg-white rounded border border-gray-200 px-2 py-1 flex items-center justify-between">
+          <div className="text-xs font-medium text-gray-600">Por completar</div>
+          <div className="text-base font-bold text-yellow-600">{counts.completedEvents}</div>
         </div>
         <div className="bg-white rounded border border-gray-200 px-2 py-1 flex items-center justify-between">
           <div className="text-xs font-medium text-gray-600">Finalizados</div>
@@ -497,8 +807,8 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
-        <div className="hidden md:grid grid-cols-12 p-3 text-xs font-medium border-b bg-gray-50">
+      <div className="bg-white rounded-xl border border-gray-200 flex flex-col md:max-h-[450px] md:overflow-hidden">
+        <div className="hidden md:grid grid-cols-12 py-1.5 px-3 text-xs font-medium border-b bg-gray-50 flex-shrink-0">
           <div className="col-span-2">Fecha principal</div>
           <div className="col-span-3">Nombre del trabajo</div>
           <div className="col-span-2">Tel��fono</div>
@@ -509,12 +819,12 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
         </div>
         {loading && <div className="p-3 md:p-4 text-sm text-gray-500">Cargando...</div>}
         {!loading && filtered.length === 0 && <div className="p-3 md:p-4 text-sm text-gray-500">Sin resultados</div>}
-        <div className="divide-y">
-          {filtered.map(c => {
+        <div className="divide-y overflow-y-auto" style={{ height: 'calc(100vh - 16px)', marginBottom: '16px' }}>
+          {filtered.map((c: ContractItem) => {
             return (
-              <div key={c.id} className="hidden md:grid grid-cols-12 p-2 md:p-3 items-center hover:bg-gray-50 cursor-pointer border-b text-xs md:text-sm" onClick={() => openView(c)}>
+              <div key={c.id} className="hidden md:grid grid-cols-12 p-1.5 items-center hover:bg-gray-50 hover:text-black cursor-pointer border-b text-xs md:text-sm transition-colors admin-contract-row" onClick={() => openView(c)}>
                 <div className="col-span-2 text-sm">{c.eventDate || '-'}</div>
-                <div className="col-span-3 lowercase first-letter:uppercase">{c.clientName || 'Trabajo'}</div>
+                <div className="col-span-3 lowercase first-letter:uppercase flex items-center gap-2">{c.clientName || 'Trabajo'}{c.isNew && <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-green-600 text-white text-xs font-semibold">Nuevo</span>}</div>
                 <div className="col-span-2 text-sm">{((c as any).clientPhone || (c as any).phone || (c as any).client_phone || (c as any).formSnapshot?.phone || '') || '-'}</div>
                 <div className="col-span-1 text-sm">{c.eventType || '-'}</div>
                 <div className="col-span-1 font-semibold">R$ {Number(c.totalAmount || 0).toFixed(0)}</div>
@@ -524,6 +834,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
                     finalPaymentPaid={c.finalPaymentPaid}
                     isEditing={c.isEditing}
                     eventCompleted={c.eventCompleted}
+                    isNew={c.isNew}
                     onUpdate={async (updates) => {
                       try {
                         await updateDoc(doc(db, 'contracts', c.id), updates as any);
@@ -553,12 +864,12 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
         </div>
 
         {/* Mobile view - Card layout */}
-        <div className="md:hidden space-y-2">
-          {filtered.map(c => (
-            <div key={c.id} className="p-3 border-b hover:bg-gray-50 cursor-pointer space-y-2" onClick={() => openView(c)}>
+        <div className="md:hidden space-y-2" style={{ maxHeight: 'calc(100vh - 16px)', marginBottom: '16px', overflowY: 'auto' }}>
+          {filtered.map((c: ContractItem) => (
+            <div key={c.id} className="p-1.5 border-b hover:bg-gray-50 hover:text-black cursor-pointer space-y-2 transition-colors admin-contract-row" onClick={() => openView(c)}>
               <div className="flex justify-between items-start gap-2">
                 <div className="flex-1">
-                  <div className="font-semibold text-sm">{c.clientName || 'Trabajo'}</div>
+                  <div className="font-semibold text-sm flex items-center gap-2">{c.clientName || 'Trabajo'}{c.isNew && <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-green-600 text-white text-xs font-semibold">Nuevo</span>}</div>
                   <div className="text-xs text-gray-600">{c.eventDate || '-'}</div>
                 </div>
                 <div className="text-right">
@@ -582,6 +893,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
                   finalPaymentPaid={c.finalPaymentPaid}
                   isEditing={c.isEditing}
                   eventCompleted={c.eventCompleted}
+                  isNew={c.isNew}
                   onUpdate={async (updates) => {
                     try {
                       await updateDoc(doc(db, 'contracts', c.id), updates as any);
@@ -600,15 +912,21 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
         </div>
       </div>
     {viewing && workflow && (
-      <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2 sm:p-4" onClick={()=>setViewing(null)}>
+      <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2 sm:p-4 contract-modal-overlay" onClick={()=>setViewing(null)}>
         <div className="bg-white rounded-xl border border-gray-200 w-full max-w-5xl p-4 md:p-6 overflow-hidden max-h-[90vh] overflow-y-auto" onClick={(e)=>e.stopPropagation()}>
           <div className="flex items-center justify-between p-4 border-b">
             <div>
               <div className="text-lg font-medium">{viewing.clientName} — {viewing.eventType || 'Trabajo'}</div>
-              <div className="text-xs text-gray-500">Fecha principal: {viewing.eventDate || '-' } • Hora: {viewing.eventTime || (viewing as any).eventTime || '-'}</div>
+              <div className="text-xs text-gray-500">Fecha principal: {viewing.eventDate || '-' } ���� Hora: {viewing.eventTime || (viewing as any).eventTime || '-'}</div>
             </div>
             <div className="flex items-center gap-2">
               <button onClick={()=> viewing && openEdit(viewing)} className="border px-3 py-2 rounded-none text-sm">Modificar datos</button>
+              {!isWeddingPackage(viewing) && (
+                <button onClick={async()=>{
+                  if (!viewing) return;
+                  navigate(`/photo-sharing/${viewing.id}`);
+                }} className="border px-3 py-2 rounded-none text-sm inline-flex items-center gap-2"><Image size={14}/> Escoger fotos</button>
+              )}
               <button onClick={async()=>{
                 if (!viewing) return;
                 navigate('/admin/contract-preview', { state: { contract: viewing } });
@@ -640,39 +958,41 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
 
                   <div>
                     <div className="text-sm font-medium mb-2">Items del contrato</div>
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="text-left text-gray-600">
-                          <th className="py-1">Item</th>
-                          <th className="py-1">Cant.</th>
-                          <th className="py-1">Precio</th>
-                          <th className="py-1">Total</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(viewing.services || []).map((it: any, idx: number) => {
-                          const qty = Number(it.quantity ?? 1);
-                          const price = Number(String(it.price || '').replace(/[^0-9]/g, ''));
-                          const total = price * qty;
-                          return (
-                            <tr key={idx} className="border-t">
-                              <td className="py-1">{it.name || it.id || '—'}</td>
-                              <td className="py-1">{qty}</td>
-                              <td className="py-1">R$ {price.toFixed(0)}</td>
-                              <td className="py-1">R$ {total.toFixed(0)}</td>
-                            </tr>
-                          );
-                        })}
-                        {Array.isArray(viewing.storeItems) && viewing.storeItems.map((it: any, idx: number) => (
-                          <tr key={`store-${idx}`} className="border-t">
-                            <td className="py-1">{it.name}</td>
-                            <td className="py-1">{Number(it.quantity)}</td>
-                            <td className="py-1">R$ {Number(it.price).toFixed(0)}</td>
-                            <td className="py-1">R$ {(Number(it.price) * Number(it.quantity)).toFixed(0)}</td>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="text-left text-gray-600">
+                            <th className="py-1">Item</th>
+                            <th className="py-1">Cant.</th>
+                            <th className="py-1">Precio</th>
+                            <th className="py-1">Total</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody>
+                          {(viewing.services || []).map((it: any, idx: number) => {
+                            const qty = Number(it.quantity ?? 1);
+                            const price = Number(String(it.price || '').replace(/[^0-9]/g, ''));
+                            const total = price * qty;
+                            return (
+                              <tr key={idx} className="border-t">
+                                <td className="py-1">{it.name || it.id || '—'}</td>
+                                <td className="py-1">{qty}</td>
+                                <td className="py-1">R$ {price.toFixed(0)}</td>
+                                <td className="py-1">R$ {total.toFixed(0)}</td>
+                              </tr>
+                            );
+                          })}
+                          {Array.isArray(viewing.storeItems) && viewing.storeItems.map((it: any, idx: number) => (
+                            <tr key={`store-${idx}`} className="border-t">
+                              <td className="py-1">{it.name}</td>
+                              <td className="py-1">{Number(it.quantity)}</td>
+                              <td className="py-1">R$ {Number(it.price).toFixed(0)}</td>
+                              <td className="py-1">R$ {(Number(it.price) * Number(it.quantity)).toFixed(0)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
 
                   <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
@@ -699,12 +1019,12 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
                         </div>
                       </section>
                       <section>
-                        <h3 className="text-base font-medium text-primary mb-2">CLÁUSULA 3ª – DA ENTREGA E DIREITOS AUTORAIS</h3>
+                        <h3 className="text-base font-medium text-primary mb-2">CL��USULA 3ª ��� DA ENTREGA E DIREITOS AUTORAIS</h3>
                         <div className="space-y-2">
                           <p>3.1. As fotografias serão entregues em formato digital através de galeria online privada.</p>
                           <p>3.2. Os direitos autorais das fotografias pertencem ao fotógrafo, sendo concedido ao contratante o direito de uso pessoal.</p>
                           <p>3.3. É vedada a reprodução comercial das imagens sem autorização expressa da contratada.</p>
-                          <p>3.4. A contratada poderá utilizar as imagens para fins de divulgação de seu trabalho.</p>
+                          <p>3.4. A contratada poder�� utilizar as imagens para fins de divulgação de seu trabalho.</p>
                         </div>
                       </section>
                       <section>
@@ -840,7 +1160,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
                       {wfEditMode && (
                         <button onClick={()=>{
                           setWorkflow(w=>{ const n = w? [...w]:[]; const ts = [...n[ci].tasks, { id: uid(), title: 'Nueva tarea', done: false }]; n[ci] = { ...n[ci], tasks: ts }; return n;});
-                        }} className="text-xs border px-2 py-1 rounded-none inline-flex items-center gap-1"><Plus size={12}/> Añadir tarea</button>
+                        }} className="text-xs border px-2 py-1 rounded-none inline-flex items-center gap-1"><Plus size={12}/> A��adir tarea</button>
                       )}
                     </div>
                   </div>
@@ -849,7 +1169,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
               <div className="mt-4 flex flex-wrap gap-2">
                 {wfEditMode && (
                   <button onClick={()=>{
-                    setWorkflow(w=>{ const n = w? [...w]:[]; n.push({ id: uid(), name: 'Nueva categoría', tasks: [] }); return n;});
+                    setWorkflow(w=>{ const n = w? [...w]:[]; n.push({ id: uid(), name: 'Nueva categor��a', tasks: [] }); return n;});
                   }} className="border-2 border-black text-black px-3 py-2 rounded-none hover:bg-black hover:text-white inline-flex items-center gap-2"><Plus size={14}/> Añadir categoría</button>
                 )}
                 <button onClick={saveWorkflow} disabled={savingWf} className="border-2 border-black bg-black text-white px-3 py-2 rounded-none hover:opacity-90 disabled:opacity-50">Guardar</button>
@@ -875,40 +1195,73 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
                 <div><span className="text-gray-600">RG:</span> <span className="font-medium">{(viewing as any).clientRG || '-'}</span></div>
                 <div className="col-span-2"><span className="text-gray-600">Endereço:</span> <span className="font-medium">{(viewing as any).clientAddress || '-'}</span></div>
                 <div><span className="text-gray-600">Tipo de evento:</span> <span className="font-medium">{viewing.eventType || '-'}</span></div>
-                <div><span className="text-gray-600">Fecha evento:</span> <span className="font-medium">{viewing.eventDate || '-'}</span></div>
-                <div><span className="text-gray-600">Hora:</span> <span className="font-medium">{(viewing as any).eventTime || '-'}</span></div>
                 <div><span className="text-gray-600">Fecha contrato:</span> <span className="font-medium">{viewing.contractDate || '-'}</span></div>
                 <div><span className="text-gray-600">Hora firma:</span> <span className="font-medium">{(viewing as any).signatureTime || '-'}</span></div>
-                <div><span className="text-gray-600">Ubicación:</span> <span className="font-medium">{(viewing as any).eventLocation || '-'}</span></div>
-                <div><span className="text-gray-600">Paquete:</span> <span className="font-medium">{(viewing as any).packageTitle || '-'}</span></div>
-                <div><span className="text-gray-600">Duración:</span> <span className="font-medium">{(viewing as any).packageDuration || '-'}</span></div>
                 <div><span className="text-gray-600">Método de pago:</span> <span className="font-medium">{viewing.paymentMethod || '-'}</span></div>
+              </div>
+
+              {/* Display each service/package individually */}
+              {Array.isArray((viewing as any).formSnapshot?.cartItems) && (viewing as any).formSnapshot!.cartItems.length > 0 ? (
+                <div className="space-y-4">
+                  {((viewing as any).formSnapshot!.cartItems as any[]).map((pkg, idx) => (
+                    <div key={`pkg-detail-${idx}`} className="border rounded-lg p-4 space-y-3">
+                      {idx > 0 && <div className="border-t -mx-4 px-4 pt-3" />}
+                      <div className="font-medium dark:text-white text-gray-900 text-base">{pkg.name || `Paquete #${idx + 1}`}</div>
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div><span className="text-gray-600">Fecha:</span> <span className="font-medium">{(viewing as any).formSnapshot?.[`date_${idx}`] || viewing.eventDate || '-'}</span></div>
+                        <div><span className="text-gray-600">Hora:</span> <span className="font-medium">{(viewing as any).formSnapshot?.[`time_${idx}`] || (viewing as any).eventTime || '-'}</span></div>
+                        <div className="col-span-2"><span className="text-gray-600">Ubicación:</span> <span className="font-medium">{(viewing as any).formSnapshot?.[`eventLocation_${idx}`] || (viewing as any).eventLocation || '-'}</span></div>
+                        <div><span className="text-gray-600">Duración:</span> <span className="font-medium">{pkg.duration || '-'}</span></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div><span className="text-gray-600">Fecha evento:</span> <span className="font-medium">{viewing.eventDate || '-'}</span></div>
+                  <div><span className="text-gray-600">Hora:</span> <span className="font-medium">{(viewing as any).eventTime || '-'}</span></div>
+                  <div className="col-span-2"><span className="text-gray-600">Ubicación:</span> <span className="font-medium">{(viewing as any).eventLocation || '-'}</span></div>
+                  <div><span className="text-gray-600">Paquete:</span> <span className="font-medium">{(viewing as any).packageTitle || '-'}</span></div>
+                  <div><span className="text-gray-600">Duración:</span> <span className="font-medium">{(viewing as any).packageDuration || '-'}</span></div>
+              </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-3 text-sm border-t pt-4">
                 {(() => {
-                  const calc = computeAmounts(viewing);
+                  const customPackagePrice = (viewing as any).formSnapshot?.customPackagePrice;
+                  const calc = computeAmounts(viewing, viewing.couponCode, customPackagePrice);
                   return (
                     <>
-                      <div className="flex items-center gap-2">
-                        <span className="text-gray-600">Depósito:</span>
-                        <span className="font-medium">R$ {calc.depositAmount.toFixed(0)}</span>
-                        <span className={`px-2 py-0.5 rounded text-xs ${viewing.depositPaid? 'bg-green-100 text-green-700':'bg-red-100 text-red-700'}`}>{viewing.depositPaid? 'Pagado':'No pagado'}</span>
-                        <button
-                          onClick={async ()=>{ await toggleFlag(viewing.id, 'depositPaid'); setViewing(v=> v? { ...v, depositPaid: !v.depositPaid }: v); }}
-                          className={`text-xs px-2 py-1 border rounded-none ${viewing.depositPaid? 'border-green-600 text-green-700 hover:bg-green-600 hover:text-white':'border-red-600 text-red-700 hover:bg-red-600 hover:text-white'}`}
-                        >{viewing.depositPaid? 'Marcar No pagado':'Marcar Pagado'}</button>
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-600">Depósito:</span>
+                          <span className="font-medium">R$ {calc.depositAmount.toFixed(0)}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-0.5 rounded text-xs ${viewing.depositPaid? 'bg-green-100 text-green-700':'bg-red-100 text-red-700'}`}>{viewing.depositPaid? 'Pagado':'No pagado'}</span>
+                          <button
+                            onClick={async ()=>{ await toggleFlag(viewing.id, 'depositPaid'); setViewing(v=> v? { ...v, depositPaid: !v.depositPaid }: v); }}
+                            className={`text-xs px-2 py-1 border rounded-none ${viewing.depositPaid? 'border-green-600 text-green-700 hover:bg-green-600 hover:text-white':'border-red-600 text-red-700 hover:bg-red-600 hover:text-white'}`}
+                          >{viewing.depositPaid? 'Marcar No pagado':'Marcar Pagado'}</button>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-gray-600">Restante:</span>
-                        <span className="font-medium">R$ {calc.remainingAmount.toFixed(0)}</span>
-                        <span className={`px-2 py-0.5 rounded text-xs ${viewing.finalPaymentPaid? 'bg-green-100 text-green-700':'bg-red-100 text-red-700'}`}>{viewing.finalPaymentPaid? 'Pagado':'No pagado'}</span>
-                        <button
-                          onClick={async ()=>{ await toggleFlag(viewing.id, 'finalPaymentPaid'); setViewing(v=> v? { ...v, finalPaymentPaid: !v.finalPaymentPaid }: v); }}
-                          className={`text-xs px-2 py-1 border rounded-none ${viewing.finalPaymentPaid? 'border-green-600 text-green-700 hover:bg-green-600 hover:text-white':'border-red-600 text-red-700 hover:bg-red-600 hover:text-white'}`}
-                        >{viewing.finalPaymentPaid? 'Marcar No pagado':'Marcar Pagado'}</button>
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-600">Restante:</span>
+                          <span className="font-medium">R$ {calc.remainingAmount.toFixed(0)}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-0.5 rounded text-xs ${viewing.finalPaymentPaid? 'bg-green-100 text-green-700':'bg-red-100 text-red-700'}`}>{viewing.finalPaymentPaid? 'Pagado':'No pagado'}</span>
+                          <button
+                            onClick={async ()=>{ await toggleFlag(viewing.id, 'finalPaymentPaid'); setViewing(v=> v? { ...v, finalPaymentPaid: !v.finalPaymentPaid }: v); }}
+                            className={`text-xs px-2 py-1 border rounded-none ${viewing.finalPaymentPaid? 'border-green-600 text-green-700 hover:bg-green-600 hover:text-white':'border-red-600 text-red-700 hover:bg-red-600 hover:text-white'}`}
+                          >{viewing.finalPaymentPaid? 'Marcar No pagado':'Marcar Pagado'}</button>
+                        </div>
                       </div>
                     </>
                   );
                 })()}
-                <div><span className="text-gray-600">Total:</span> <span className="font-medium">R$ {computeAmounts(viewing).totalAmount.toFixed(0)}</span></div>
+                <div><span className="text-gray-600">Total:</span> <span className="font-medium">R$ {computeAmounts(viewing, viewing.couponCode, (viewing as any).formSnapshot?.customPackagePrice).totalAmount.toFixed(0)}</span></div>
                 <div><span className="text-gray-600">Deslocamiento:</span> <span className="font-medium">R$ {(viewing.travelFee ?? 0).toFixed(0)}</span></div>
               </div>
 
@@ -972,30 +1325,17 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
                 </div>
               </div>
 
-              {/* Paquetes incluidos con fechas e info */}
-              {Array.isArray((viewing as any).formSnapshot?.cartItems) && (viewing as any).formSnapshot!.cartItems.length > 0 && (
-                <div>
-                  <div className="text-sm font-medium mb-2">Paquetes incluidos</div>
-                  <div className="space-y-3">
-                    {((viewing as any).formSnapshot!.cartItems as any[]).map((it, index) => (
-                      <div key={`pkg-${index}`} className="border rounded p-3">
-                        <div className="font-medium text-gray-900">{it.name || it.id || `Servicio #${index + 1}`}</div>
-                        <div className="grid grid-cols-2 gap-2 text-xs text-gray-700 mt-1">
-                          <div><span className="text-gray-600">Fecha:</span> <span className="font-medium">{(viewing as any).formSnapshot?.[`date_${index}`] || (viewing as any).eventDate || '-'}</span></div>
-                          <div><span className="text-gray-600">Hora:</span> <span className="font-medium">{(viewing as any).formSnapshot?.[`time_${index}`] || (viewing as any).eventTime || '-'}</span></div>
-                          <div className="col-span-2"><span className="text-gray-600">Ubicación:</span> <span className="font-medium">{(viewing as any).formSnapshot?.[`eventLocation_${index}`] || (viewing as any).eventLocation || '-'}</span></div>
-                          {it.duration && <div className="col-span-2"><span className="text-gray-600">Duración:</span> <span className="font-medium">{it.duration}</span></div>}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               {viewing.message && (
                 <div>
                   <div className="text-sm font-medium mb-1">Mensaje del cliente</div>
                   <div className="text-sm text-gray-800 whitespace-pre-wrap">{viewing.message}</div>
+                </div>
+              )}
+
+              {viewing.couponCode && (
+                <div>
+                  <div className="text-sm font-medium mb-1">Cupón aplicado</div>
+                  <div className="text-sm text-gray-800 font-semibold bg-green-100 text-green-800 px-3 py-2 rounded inline-block">{viewing.couponCode}</div>
                 </div>
               )}
 
@@ -1006,7 +1346,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
                 )}
               </div>
 
-              {Array.isArray((viewing as any).formSnapshot?.selectedDresses) && (viewing as any).formSnapshot.selectedDresses.length > 0 && (
+              {viewing.eventType === 'Gestantes' && Array.isArray((viewing as any).formSnapshot?.selectedDresses) && (viewing as any).formSnapshot.selectedDresses.length > 0 && (
                 <div>
                   <div className="text-sm font-medium mb-2">Vestidos seleccionados</div>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -1036,7 +1376,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
         <div className="bg-white rounded-xl border border-gray-200 w-full max-w-5xl p-0 overflow-hidden max-h-[90vh] overflow-y-auto" onClick={(e)=>e.stopPropagation()}>
           <div className="flex items-center justify-between p-4 border-b">
             <div className="font-medium">Editor de Workflows</div>
-            <button onClick={()=>setTemplatesOpen(false)} className="text-gray-500 hover:text-gray-900">✕</button>
+            <button onClick={()=>setTemplatesOpen(false)} className="text-gray-500 hover:text-gray-900">��</button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3">
             <div className="md:col-span-1 border-r p-3 space-y-2 max-h-[70vh] overflow-auto">
@@ -1074,7 +1414,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
                         </div>
                       </div>
                     ))}
-                    <button onClick={()=> setTplEditing(v=> v? { ...v, categories: [...v.categories, { id: uid(), name: 'Nueva categoría', tasks: [] }] }: v)} className="border px-3 py-2 rounded-none inline-flex items-center gap-2"><Plus size={14}/> Añadir categoría</button>
+                    <button onClick={()=> setTplEditing(v=> v? { ...v, categories: [...v.categories, { id: uid(), name: 'Nueva categor��a', tasks: [] }] }: v)} className="border px-3 py-2 rounded-none inline-flex items-center gap-2"><Plus size={14}/> Añadir categoría</button>
                   </div>
                   <div className="flex items-center gap-2">
                     <button onClick={async()=>{
@@ -1139,63 +1479,124 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
               <input value={editForm.eventType || ''} onChange={e => setEditForm((f: any) => ({ ...f, eventType: e.target.value }))} className="w-full px-3 py-2 border rounded-none" />
             </div>
             <div>
-              <label className="text-xs text-gray-600">Ubicación</label>
-              <input value={editForm.eventLocation || ''} onChange={e => setEditForm((f: any) => ({ ...f, eventLocation: e.target.value }))} className="w-full px-3 py-2 border rounded-none" />
-            </div>
-            <div>
-              <label className="text-xs text-gray-600">Fecha evento</label>
-              <input type="date" value={editForm.eventDate || ''} onChange={e => setEditForm((f: any) => ({ ...f, eventDate: e.target.value }))} className="w-full px-3 py-2 border rounded-none" />
-            </div>
-            <div>
-              <label className="text-xs text-gray-600">Hora</label>
-              <input type="time" value={editForm.eventTime || ''} onChange={e => setEditForm((f: any) => ({ ...f, eventTime: e.target.value }))} className="w-full px-3 py-2 border rounded-none" />
+              <label className="text-xs text-gray-600">Fecha contrato</label>
+              <input type="date" value={editForm.contractDate || ''} onChange={e => setEditForm((f: any) => ({ ...f, contractDate: e.target.value }))} className="w-full px-3 py-2 border rounded-none" />
             </div>
             <div>
               <label className="text-xs text-gray-600">Hora firma</label>
               <input type="time" value={editForm.signatureTime || ''} onChange={e => setEditForm((f: any) => ({ ...f, signatureTime: e.target.value }))} className="w-full px-3 py-2 border rounded-none" />
             </div>
 
-            <div>
-              <label className="text-xs text-gray-600">Paquete</label>
-              <select value={editForm.packageTitle || ''} onChange={(e)=>{
-                const title = e.target.value;
-                if (title === '__custom__') {
-                  setEditForm((f:any)=> ({ ...f, packageTitle: '', isCustomPackage: true, customPackageType: '', customPackageDuration: '', customPackagePrice: 0, packageDuration: '' }));
-                } else {
-                  const found = packagesList.find(p=>p.title===title);
-                  setEditForm((f:any)=> ({ ...f, packageTitle: title, packageDuration: found?.duration || f.packageDuration || '', totalAmount: (found?.price || 0) + Number(f.travelFee || 0) + (editStoreItems || []).reduce((s,it)=> s + (Number(it.price)||0) * (Number(it.quantity)||1), 0), isCustomPackage: false }));
-                }
-              }} className="w-full px-3 py-2 border rounded-none">
-                <option value="">— Selecciona paquete —</option>
-                {packagesList.map(p=> (<option key={p.id} value={p.title}>{p.title} — R$ {Number(p.price||0).toFixed(0)}</option>))}
-                <option value="__custom__">Paquete Personalizado</option>
-              </select>
-            </div>
-            {editForm.isCustomPackage ? (
+            {/* Edit packages section at top like viewing modal */}
+            {Array.isArray((editForm as any).formSnapshot?.cartItems) && (editForm as any).formSnapshot!.cartItems.length > 0 ? (
+              <div className="md:col-span-2 border rounded-lg p-4 space-y-3 bg-gray-50 dark:bg-gray-900">
+                <div className="text-sm font-medium dark:text-white text-gray-900">Paquetes Incluidos</div>
+                {((editForm as any).formSnapshot!.cartItems as any[]).map((pkg, idx) => (
+                  <div key={`edit-pkg-${idx}`} className="border rounded p-3 space-y-3 bg-white dark:bg-gray-800">
+                    {idx > 0 && <div className="border-t -mx-3 px-3 pt-3" />}
+                    <div className="font-medium dark:text-white text-gray-900 text-base">{pkg.name || `Paquete #${idx + 1}`}</div>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <label className="text-xs dark:text-gray-300 text-gray-600">Fecha</label>
+                        <input
+                          type="date"
+                          value={(editForm as any).formSnapshot?.[`date_${idx}`] || ''}
+                          onChange={(e) => setEditForm((f: any) => {
+                            const fs = { ...f.formSnapshot };
+                            fs[`date_${idx}`] = e.target.value;
+                            return { ...f, formSnapshot: fs };
+                          })}
+                          className="w-full px-3 py-2 border rounded-none text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs dark:text-gray-300 text-gray-600">Hora</label>
+                        <input
+                          type="time"
+                          value={(editForm as any).formSnapshot?.[`time_${idx}`] || ''}
+                          onChange={(e) => setEditForm((f: any) => {
+                            const fs = { ...f.formSnapshot };
+                            fs[`time_${idx}`] = e.target.value;
+                            return { ...f, formSnapshot: fs };
+                          })}
+                          className="w-full px-3 py-2 border rounded-none text-sm"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="text-xs dark:text-gray-300 text-gray-600">Ubicación</label>
+                        <input
+                          type="text"
+                          value={(editForm as any).formSnapshot?.[`eventLocation_${idx}`] || ''}
+                          onChange={(e) => setEditForm((f: any) => {
+                            const fs = { ...f.formSnapshot };
+                            fs[`eventLocation_${idx}`] = e.target.value;
+                            return { ...f, formSnapshot: fs };
+                          })}
+                          className="w-full px-3 py-2 border rounded-none text-sm"
+                        />
+                      </div>
+                      <div><span className="text-gray-600 dark:text-gray-300">Duración:</span> <span className="font-medium dark:text-white text-gray-900">{pkg.duration || '-'}</span></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
               <>
                 <div>
-                  <label className="text-xs text-gray-600">Tipo de servicio</label>
-                  <select value={editForm.customPackageType || ''} onChange={(e)=> setEditForm((f:any)=> ({ ...f, customPackageType: e.target.value }))} className="w-full px-3 py-2 border rounded-none">
-                    <option value="">— Selecciona tipo —</option>
-                    <option value="foto">Fotos</option>
-                    <option value="video">Video</option>
-                    <option value="foto_video">Fotos + Video</option>
+                  <label className="text-xs text-gray-600">Ubicación</label>
+                  <input value={editForm.eventLocation || ''} onChange={e => setEditForm((f: any) => ({ ...f, eventLocation: e.target.value }))} className="w-full px-3 py-2 border rounded-none" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-600">Fecha evento</label>
+                  <input type="date" value={editForm.eventDate || ''} onChange={e => setEditForm((f: any) => ({ ...f, eventDate: e.target.value }))} className="w-full px-3 py-2 border rounded-none" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-600">Hora</label>
+                  <input type="time" value={editForm.eventTime || ''} onChange={e => setEditForm((f: any) => ({ ...f, eventTime: e.target.value }))} className="w-full px-3 py-2 border rounded-none" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-600">Paquete</label>
+                  <select value={editForm.packageTitle || ''} onChange={(e)=>{
+                    const title = e.target.value;
+                    if (title === '__custom__') {
+                      setEditForm((f:any)=> ({ ...f, packageTitle: '', isCustomPackage: true, customPackageType: '', customPackageDuration: '', customPackagePrice: 0, packageDuration: '' }));
+                    } else {
+                      const found = packagesList.find(p=>p.title===title);
+                      setEditForm((f:any)=> ({ ...f, packageTitle: title, packageDuration: found?.duration || f.packageDuration || '', totalAmount: (found?.price || 0) + Number(f.travelFee || 0) + (editStoreItems || []).reduce((s,it)=> s + (Number(it.price)||0) * (Number(it.quantity)||1), 0), isCustomPackage: false }));
+                    }
+                  }} className="w-full px-3 py-2 border rounded-none">
+                    <option value="">— Selecciona paquete —</option>
+                    {packagesList.map(p=> (<option key={p.id} value={p.title}>{p.title} — R$ {Number(p.price||0).toFixed(0)}</option>))}
+                    <option value="__custom__">Paquete Personalizado</option>
                   </select>
                 </div>
-                <div>
-                  <label className="text-xs text-gray-600">Duración</label>
-                  <input value={editForm.customPackageDuration || ''} onChange={e=> setEditForm((f:any)=> ({ ...f, customPackageDuration: e.target.value }))} placeholder="Ej: 4 horas" className="w-full px-3 py-2 border rounded-none" />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-600">Precio (R$)</label>
-                  <input type="number" step="0.01" value={editForm.customPackagePrice ?? 0} onChange={e => setEditForm((f: any) => ({ ...f, customPackagePrice: e.target.value, totalAmount: Number(e.target.value) + Number(f.travelFee || 0) + (editStoreItems || []).reduce((s,it)=> s + (Number(it.price)||0) * (Number(it.quantity)||1), 0) }))} className="w-full px-3 py-2 border rounded-none" />
-                </div>
+                {editForm.isCustomPackage ? (
+                  <>
+                    <div>
+                      <label className="text-xs text-gray-600">Tipo de servicio</label>
+                      <select value={editForm.customPackageType || ''} onChange={(e)=> setEditForm((f:any)=> ({ ...f, customPackageType: e.target.value }))} className="w-full px-3 py-2 border rounded-none">
+                        <option value="">— Selecciona tipo —</option>
+                        <option value="foto">Fotos</option>
+                        <option value="video">Video</option>
+                        <option value="foto_video">Fotos + Video</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-600">Duración</label>
+                      <input value={editForm.customPackageDuration || ''} onChange={e=> setEditForm((f:any)=> ({ ...f, customPackageDuration: e.target.value }))} placeholder="Ej: 4 horas" className="w-full px-3 py-2 border rounded-none" />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-600">Precio (R$)</label>
+                      <input type="number" step="0.01" value={editForm.customPackagePrice ?? 0} onChange={e => setEditForm((f: any) => ({ ...f, customPackagePrice: e.target.value, totalAmount: Number(e.target.value) + Number(f.travelFee || 0) + (editStoreItems || []).reduce((s,it)=> s + (Number(it.price)||0) * (Number(it.quantity)||1), 0) }))} className="w-full px-3 py-2 border rounded-none" />
+                    </div>
+                  </>
+                ) : (
+                  <div>
+                    <label className="text-xs text-gray-600">Duración</label>
+                    <input value={editForm.packageDuration || ''} onChange={e=> setEditForm((f:any)=> ({ ...f, packageDuration: e.target.value }))} className="w-full px-3 py-2 border rounded-none" />
+                  </div>
+                )}
               </>
-            ) : (
-              <div>
-                <label className="text-xs text-gray-600">Duración</label>
-                <input value={editForm.packageDuration || ''} onChange={e=> setEditForm((f:any)=> ({ ...f, packageDuration: e.target.value }))} className="w-full px-3 py-2 border rounded-none" />
-              </div>
             )}
 
             <div>
@@ -1204,7 +1605,25 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
             </div>
             <div>
               <label className="text-xs text-gray-600">Total</label>
-              <input type="number" step="0.01" value={editForm.totalAmount ?? 0} onChange={e => setEditForm((f: any) => ({ ...f, totalAmount: e.target.value }))} className="w-full px-3 py-2 border rounded-none" />
+              <div className="px-3 py-2 border rounded-none bg-gray-100 text-gray-700 font-medium">
+                R$ {editing && (() => {
+                  const merged: ContractItem = {
+                    ...editing,
+                    clientName: String(editForm.clientName || editing.clientName || ''),
+                    clientEmail: String(editForm.clientEmail || editing.clientEmail || ''),
+                    eventType: String(editForm.eventType || editing.eventType || ''),
+                    eventDate: String(editForm.eventDate || editing.eventDate || ''),
+                    paymentMethod: String(editForm.paymentMethod || editing.paymentMethod || ''),
+                    message: String(editForm.message || editing.message || ''),
+                    totalAmount: Number(editForm.totalAmount ?? editing.totalAmount ?? 0),
+                    travelFee: Number(editForm.travelFee ?? editing.travelFee ?? 0),
+                    storeItems: editStoreItems,
+                    couponCode: editForm.couponCode || undefined,
+                  } as any;
+                  const calc = computeAmounts(merged, editForm.couponCode, editForm.isCustomPackage ? editForm.customPackagePrice : undefined);
+                  return calc.totalAmount.toFixed(0);
+                })()}
+              </div>
             </div>
             <div>
               <label className="text-xs text-gray-600">Deslocamento</label>
@@ -1214,23 +1633,34 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
               <label className="text-xs text-gray-600">Notas</label>
               <textarea value={editForm.message || ''} onChange={e => setEditForm((f: any) => ({ ...f, message: e.target.value }))} className="w-full px-3 py-2 border rounded-none max-h-24" rows={2} />
             </div>
-
-            <div className="md:col-span-2 border-t pt-3">
-              <div className="text-sm font-medium mb-2">Vestidos seleccionados</div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {dressOptions.map((d) => (
-                  <label key={d.id} className="block cursor-pointer">
-                    <div className="relative aspect-[9/16] overflow-hidden rounded border">
-                      {d.image && <img loading="eager" src={resolveDressImageCM(d.image, d.name)} alt={d.name} className="absolute inset-0 w-full h-full object-cover" />}
-                      <input type="checkbox" className="absolute top-2 left-2 z-10 accent-black" checked={editSelectedDresses.includes(d.id)} onChange={() => setEditSelectedDresses(list => list.includes(d.id) ? list.filter(x => x !== d.id) : [...list, d.id])} />
-                      {editSelectedDresses.includes(d.id) && <div className="absolute inset-0 ring-2 ring-black pointer-events-none" />}
-                    </div>
-                    <div className="mt-1 text-xs text-gray-800 truncate text-center">{d.name}</div>
-                    {d.color && <div className="text-[10px] text-gray-500 text-center">{d.color}</div>}
-                  </label>
+            <div className="md:col-span-2">
+              <label className="text-xs text-gray-600">Código de Cupón</label>
+              <select value={editForm.couponCode || ''} onChange={e => setEditForm((f: any) => ({ ...f, couponCode: e.target.value }))} className="w-full px-3 py-2 border rounded-none">
+                <option value="">— Sin cupón —</option>
+                {coupons.map(c => (
+                  <option key={c.id} value={c.code}>{c.code} — {c.description || ''}</option>
                 ))}
-              </div>
+              </select>
             </div>
+
+            {editForm.eventType === 'Gestantes' && (
+              <div className="md:col-span-2 border-t pt-3">
+                <div className="text-sm font-medium mb-2">Vestidos seleccionados</div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {dressOptions.map((d) => (
+                    <label key={d.id} className="block cursor-pointer">
+                      <div className="relative aspect-[9/16] overflow-hidden rounded border">
+                        {d.image && <img loading="eager" src={resolveDressImageCM(d.image, d.name)} alt={d.name} className="absolute inset-0 w-full h-full object-cover" />}
+                        <input type="checkbox" className="absolute top-2 left-2 z-10 accent-black" checked={editSelectedDresses.includes(d.id)} onChange={() => setEditSelectedDresses(list => list.includes(d.id) ? list.filter(x => x !== d.id) : [...list, d.id])} />
+                        {editSelectedDresses.includes(d.id) && <div className="absolute inset-0 ring-2 ring-black pointer-events-none" />}
+                      </div>
+                      <div className="mt-1 text-xs text-gray-800 truncate text-center">{d.name}</div>
+                      {d.color && <div className="text-[10px] text-gray-500 text-center">{d.color}</div>}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="md:col-span-2 border-t pt-3">
               <div className="text-sm font-medium mb-2">Agregar producto de la tienda</div>
               <StoreItemAdder products={productsList} onAdd={(item)=> setEditStoreItems(list=> [...list, item])} />
@@ -1250,8 +1680,8 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
             </div>
           </div>
           <div className="mt-4 flex justify-end gap-2">
-            <button onClick={() => setEditing(null)} className="border-2 border-black text-black px-3 py-2 rounded-none hover:bg-black hover:text-white">Cancelar</button>
-            <button onClick={saveEdit} className="border-2 border-black bg-black text-white px-3 py-2 rounded-none hover:opacity-90">Guardar</button>
+            <button onClick={() => setEditing(null)} disabled={isSaving} className="border-2 border-black text-black px-3 py-2 rounded-none hover:bg-black hover:text-white disabled:opacity-50">Cancelar</button>
+            <button onClick={saveEdit} disabled={isSaving} className="border-2 border-black bg-black text-white px-3 py-2 rounded-none hover:opacity-90 disabled:opacity-50 inline-flex items-center gap-2">{isSaving ? <><Loader size={14} className="animate-spin" /> Guardando...</> : 'Guardar'}</button>
           </div>
         </div>
       </div>
@@ -1294,7 +1724,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
               <input value={createForm.eventType} onChange={e => setCreateForm((f: any) => ({ ...f, eventType: e.target.value }))} className="w-full px-3 py-2 border rounded-none" />
             </div>
             <div>
-              <label className="text-xs text-gray-600">Ubicación</label>
+              <label className="text-xs text-gray-600">Ubicaci��n</label>
               <input value={createForm.eventLocation} onChange={e => setCreateForm((f: any) => ({ ...f, eventLocation: e.target.value }))} className="w-full px-3 py-2 border rounded-none" />
             </div>
             <div>
@@ -1333,7 +1763,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs text-gray-600">Duración</label>
+                  <label className="text-xs text-gray-600">Duraci��n</label>
                   <input value={createForm.customPackageDuration || ''} onChange={e=> setCreateForm((f:any)=> ({ ...f, customPackageDuration: e.target.value }))} placeholder="Ej: 4 horas" className="w-full px-3 py-2 border rounded-none" />
                 </div>
                 <div>
@@ -1387,21 +1817,22 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
             <button onClick={async ()=>{
               if (!createForm.clientName || !createForm.eventDate) { alert('Nombre y fecha del evento son obligatorios'); return; }
 
-              let packageTitle = createForm.packageTitle || '';
-              let packageDuration = createForm.packageDuration || '';
-              let customPackagePrice = 0;
+              try {
+                let packageTitle = createForm.packageTitle || '';
+                let packageDuration = createForm.packageDuration || '';
+                let customPackagePrice = 0;
 
-              if (createForm.isCustomPackage) {
-                packageTitle = `Paquete Personalizado (${createForm.customPackageType || 'personalizado'})`;
-                packageDuration = createForm.customPackageDuration || '';
-                customPackagePrice = Number(createForm.customPackagePrice || 0);
-              }
+                if (createForm.isCustomPackage) {
+                  packageTitle = `Paquete Personalizado (${createForm.customPackageType || 'personalizado'})`;
+                  packageDuration = createForm.customPackageDuration || '';
+                  customPackagePrice = Number(createForm.customPackagePrice || 0);
+                }
 
-              const totalAmount = createForm.isCustomPackage
-                ? customPackagePrice + Number(createForm.travelFee || 0) + (createStoreItems || []).reduce((s,it)=> s + (Number(it.price)||0) * (Number(it.quantity)||1), 0)
-                : Number(createForm.totalAmount || 0) || 0;
+                const totalAmount = createForm.isCustomPackage
+                  ? customPackagePrice + Number(createForm.travelFee || 0) + (createStoreItems || []).reduce((s,it)=> s + (Number(it.price)||0) * (Number(it.quantity)||1), 0)
+                  : Number(createForm.totalAmount || 0) || 0;
 
-              const payload: any = {
+                const payload: any = {
                 clientName: createForm.clientName,
                 clientEmail: createForm.clientEmail || '',
                 eventType: createForm.eventType || 'Evento',
@@ -1413,6 +1844,7 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
                 finalPaymentPaid: false,
                 eventCompleted: false,
                 isEditing: false,
+                isNew: true,
                 createdAt: new Date().toISOString(),
                 totalAmount: totalAmount,
                 travelFee: Number(createForm.travelFee || 0) || 0,
@@ -1426,20 +1858,25 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
                 storeItems: createStoreItems || [],
               };
 
-              const formSnapshot: any = { phone: createForm.clientPhone };
-              if (createForm.isCustomPackage) {
-                formSnapshot.isCustomPackage = true;
-                formSnapshot.customPackageType = createForm.customPackageType;
-                formSnapshot.customPackageDuration = createForm.customPackageDuration;
-                formSnapshot.customPackagePrice = customPackagePrice;
-              }
-              payload.formSnapshot = formSnapshot;
+                const formSnapshot: any = { phone: createForm.clientPhone };
+                if (createForm.isCustomPackage) {
+                  formSnapshot.isCustomPackage = true;
+                  formSnapshot.customPackageType = createForm.customPackageType;
+                  formSnapshot.customPackageDuration = createForm.customPackageDuration;
+                  formSnapshot.customPackagePrice = customPackagePrice;
+                }
+                payload.formSnapshot = formSnapshot;
 
-              await addDoc(collection(db, 'contracts'), payload);
-              setCreating(false);
-              setCreateForm({ clientName: '', clientEmail: '', clientPhone: '', eventType: '', eventDate: '', eventTime: '', eventLocation: '', packageTitle: '', packageDuration: '', paymentMethod: 'pix', totalAmount: 0, travelFee: 0, message: '' });
-              await fetchContracts();
-              try { window.dispatchEvent(new CustomEvent('contractsUpdated')); } catch {}
+                await addDoc(collection(db, 'contracts'), payload);
+                setCreating(false);
+                setCreateForm({ clientName: '', clientEmail: '', clientPhone: '', eventType: '', eventDate: '', eventTime: '', eventLocation: '', packageTitle: '', packageDuration: '', paymentMethod: 'pix', totalAmount: 0, travelFee: 0, message: '' });
+                await fetchContracts();
+                try { window.dispatchEvent(new CustomEvent('contractsUpdated')); } catch {}
+                window.dispatchEvent(new CustomEvent('adminToast', { detail: { message: 'Contrato creado exitosamente', type: 'success' } }));
+              } catch (e) {
+                console.error('Error creating contract:', e);
+                window.dispatchEvent(new CustomEvent('adminToast', { detail: { message: 'Error al crear el contrato', type: 'error' } }));
+              }
             }} className="border-2 border-black bg-black text-white px-3 py-2 rounded-none hover:opacity-90">Crear</button>
           </div>
         </div>
@@ -1495,3 +1932,19 @@ const StoreItemAdder: React.FC<{ products: any[]; onAdd: (item: { id: string; na
 };
 
 export default ContractsManagement;
+
+// Add this style block to the document if not already present
+if (typeof document !== 'undefined' && !document.querySelector('style[data-contracts-dark-mode]')) {
+  const style = document.createElement('style');
+  style.setAttribute('data-contracts-dark-mode', 'true');
+  style.textContent = `
+    .admin-dark .admin-contract-row {
+      color: #e5e5e5;
+    }
+    .admin-dark .admin-contract-row:hover {
+      background-color: #000000 !important;
+      color: #ffffff !important;
+    }
+  `;
+  document.head.appendChild(style);
+}

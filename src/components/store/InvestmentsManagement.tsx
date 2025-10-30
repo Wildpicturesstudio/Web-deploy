@@ -30,9 +30,35 @@ interface Installment {
 const baseCategories: string[] = ['publicidad', 'equipo', 'software', 'otros'];
 
 const InvestmentsManagement: React.FC = () => {
-  const [items, setItems] = useState<Investment[]>([]);
-  const [installments, setInstallments] = useState<Installment[]>([]);
+  const getCachedInvestments = () => {
+    try {
+      const cached = localStorage.getItem('investments_management_cache');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const getCachedInstallments = () => {
+    try {
+      const cached = localStorage.getItem('installments_management_cache');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const [items, setItems] = useState(() => getCachedInvestments());
+  const [installments, setInstallments] = useState(() => getCachedInstallments());
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem('investments_management_cache', JSON.stringify(items));
+  }, [items]);
+
+  useEffect(() => {
+    localStorage.setItem('installments_management_cache', JSON.stringify(installments));
+  }, [installments]);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Investment | null>(null);
@@ -84,9 +110,9 @@ const InvestmentsManagement: React.FC = () => {
   };
 
   const getStatus = (investmentId: string) => {
-    const list = installments.filter(i => i.investmentId === investmentId);
+    const list = installments.filter((i: Installment) => i.investmentId === investmentId);
     if (!list.length) return 'pendiente';
-    return list.every(i => i.status === 'pagado') ? 'pagado' : 'pendiente';
+    return list.every((i: Installment) => i.status === 'pagado') ? 'pagado' : 'pendiente';
   };
 
   const markPaid = async (installmentId: string, paid: boolean) => {
@@ -101,8 +127,8 @@ const InvestmentsManagement: React.FC = () => {
     const ok = confirm('¿Borrar esta inversión y todas sus cuotas?');
     if (!ok) return;
     try {
-      const list = installments.filter(i => i.investmentId === inv.id);
-      await Promise.all(list.map(i => deleteDoc(doc(db, 'investment_installments', i.id))));
+      const list = installments.filter((i: Installment) => i.investmentId === inv.id);
+      await Promise.all(list.map((i: Installment) => deleteDoc(doc(db, 'investment_installments', i.id))));
       await deleteDoc(doc(db, 'investments', inv.id));
       await fetchAll();
       window.dispatchEvent(new CustomEvent('adminToast', { detail: { message: 'Inversión eliminada', type: 'success' } }));
@@ -126,7 +152,7 @@ const InvestmentsManagement: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="section-title">Inversiones</h2>
+        <div></div>
         <button onClick={() => { setEditing(null); setModalOpen(true); }} className="px-4 py-2 rounded-none border-2 border-black text-black hover:bg-black hover:text-white">Agregar</button>
       </div>
 
@@ -148,7 +174,7 @@ const InvestmentsManagement: React.FC = () => {
                 <td className="px-4 py-3 text-gray-500" colSpan={10}>Sin inversiones</td>
               </tr>
             )}
-            {items.map(inv => {
+            {items.map((inv: Investment) => {
               return (
                 <tr key={inv.id} className="border-t">
                   <td className="px-4 py-2 whitespace-nowrap">{inv.date}</td>
@@ -206,7 +232,7 @@ const InvestmentsManagement: React.FC = () => {
                 await createInstallments(invRef.id, String(payload.date), t, c);
               } else {
                 const invId = payload.id;
-                const before = items.find(i => i.id === invId);
+                const before = items.find((i: Investment) => i.id === invId);
                 const t = Number(payload.totalValue);
                 const c = Math.max(1, Number(payload.installmentsCount));
                 await updateDoc(doc(db, 'investments', invId), {
@@ -221,8 +247,8 @@ const InvestmentsManagement: React.FC = () => {
                   productImageUrl: payload.productImageUrl || '',
                 });
                 if (!before || before.date !== payload.date || Number(before.totalValue) !== t || Number(before.installmentsCount) !== c) {
-                  const list = installments.filter(i => i.investmentId === invId);
-                  await Promise.all(list.map(i => deleteDoc(doc(db, 'investment_installments', i.id))));
+                  const list = installments.filter((i: Installment) => i.investmentId === invId);
+                  await Promise.all(list.map((i: Installment) => deleteDoc(doc(db, 'investment_installments', i.id))));
                   await createInstallments(invId, String(payload.date), t, c);
                 }
               }
@@ -245,7 +271,7 @@ const InvestmentsManagement: React.FC = () => {
           open={details.open}
           onClose={() => setDetails({ open: false, inv: null })}
           investment={details.inv}
-          installments={(groupedByInvestment.get(details.inv.id) || []).sort((a,b)=> a.installmentNumber - b.installmentNumber)}
+          installments={(groupedByInvestment.get(details.inv.id) || []).sort((a: Installment,b: Installment)=> a.installmentNumber - b.installmentNumber)}
           onTogglePaid={(instId: string, paid: boolean) => markPaid(instId, paid)}
         />
       )}

@@ -18,7 +18,7 @@ import { saveContract, updateContractStatus } from '../../utils/contractService'
 import { getAuth, signInAnonymously } from 'firebase/auth';
 import PaymentModal from './PaymentModal';
 import { sendConfirmationEmail } from '../../utils/email';
-import { gcalUpsertBooking, parseDurationToMinutes } from '../../utils/calendar';
+import { parseDurationToMinutes } from '../../utils/calendar';
 
 // Resolve local dress images stored as repo paths to proper URLs using Vite asset handling
 const DRESS_ASSETS: Record<string, string> = import.meta.glob('/src/utils/fotos/vestidos/*', { eager: true, as: 'url' }) as any;
@@ -140,6 +140,18 @@ const ContractPreview = ({ data, onConfirm, onBack }: ContractPreviewProps) => {
       const isPending = typeof saveRes === 'object' ? Boolean((saveRes as any).pendingApproval || (saveRes as any).status === 'pending_approval') : false;
       setPendingApproval(isPending);
 
+      // Dispatch event to notify about new contract creation
+      const eventType = data.cartItems?.[0]?.type === 'events' ? 'Eventos' :
+                        data.cartItems?.[0]?.type === 'portrait' ? 'Retratos' : 'Gestantes';
+      window.dispatchEvent(new CustomEvent('newContractCreated', {
+        detail: {
+          contractId: contractId,
+          clientName: data.name,
+          eventType: eventType,
+          eventDate: data[`date_0`] || ''
+        }
+      }));
+
       // Optional Calendar scheduling (if enabled)
       if (flags.payments?.calendarEnabled !== false) {
         try {
@@ -185,19 +197,6 @@ const ContractPreview = ({ data, onConfirm, onBack }: ContractPreviewProps) => {
                 ...storeLines
               ].filter(Boolean).join('\n');
 
-              try {
-                await gcalUpsertBooking({
-                  startISO,
-                  endISO,
-                  location,
-                  title,
-                  description,
-                  attendees: [{ email: data.email }, { email: 'wildpicturesstudio@gmail.com' }],
-                  external_reference: `booking_${Date.now()}`,
-                });
-              } catch (e) {
-                console.error('gcalUpsertBooking failed', e);
-              }
             }
           }
         } catch (e) {
@@ -264,6 +263,16 @@ const ContractPreview = ({ data, onConfirm, onBack }: ContractPreviewProps) => {
   };
 
   const calculateTotal = () => {
+    // If contractTotal is provided (from admin contract), use it directly
+    if ((data as any).contractTotal != null && (data as any).contractTotal > 0) {
+      return {
+        subtotal: (data as any).contractTotal,
+        couponDiscount: 0,
+        paymentDiscount: 0,
+        total: (data as any).contractTotal
+      };
+    }
+
     // Calculate items total considering coupon discounts (handles empty services)
     const itemsTotal = (data.cartItems || []).reduce((sum, item, index) => {
       const itemPrice = parseBRL(item.price);
@@ -313,7 +322,8 @@ const ContractPreview = ({ data, onConfirm, onBack }: ContractPreviewProps) => {
   };
 
   const calculatePayments = () => {
-    const { total } = calculateTotal();
+    const useContractTotal = (data as any).contractTotal != null && (data as any).contractTotal > 0;
+    const total = useContractTotal ? (data as any).contractTotal : calculateTotal().total;
 
     const isStoreOnly = (!(data.cartItems && data.cartItems.length) && (data.storeItems && data.storeItems.length));
 
@@ -390,7 +400,7 @@ const ContractPreview = ({ data, onConfirm, onBack }: ContractPreviewProps) => {
               {/* Cláusula 2 */}
               <section>
                 <h3 className="text-lg font-medium text-primary mb-4 pb-2 border-b border-secondary">
-                  CLÁUSULA 2ª – DAS OBRIGAÇÕES DA CONTRATANTE
+                  CLÁUSULA 2ª – DAS OBRIGA��ÕES DA CONTRATANTE
                 </h3>
                 <div className="space-y-3 text-sm text-gray-700">
                   <p>2.1. Realizar o pagamento conforme estipulado: 20% do valor total como sinal de reserva e o restante no dia do evento.</p>
@@ -406,7 +416,7 @@ const ContractPreview = ({ data, onConfirm, onBack }: ContractPreviewProps) => {
                     <div className="space-y-4 text-gray-700">
                       <p>No caso de contratação de ensaio pré-wedding ou ensaio fotográfico, o(a) CONTRATANTE deverá informar à CONTRATADA a data escolhida com, no mínimo, 3 (três) dias de antecedência, para que a equipe possa se organizar e enviar o formulário de agendamento.</p>
                       <p>Quando se tratar de casamento, o ensaio pré-wedding deverá ser realizado até 3 (três) dias antes da data do evento.</p>
-                      <p><strong>Parágrafo único – Reagendamento de ensaios:</strong> Em caso de condições climáticas desfavoráveis no dia do ensaio, o reagendamento poderá ser realizado sem qualquer custo adicional. O(a) CONTRATANTE terá direito a 1 (uma) remarcação gratuita por outros motivos pessoais, desde que avise com pelo menos 3 (três) dias de antecedência. A partir da segunda remarcação por motivos pessoais, será necessário efetuar novo pagamento do valor da reserva (20%) para garantir a nova data.</p>
+                      <p><strong>Parágrafo único – Reagendamento de ensaios:</strong> Em caso de condiç��es climáticas desfavoráveis no dia do ensaio, o reagendamento poderá ser realizado sem qualquer custo adicional. O(a) CONTRATANTE terá direito a 1 (uma) remarcação gratuita por outros motivos pessoais, desde que avise com pelo menos 3 (três) dias de antecedência. A partir da segunda remarcação por motivos pessoais, será necessário efetuar novo pagamento do valor da reserva (20%) para garantir a nova data.</p>
 <p><strong>Exceção:</strong> Situações imprevisíveis e de força maior, tais como acidentes, doenças súbitas ou emergências comprovadas, não serão consideradas como remarcação pessoal e poderão ser reagendadas sem custo adicional, mediante comunicação imediata à <strong>CONTRATADA</strong>.</p>
                     </div>
                   </section>
@@ -507,12 +517,6 @@ const ContractPreview = ({ data, onConfirm, onBack }: ContractPreviewProps) => {
                       </h4>
                       <div className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4" data-pdf-block>
-                          <div className="flex items-center">
-                            <span className="text-gray-600">Tipo de Serviço:</span>
-                            <span className="font-medium text-gray-900 ml-2">
-                              {item.type === 'events' ? 'Eventos' : item.type === 'portrait' ? 'Retratos' : 'Gestantes'}
-                            </span>
-                          </div>
                           <div className="flex items-center">
                             <span className="text-gray-600">Pacote Contratado:</span>
                             <span className="font-medium text-gray-900 ml-2">{item.name}</span>

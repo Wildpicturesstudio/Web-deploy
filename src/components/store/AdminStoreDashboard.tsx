@@ -28,15 +28,86 @@ interface ProductLite { id: string; name: string }
 
 interface AdminProps { onNavigate?: (view: 'dashboard' | 'products' | 'orders' | 'contracts' | 'calendar') => void }
 const AdminStoreDashboard: React.FC<AdminProps> = ({ onNavigate }) => {
-  const [stats, setStats] = useState({ products: 0, orders: 0, income: 0, customers: 0 });
-  const [recentOrders, setRecentOrders] = useState<OrderItem[]>([]);
-  const [allOrders, setAllOrders] = useState<OrderItem[]>([]);
-  const [products, setProducts] = useState<ProductLite[]>([]);
-  const [contracts, setContracts] = useState<any[]>([]);
-  const [investmentInstallments, setInvestmentInstallments] = useState<any[]>([]);
+  // Load from cache first
+  const getCachedStats = () => {
+    try {
+      const cached = localStorage.getItem('dashboard_stats_cache');
+      return cached ? JSON.parse(cached) : { products: 0, orders: 0, income: 0, customers: 0 };
+    } catch {
+      return { products: 0, orders: 0, income: 0, customers: 0 };
+    }
+  };
+
+  const getCachedOrders = () => {
+    try {
+      const cached = localStorage.getItem('dashboard_orders_cache');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const getCachedContracts = () => {
+    try {
+      const cached = localStorage.getItem('dashboard_contracts_cache');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const getCachedProducts = () => {
+    try {
+      const cached = localStorage.getItem('dashboard_products_cache');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const getCachedInstallments = () => {
+    try {
+      const cached = localStorage.getItem('dashboard_installments_cache');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const [stats, setStats] = useState(() => getCachedStats());
+  const [recentOrders, setRecentOrders] = useState(() => getCachedOrders());
+  const [allOrders, setAllOrders] = useState(() => getCachedOrders());
+  const [products, setProducts] = useState(() => getCachedProducts());
+  const [contracts, setContracts] = useState(() => getCachedContracts());
+  const [investmentInstallments, setInvestmentInstallments] = useState(() => getCachedInstallments());
   const [period, setPeriod] = useState<{ type: 'all' | 'year' | 'month' | 'custom'; start?: string; end?: string }>({ type: 'all' });
   const [metric, setMetric] = useState<'revenue' | 'contracts'>('revenue');
   const { flags, setPageEnabled } = useFeatureFlags();
+
+  // Cache stats whenever they change
+  useEffect(() => {
+    localStorage.setItem('dashboard_stats_cache', JSON.stringify(stats));
+  }, [stats]);
+
+  // Cache orders whenever they change
+  useEffect(() => {
+    localStorage.setItem('dashboard_orders_cache', JSON.stringify(allOrders));
+  }, [allOrders]);
+
+  // Cache contracts whenever they change
+  useEffect(() => {
+    localStorage.setItem('dashboard_contracts_cache', JSON.stringify(contracts));
+  }, [contracts]);
+
+  // Cache products whenever they change
+  useEffect(() => {
+    localStorage.setItem('dashboard_products_cache', JSON.stringify(products));
+  }, [products]);
+
+  // Cache installments whenever they change
+  useEffect(() => {
+    localStorage.setItem('dashboard_installments_cache', JSON.stringify(investmentInstallments));
+  }, [investmentInstallments]);
 
   useEffect(() => {
     (async () => {
@@ -52,7 +123,7 @@ const AdminStoreDashboard: React.FC<AdminProps> = ({ onNavigate }) => {
         const productsSnap = await getCountFromServer(collection(db, 'products'));
         const ordersSnap = await getCountFromServer(collection(db, 'orders'));
         const customersSnap = await getCountFromServer(collection(db, 'customers'));
-        setStats(s => ({
+        setStats((s: any) => ({
           ...s,
           products: productsSnap.data().count || 0,
           orders: ordersSnap.data().count || 0,
@@ -100,7 +171,7 @@ const AdminStoreDashboard: React.FC<AdminProps> = ({ onNavigate }) => {
         const snap = await getDocs(collection(db, 'orders'));
         all = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) })) as OrderItem[];
         setAllOrders(all);
-        setStats(s => ({ ...s, income: all.reduce((sum, o) => sum + Number(o.total || 0), 0) }));
+        setStats((s: any) => ({ ...s, income: all.reduce((sum: number, o) => sum + Number(o.total || 0), 0) }));
       } catch {
         all = [];
         setAllOrders([]);
@@ -222,19 +293,19 @@ const AdminStoreDashboard: React.FC<AdminProps> = ({ onNavigate }) => {
   }, [contracts, period]);
 
   const salesTotals = useMemo(() => {
-    const packages = filteredContracts.reduce((sum, c: any) => sum + contractAmounts(c).services, 0);
-    const services = filteredContracts.reduce((sum, c: any) => sum + contractAmounts(c).storeTotal, 0);
+    const packages = filteredContracts.reduce((sum: number, c: any) => sum + contractAmounts(c).services, 0);
+    const services = filteredContracts.reduce((sum: number, c: any) => sum + contractAmounts(c).storeTotal, 0);
     return { services, packages };
   }, [filteredContracts]);
 
   const statCards = useMemo(() => {
-    const income = filteredContracts.reduce((sum, c: any) => sum + contractAmounts(c).total, 0);
-    const customers = new Set(filteredContracts.map((c:any)=> c.clientEmail || c.clientName)).size;
+    const income = filteredContracts.reduce((sum: number, c: any) => sum + contractAmounts(c).total, 0);
+    const totalContracts = filteredContracts.length;
     return ([
       { label: 'Ventas Serv. Adicionales', value: `R$ ${salesTotals.services.toFixed(0)}` , icon: <DollarSign className="text-amber-500" size={18} /> },
       { label: 'Ventas Paquetes Foto', value: `R$ ${salesTotals.packages.toFixed(0)}` , icon: <Package className="text-primary" size={18} /> },
       { label: 'Ingresos Totales', value: `R$ ${income.toFixed(0)}`, icon: <DollarSign className="text-amber-500" size={18} /> },
-      { label: 'Nuevos Clientes', value: customers, icon: <Users className="text-fuchsia-500" size={18} /> },
+      { label: 'Total Contratos', value: totalContracts, icon: <ClipboardList className="text-fuchsia-500" size={18} /> },
     ]);
   }, [salesTotals, filteredContracts]);
 
@@ -247,19 +318,14 @@ const AdminStoreDashboard: React.FC<AdminProps> = ({ onNavigate }) => {
       const future = time >= today.getTime();
       return { c, diff, future };
     });
-    withDiff.sort((a, b) => a.diff - b.diff);
+    withDiff.sort((a: any, b: any) => a.diff - b.diff);
     return withDiff.slice(0, 5);
   }, [contracts]);
 
   return (
     <div className="space-y-4 md:space-y-6">
-      <div>
-        <h1 className="section-title text-2xl md:text-3xl">Panel de Administración</h1>
-        <p className="text-gray-600 text-sm md:text-base">Gestiona tu tienda de productos personalizados</p>
-      </div>
-
       {/* Period Filter at the top */}
-      <div className="bg-white rounded-xl border border-gray-200 p-3 md:p-4 flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
+      <div className="bg-white rounded-xl border border-gray-200 py-1 px-4 flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
         <label className="text-sm font-medium text-gray-700">Periodo:</label>
         <select value={period.type} onChange={e=> setPeriod({ type: e.target.value as any })} className="px-3 py-2 border rounded-none">
           <option value="all">Global</option>
@@ -276,9 +342,9 @@ const AdminStoreDashboard: React.FC<AdminProps> = ({ onNavigate }) => {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" style={{ marginTop: '10px' }}>
         {statCards.map((s, i) => (
-          <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 flex items-center justify-between shadow-sm">
+          <div key={i} className="bg-white rounded-xl border border-gray-200 py-1 px-4 flex items-center justify-between shadow-sm">
             <div>
               <p className="text-gray-500 text-sm">{s.label}</p>
               <p className="text-2xl font-semibold">{s.value}</p>
@@ -290,63 +356,9 @@ const AdminStoreDashboard: React.FC<AdminProps> = ({ onNavigate }) => {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Quick Actions */}
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <h3 className="font-medium mb-4">Acciones Rápidas</h3>
-          <div className="space-y-3">
-            <button onClick={() => onNavigate?.('orders')} className="w-full border-2 border-black text-black px-4 py-3 rounded-none hover:bg-black hover:text-white flex items-center justify-center gap-2">
-              Ver Órdenes
-              <ArrowUpRight size={18} />
-            </button>
-            <button onClick={() => onNavigate?.('contracts')} className="w-full border-2 border-black text-black px-4 py-3 rounded-none hover:bg-black hover:text-white flex items-center justify-center gap-2">
-              Ver Contratos
-              <ArrowUpRight size={18} />
-            </button>
-            <button onClick={() => onNavigate?.('calendar')} className="w-full border-2 border-black text-black px-4 py-3 rounded-none hover:bg-black hover:text-white flex items-center justify-center gap-2">
-              Ver Calendario
-              <ArrowUpRight size={18} />
-            </button>
-            <button onClick={() => onNavigate?.('products')} className="w-full border-2 border-black text-black px-4 py-3 rounded-none hover:bg-black hover:text-white">
-              Administrar Productos
-            </button>
-          </div>
-
-        </div>
-
-        {/* Nearest Contracts */}
-        <div className="lg:col-span-2 bg-white rounded-xl border border-gray-200 p-4">
-          <h3 className="font-medium mb-4">Contratos Cercanos</h3>
-          <div className="divide-y">
-            {nearestContracts.length === 0 && (
-              <div className="text-gray-500 text-sm p-4 flex items-center justify-between">
-                <span>No hay contratos próximos</span>
-              </div>
-            )}
-            {nearestContracts.map(({ c, future }) => (
-              <div key={c.id} className="flex items-center justify-between py-3">
-                <div>
-                  <p className="font-medium lowercase first-letter:uppercase">{c.clientName || 'cliente'}</p>
-                  <p className="text-xs text-gray-500">{c.eventDate ? new Date(c.eventDate).toLocaleDateString() : (c.contractDate ? new Date(c.contractDate).toLocaleDateString() : '')}</p>
-                  <p className="text-xs text-gray-600">Evento: {c.eventType || '-'}</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-sm font-semibold">R$ {Number(c.totalAmount || 0).toFixed(0)}</span>
-                  <span className={`text-xs px-2 py-1 rounded-full ${c.eventCompleted ? 'bg-green-100 text-green-700' : future ? 'bg-yellow-100 text-yellow-700' : 'bg-blue-100 text-blue-700'}`}>
-                    {c.eventCompleted ? 'completado' : future ? 'pendiente' : 'pasado'}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="pt-3">
-            <button onClick={() => onNavigate?.('contracts')} className="w-full border-2 border-black text-black rounded-none py-2 hover:bg-black hover:text-white">Ver Todos los Contratos</button>
-          </div>
-        </div>
-      </div>
 
       {/* Performance */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="bg-white rounded-xl border border-gray-200 p-6" style={{ marginTop: '10px' }}>
         <div className="flex items-center gap-2 mb-4">
           <h3 className="font-medium">Rendimiento</h3>
           <select value={metric} onChange={e=> setMetric(e.target.value as any)} className="px-3 py-2 border rounded-none">

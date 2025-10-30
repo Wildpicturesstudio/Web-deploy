@@ -15,6 +15,7 @@ interface PackageEditorModalProps {
 
 const PackageEditorModal: React.FC<PackageEditorModalProps> = ({ open, onClose, pkg, onSaved }) => {
   const [title, setTitle] = useState('');
+  const [serviceType, setServiceType] = useState<string>('');
   const [price, setPrice] = useState<number>(0);
   const [duration, setDuration] = useState('');
   const [description, setDescription] = useState('');
@@ -57,6 +58,7 @@ const PackageEditorModal: React.FC<PackageEditorModalProps> = ({ open, onClose, 
   useEffect(() => {
     if (!pkg) return;
     setTitle(pkg.title || '');
+    setServiceType(pkg.serviceType || '');
     setPrice(Number(pkg.price) || 0);
     setDuration(pkg.duration || '');
     setDescription(pkg.description || '');
@@ -169,6 +171,7 @@ const PackageEditorModal: React.FC<PackageEditorModalProps> = ({ open, onClose, 
           .filter(Boolean),
         image_url: imageUrl,
         category: category || undefined,
+        serviceType: serviceType || undefined,
         recommended: Boolean(recommended),
       } as Partial<DBPackage> & { displayPage?: 'portrait'|'maternity'|'events'|'civilWedding' };
       if (displayPage) (updates as any).displayPage = displayPage;
@@ -207,6 +210,7 @@ const PackageEditorModal: React.FC<PackageEditorModalProps> = ({ open, onClose, 
         features: baseFeatures,
         image_url: imageUrl || '',
         category: category || undefined,
+        serviceType: serviceType || undefined,
         sections: sections,
         recommended: Boolean(recommended),
         storeItemsIncluded: Object.entries(included).map(([rawKey, quantity]) => {
@@ -260,6 +264,11 @@ const PackageEditorModal: React.FC<PackageEditorModalProps> = ({ open, onClose, 
           <div>
             <label className="block text-sm text-gray-700 mb-1">Título</label>
             <input value={title} onChange={e => setTitle(e.target.value)} className="w-full px-3 py-2 border rounded" />
+          </div>
+
+          <div>
+            <label className="block text-sm text-gray-700 mb-1">Tipo de Servicio</label>
+            <input value={serviceType} onChange={e => setServiceType(e.target.value)} className="w-full px-3 py-2 border rounded" placeholder="ej: Matrimonio, Sesión de Fotos, Evento Corporativo" />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

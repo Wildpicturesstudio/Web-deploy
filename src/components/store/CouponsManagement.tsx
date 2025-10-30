@@ -11,8 +11,21 @@ const discountTypeOptions = [
 ] as const;
 
 const CouponsManagement: React.FC = () => {
-  const [coupons, setCoupons] = useState<DBCoupon[]>([]);
+  const getCachedCoupons = () => {
+    try {
+      const cached = localStorage.getItem('coupons_management_cache');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const [coupons, setCoupons] = useState(() => getCachedCoupons());
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem('coupons_management_cache', JSON.stringify(coupons));
+  }, [coupons]);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
@@ -102,7 +115,7 @@ const CouponsManagement: React.FC = () => {
   }, []);
 
   const filtered = useMemo(() => {
-    return coupons.filter(c => {
+    return coupons.filter((c: DBCoupon) => {
       if (filterStatus === 'active' && c.status === false) return false;
       if (filterStatus === 'inactive' && c.status !== false) return false;
       if (filterType !== 'all' && c.discountType !== filterType) return false;
@@ -186,7 +199,7 @@ const CouponsManagement: React.FC = () => {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h2 className="section-title">Cupones de Descuento</h2>
+        <div></div>
         <button onClick={openCreate} className="px-4 py-2 border-2 border-black text-black rounded-none hover:bg-black hover:text-white">+ Nuevo Cupón</button>
       </div>
 
@@ -231,7 +244,7 @@ const CouponsManagement: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {filtered.map(c => (
+            {filtered.map((c: DBCoupon) => (
               <tr key={c.id} className="border-t">
                 <td className="p-2 font-mono">{c.code}</td>
                 <td className="p-2">{c.description}</td>

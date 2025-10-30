@@ -1,21 +1,26 @@
-import React, { useEffect, useMemo, useState } from 'react';
+'use client';
+
 import { db } from '../../utils/firebaseClient';
-import { addDoc, collection, doc, getDocs, orderBy, query, updateDoc } from 'firebase/firestore';
-import { ChevronLeft, ChevronRight, Plus, X, ExternalLink, MapPin, Phone, Calendar as IconCalendar, Clock, DollarSign, FileText, Download, Printer } from 'lucide-react';
+import { addDoc, collection, doc, getDocs, orderBy, query, updateDoc, deleteDoc } from 'firebase/firestore';
+import { ChevronLeft, ChevronRight, Plus, X, ExternalLink, MapPin, Phone, Calendar as IconCalendar, Clock, DollarSign, FileText, Download, Printer, RefreshCw, Trash2, Eye, EyeOff, Edit, Percent } from 'lucide-react';
 import { parseDurationToMinutes } from '../../utils/calendar';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { WorkflowStatusButtons } from './WorkflowStatusButtons';
+import { fetchPackages, DBPackage } from '../../utils/packagesService';
+import { fetchCoupons, DBCoupon, isCouponActiveNow } from '../../utils/couponsService';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 
 interface ContractItem {
   id: string;
   clientName: string;
   clientEmail: string;
   eventType?: string;
-  eventDate?: string; // YYYY-MM-DD
-  eventTime?: string; // HH:mm
+  eventDate?: string;
+  eventTime?: string;
   eventLocation?: string;
   packageDuration?: string;
+  packageTitle?: string;
   paymentMethod?: string;
   depositPaid?: boolean;
   finalPaymentPaid?: boolean;
@@ -24,9 +29,17 @@ interface ContractItem {
   status?: 'pending' | 'booked' | 'delivered' | 'cancelled' | 'pending_payment' | 'confirmed' | 'pending_approval' | 'released';
   pdfUrl?: string | null;
   phone?: string;
+  clientPhone?: string;
+  clientCPF?: string;
+  clientRG?: string;
+  clientAddress?: string;
+  signatureTime?: string;
   formSnapshot?: any;
   totalAmount?: number;
   travelFee?: number;
+  contractDate?: string;
+  storeItems?: any[];
+  services?: any[];
 }
 
 type StatusFilter = 'all' | 'pending' | 'booked' | 'delivered' | 'cancelled' | 'pending_payment' | 'pending_approval' | 'released';
@@ -50,6 +63,16 @@ function getEventColor(c: ContractItem): string {
   return 'bg-yellow-500 text-black hover:opacity-90';
 }
 
+function getEventStatus(c: ContractItem): 'completed' | 'pending' {
+  const status = (() => {
+    if (c.status) return c.status;
+    if (c.eventCompleted && c.finalPaymentPaid) return 'delivered' as const;
+    if (c.depositPaid === false) return 'pending_payment' as const;
+    return 'booked' as const;
+  })();
+  return (status === 'delivered' || status === 'released') ? 'completed' : 'pending';
+}
+
 interface AdminCalendarProps {
   darkMode?: boolean;
 }
@@ -67,8 +90,51 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
   const [adding, setAdding] = useState(false);
   const [addForm, setAddForm] = useState<any>({ clientName: '', eventType: '', eventDate: '', eventTime: '', eventLocation: '', paymentMethod: 'pix' });
   const [dressOptions, setDressOptions] = useState<{ id: string; name: string; image: string; color?: string }[]>([]);
+  const [imageModal, setImageModal] = useState<{ open: boolean; src?: string; alt?: string }>({ open: false });
+
+  // Load dresses (same logic as ContractsManagement) so we can show selected dresses in event details
+  useEffect(() => {
+    const loadDresses = async () => {
+      try {
+        const snap = await getDocs(collection(db, 'products'));
+        const list = snap.docs
+          .map(d => ({ id: d.id, ...(d.data() as any) }))
+          .filter((p: any) => {
+            const c = String((p as any).category || '').toLowerCase();
+            return c.includes('vestid') || c.includes('dress');
+          })
+          .map((p: any) => ({ id: p.id, name: p.name || 'Vestido', image: p.image_url || p.image || '', color: Array.isArray(p.tags) && p.tags.length ? String(p.tags[0]) : '' }));
+        setDressOptions(list);
+      } catch (e) {
+        setDressOptions([]);
+      }
+    };
+    loadDresses();
+  }, []);
+
+  const openImageModal = (src?: string, alt?: string) => setImageModal({ open: true, src, alt });
+  const closeImageModal = () => setImageModal({ open: false });
   const [showDailyList, setShowDailyList] = useState<string | null>(null);
   const [expandedDay, setExpandedDay] = useState<string | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<ContractItem | null>(null);
+  const [statusFilter, setStatusFilter] = useState<'deposit_pending' | 'editing' | 'completed' | null>(null);
+  const [syncing, setSyncing] = useState(false);
+  const [deleteConfirmEvent, setDeleteConfirmEvent] = useState<ContractItem | null>(null);
+  const [editingEvent, setEditingEvent] = useState<ContractItem | null>(null);
+  const [editForm, setEditForm] = useState<any>({});
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showRevenue, setShowRevenue] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [packages, setPackages] = useState<DBPackage[]>([]);
+  const [coupons, setCoupons] = useState<DBCoupon[]>([]);
+  const [appliedCoupons, setAppliedCoupons] = useState<string[]>([]);
+  const [showCouponModal, setShowCouponModal] = useState(false);
+
+  // Add / Create flow states
+  const [showAddEventModal, setShowAddEventModal] = useState(false);
+  const [showAddContactModal, setShowAddContactModal] = useState(false);
+  const [contactForm, setContactForm] = useState<{ name: string; email?: string; phone: string; packageId?: string; notes?: string; eventDate?: string; eventTime?: string }>({ name: '', email: '', phone: '', packageId: '', notes: '', eventDate: '', eventTime: '' });
+  const [editingContactIds, setEditingContactIds] = useState<{ contactId?: string; calendarEventId?: string } | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -99,73 +165,170 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
               packageDuration: duration,
               eventType: evType,
               clientName: `${c.clientName}${it?.name ? ` — ${it.name}` : ''}`
-            } as ContractItem;
+            };
           });
         }
-        return [c as ContractItem];
+        return [c];
       });
-      setEvents(expanded);
+
+      // load calendar-only events (like contact follow-ups)
+      const calendarEventsCol = collection(db, 'calendar_events');
+      let calendarList: ContractItem[] = [];
+      try {
+        const csnap = await getDocs(calendarEventsCol);
+        calendarList = csnap.docs.map(d => {
+          const data: any = d.data();
+          return {
+            id: `cal_${d.id}`,
+            clientName: data.name || data.title || 'Contacto',
+            clientEmail: data.email || '',
+            phone: data.phone || '',
+            eventDate: data.eventDate || '',
+            eventTime: data.eventTime || '',
+            eventLocation: data.eventLocation || '',
+            eventType: data.type || 'Contacto',
+            packageTitle: data.packageTitle || '',
+            notes: data.notes || '',
+            createdAt: data.createdAt || ''
+          } as ContractItem;
+        });
+      } catch (e) {
+        calendarList = [];
+      }
+
+      const combined = [...expanded, ...calendarList];
+      // sort by createdAt desc if available
+      combined.sort((a: any, b: any) => {
+        const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return tb - ta;
+      });
+
+      setEvents(combined);
     } catch (e) {
-      setEvents([]);
+      console.error('Error loading contracts:', e);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { load(); }, []);
-
   useEffect(() => {
-    const handler = () => load();
-    window.addEventListener('contractsUpdated', handler as EventListener);
-    return () => window.removeEventListener('contractsUpdated', handler as EventListener);
+    load();
   }, []);
 
   useEffect(() => {
-    const loadDresses = async () => {
-      try {
-        const snap = await getDocs(collection(db, 'products'));
-        const list = snap.docs
-          .map(d => ({ id: d.id, ...(d.data() as any) }))
-          .filter((p: any) => {
-            const c = String((p as any).category || '').toLowerCase();
-            return c.includes('vestid') || c.includes('dress');
-          })
-          .map((p: any) => ({
-            id: p.id,
-            name: p.name || 'Vestido',
-            image: p.image_url || p.image || '',
-            color: Array.isArray(p.tags) && p.tags.length ? String(p.tags[0]) : ''
-          }));
-        setDressOptions(list);
-      } catch (e) {
-        console.error('Error loading dresses:', e);
-        setDressOptions([]);
+    const updateHandler = () => load();
+    const deleteHandler = (event: any) => {
+      const contractId = event.detail?.contractId;
+      if (contractId) {
+        setEvents(prev => prev.filter(e => {
+          const id = String(e.id || '').split('__')[0];
+          return id !== contractId;
+        }));
       }
     };
-    loadDresses();
+
+    window.addEventListener('contractsUpdated', updateHandler as EventListener);
+    window.addEventListener('contractDeleted', deleteHandler as EventListener);
+
+    return () => {
+      window.removeEventListener('contractsUpdated', updateHandler as EventListener);
+      window.removeEventListener('contractDeleted', deleteHandler as EventListener);
+    };
   }, []);
 
-  const monthDays = useMemo(() => {
-    const first = startOfMonth(current.y, current.m);
-    const last = endOfMonth(current.y, current.m);
-    const startWeekday = first.getDay();
-    const total = last.getDate();
-    const cells: Array<{ date: Date | null } > = [];
-    for (let i = 0; i < startWeekday; i++) cells.push({ date: null });
-    for (let d = 1; d <= total; d++) cells.push({ date: new Date(current.y, current.m, d) });
-    return cells;
-  }, [current]);
+  useEffect(() => {
+    const loadPackagesAndCoupons = async () => {
+      try {
+        const pkgs = await fetchPackages();
+        setPackages(pkgs);
+      } catch (e) {
+        console.error('Error loading packages:', e);
+      }
+      try {
+        const cps = await fetchCoupons();
+        setCoupons(cps.filter(c => isCouponActiveNow(c)));
+      } catch (e) {
+        console.error('Error loading coupons:', e);
+      }
+    };
+    loadPackagesAndCoupons();
+  }, []);
 
-  const miniMonthDays = useMemo(() => {
-    const first = startOfMonth(current.y, current.m);
-    const last = endOfMonth(current.y, current.m);
-    const startWeekday = first.getDay();
-    const total = last.getDate();
-    const cells: Array<{ date: Date | null }> = [];
-    for (let i = 0; i < startWeekday; i++) cells.push({ date: null });
-    for (let d = 1; d <= total; d++) cells.push({ date: new Date(current.y, current.m, d) });
-    return cells;
-  }, [current]);
+  const calculateTotalWithDiscount = () => {
+    if (!selectedEvent) return 0;
+    let total = Number(selectedEvent.totalAmount || 0);
+    appliedCoupons.forEach(couponId => {
+      const coupon = coupons.find(c => c.id === couponId);
+      if (coupon) {
+        switch (coupon.discountType) {
+          case 'percentage':
+            total -= total * ((coupon.discountValue || 0) / 100);
+            break;
+          case 'fixed':
+            total -= (coupon.discountValue || 0);
+            break;
+          case 'full':
+            total = 0;
+            break;
+        }
+      }
+    });
+    return Math.max(0, total);
+  };
+
+  const calculateDepositWithDiscount = () => {
+    const total = calculateTotalWithDiscount();
+    return total * 0.2;
+  };
+
+  const calculateRemainingWithDiscount = () => {
+    const total = calculateTotalWithDiscount();
+    return total * 0.8;
+  };
+
+  // Helpers to compute totals from a base amount (used for add modal)
+  const computeTotalFromBase = (baseAmount: number) => {
+    let total = Number(baseAmount || 0);
+    appliedCoupons.forEach(couponId => {
+      const coupon = coupons.find(c => c.id === couponId);
+      if (coupon) {
+        switch (coupon.discountType) {
+          case 'percentage':
+            total -= total * ((coupon.discountValue || 0) / 100);
+            break;
+          case 'fixed':
+            total -= (coupon.discountValue || 0);
+            break;
+          case 'full':
+            total = 0;
+            break;
+        }
+      }
+    });
+    return Math.max(0, total);
+  };
+
+  const computeDepositFromBase = (base: number) => computeTotalFromBase(base) * 0.2;
+  const computeRemainingFromBase = (base: number) => computeTotalFromBase(base) * 0.8;
+
+  const searchResults = useMemo(() => {
+    if (!filterPhone.trim()) return [];
+    return events.filter(ev => {
+      const d = toLocalDate(ev.eventDate);
+      if (!d) return false;
+
+      let phoneMatch = false;
+      let nameMatch = false;
+      const phoneSource = ev.phone || (ev as any).formSnapshot?.phone || '';
+      const onlyDigits = (v: string) => String(v || '').replace(/\D/g, '');
+      phoneMatch = onlyDigits(phoneSource).includes(onlyDigits(filterPhone));
+      const clientName = ev.clientName || '';
+      nameMatch = clientName.toLowerCase().includes(filterPhone.toLowerCase());
+
+      return phoneMatch || nameMatch;
+    }).slice(0, 8);
+  }, [events, filterPhone]);
 
   const filteredEvents = useMemo(() => {
     return events.filter(ev => {
@@ -182,13 +345,16 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
       const statusMatch = filterStatus === 'all' ? true : status === filterStatus;
 
       let phoneMatch = true;
+      let nameMatch = true;
       if (filterPhone.trim()) {
         const phoneSource = ev.phone || (ev as any).formSnapshot?.phone || '';
         const onlyDigits = (v: string) => String(v || '').replace(/\D/g, '');
         phoneMatch = onlyDigits(phoneSource).includes(onlyDigits(filterPhone));
+        const clientName = ev.clientName || '';
+        nameMatch = clientName.toLowerCase().includes(filterPhone.toLowerCase());
       }
 
-      return monthMatch && yearMatch && statusMatch && phoneMatch;
+      return monthMatch && yearMatch && statusMatch && (phoneMatch || nameMatch);
     });
   }, [events, filterMonth, filterYear, filterStatus, filterPhone]);
 
@@ -205,84 +371,466 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
       map.set(key, [...(map.get(key) || []), ev]);
     });
     for (const [k, list] of Array.from(map.entries())) {
-      list.sort((a, b) => {
-        const ta = toMinutes(a.eventTime);
-        const tb = toMinutes(b.eventTime);
-        if (ta !== tb) return ta - tb;
-        return String(a.clientName || '').localeCompare(String(b.clientName || ''));
-      });
-      map.set(k, list);
+      list.sort((a, b) => toMinutes(a.eventTime) - toMinutes(b.eventTime));
     }
     return map;
   }, [filteredEvents]);
 
-  const goToday = () => { const t = new Date(); setCurrent({ y: t.getFullYear(), m: t.getMonth() }); setFilterMonth(t.getMonth()); setFilterYear(t.getFullYear()); };
-  const prevMonth = () => setCurrent(c => { const y = c.m === 0 ? c.y - 1 : c.y; const m = c.m === 0 ? 11 : c.m - 1; return { y, m }; });
-  const nextMonth = () => setCurrent(c => { const y = c.m === 11 ? c.y + 1 : c.y; const m = c.m === 11 ? 0 : c.m + 1; return { y, m }; });
+  const miniMonthDays = useMemo(() => {
+    const y = current.y;
+    const m = current.m;
+    const start = startOfMonth(y, m);
+    const end = endOfMonth(y, m);
+    const days = [];
+    for (let i = 0; i < start.getDay(); i++) days.push({ date: null });
+    for (let d = 1; d <= end.getDate(); d++) days.push({ date: new Date(y, m, d) });
+    return days;
+  }, [current]);
 
-  const months = Array.from({ length: 12 }, (_, i) => new Date(2000, i, 1).toLocaleString('es', { month: 'long' }));
-  const years = Array.from({ length: 7 }, (_, i) => today.getFullYear() - 3 + i);
+  const monthDays = useMemo(() => {
+    const y = filterYear;
+    const m = filterMonth;
+    const start = startOfMonth(y, m);
+    const end = endOfMonth(y, m);
+    const days = [];
+    for (let i = 0; i < start.getDay(); i++) days.push({ date: null });
+    for (let d = 1; d <= end.getDate(); d++) days.push({ date: new Date(y, m, d) });
+    return days;
+  }, [filterYear, filterMonth]);
 
-  const computeAmounts = (c: ContractItem) => {
-    const svcList: any[] = Array.isArray((c as any).services) && (c as any).services.length > 0 ? (c as any).services : (Array.isArray((c as any).formSnapshot?.cartItems) ? (c as any).formSnapshot.cartItems : []);
-    const servicesTotalRaw = svcList.reduce((sum, it: any) => {
-      const qty = Number(it?.quantity ?? 1);
-      const price = Number(String(it?.price || '').replace(/[^0-9]/g, ''));
-      return sum + (price * qty);
-    }, 0);
-    const storeTotal = (Array.isArray((c as any).storeItems) ? (c as any).storeItems : []).reduce((sum: number, it: any) => sum + (Number(it.price) * Number(it.quantity || 1)), 0);
-    const travel = Number((c as any).travelFee || 0);
-    const totalFromDoc = Number((c as any).totalAmount || 0);
-    const servicesEstimated = servicesTotalRaw > 0 ? servicesTotalRaw : Math.max(0, totalFromDoc - storeTotal - travel);
-    const totalAmount = Math.round(servicesEstimated + storeTotal + travel);
-    const depositAmount = servicesEstimated <= 0 && storeTotal > 0 ? Math.ceil((storeTotal + travel) * 0.5) : Math.ceil(servicesEstimated * 0.2 + storeTotal * 0.5);
-    const remainingAmount = Math.max(0, Math.round(totalAmount - depositAmount));
-    return { servicesTotal: servicesEstimated, storeTotal, travel, totalAmount, depositAmount, remainingAmount };
+  const eventSummary = useMemo(() => {
+    const pending = filteredEvents.filter(e => e.depositPaid !== true).length;
+    const editing = filteredEvents.filter(e => e.depositPaid === true && e.finalPaymentPaid === true && e.eventCompleted !== true).length;
+    const completed = filteredEvents.filter(e => e.depositPaid === true && e.finalPaymentPaid === true && e.eventCompleted === true).length;
+    const allTotal = filteredEvents.length;
+    const totalRevenue = filteredEvents
+      .filter(e => e.depositPaid === true && e.finalPaymentPaid === true && e.eventCompleted === true)
+      .reduce((sum, e) => sum + (Number(e.totalAmount || 0)), 0);
+    return { pending, editing, completed, allTotal, totalRevenue };
+  }, [filteredEvents]);
+
+  const prevMonth = () => setCurrent(c => ({
+    ...c,
+    m: c.m === 0 ? 11 : c.m - 1,
+    y: c.m === 0 ? c.y - 1 : c.y
+  }));
+
+  const nextMonth = () => setCurrent(c => ({
+    ...c,
+    m: c.m === 11 ? 0 : c.m + 1,
+    y: c.m === 11 ? c.y + 1 : c.y
+  }));
+
+  const goToday = () => {
+    const now = new Date();
+    setFilterMonth(now.getMonth());
+    setFilterYear(now.getFullYear());
+    setCurrent({ y: now.getFullYear(), m: now.getMonth() });
   };
 
-  const handleSaveStatus = async (id: string, status: ContractItem['status']) => {
-    await updateDoc(doc(db, 'contracts', id), { status } as any);
-    await load();
-  };
+  const updateEventProgress = async (field: 'depositPaid' | 'finalPaymentPaid' | 'eventCompleted', value: boolean) => {
+    if (!selectedEvent) return;
 
-  const handleAddEvent = async () => {
-    if (!addForm.clientName || !addForm.eventDate) return;
-    const payload: any = {
-      clientName: addForm.clientName,
-      clientEmail: addForm.clientEmail || '',
-      eventType: addForm.eventType || 'Evento',
-      eventDate: addForm.eventDate,
-      eventTime: addForm.eventTime || '00:00',
-      eventLocation: addForm.eventLocation || '',
-      paymentMethod: addForm.paymentMethod || 'pix',
-      depositPaid: false,
-      finalPaymentPaid: false,
-      eventCompleted: false,
-      isEditing: false,
-      createdAt: new Date().toISOString(),
-      totalAmount: Number(addForm.totalAmount || 0) || 0,
-      travelFee: Number(addForm.travelFee || 0) || 0,
-      status: 'booked' as const,
-    };
-    await addDoc(collection(db, 'contracts'), payload);
-    setAdding(false);
-    setAddForm({ clientName: '', eventType: '', eventDate: '', eventTime: '', eventLocation: '', paymentMethod: 'pix' });
-    await load();
-  };
-
-  const openContractPreview = (c: ContractItem) => {
-    const baseId = String(c.id || '').split('__')[0] || c.id;
     try {
-      window.dispatchEvent(new CustomEvent('adminOpenContract', { detail: { id: baseId } }));
-    } catch {}
-    setSelected(null);
+      const baseId = String(selectedEvent.id || '').split('__')[0] || selectedEvent.id;
+      const updates: any = { [field]: value };
+
+      await updateDoc(doc(db, 'contracts', baseId), updates);
+
+      const updatedEvent = { ...selectedEvent, [field]: value };
+      setSelectedEvent(updatedEvent);
+      setEvents(prev => prev.map(e => {
+        const eId = String(e.id || '').split('__')[0];
+        return eId === baseId ? { ...e, [field]: value } : e;
+      }));
+
+      window.dispatchEvent(new CustomEvent('contractsUpdated'));
+
+      window.dispatchEvent(new CustomEvent('adminToast', {
+        detail: { message: 'Progreso actualizado correctamente', type: 'success' }
+      }));
+    } catch (e) {
+      console.error('Error updating event progress:', e);
+      window.dispatchEvent(new CustomEvent('adminToast', {
+        detail: { message: 'Error al actualizar el progreso', type: 'error' }
+      }));
+    }
   };
+
+  const deleteEvent = (ev: ContractItem) => {
+    setDeleteConfirmEvent(ev);
+  };
+
+  const markContactAttended = async (ev: ContractItem) => {
+    try {
+      const calId = String(ev.id || '').startsWith('cal_') ? String(ev.id).replace(/^cal_/, '') : undefined;
+      const contactId = (ev as any).contactRef || undefined;
+
+      if (contactId) {
+        try {
+          await updateDoc(doc(db, 'contacts', contactId), { attended: true, attendedAt: new Date().toISOString() });
+        } catch (e) {
+          console.error('Error marking contact attended (contacts):', e);
+        }
+      }
+
+      if (calId) {
+        try {
+          await updateDoc(doc(db, 'calendar_events', calId), { attended: true, attendedAt: new Date().toISOString() });
+        } catch (e) {
+          console.error('Error marking contact attended (calendar_events):', e);
+        }
+      }
+
+      await load();
+      setSelectedEvent(null);
+      window.dispatchEvent(new CustomEvent('adminToast', { detail: { message: 'Contacto marcado como atendido', type: 'success' } }));
+      window.dispatchEvent(new CustomEvent('contactsUpdated'));
+      window.dispatchEvent(new CustomEvent('calendarUpdated'));
+    } catch (e) {
+      console.error('Error marking contact attended:', e);
+      window.dispatchEvent(new CustomEvent('adminToast', { detail: { message: 'Error al marcar como atendido', type: 'error' } }));
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirmEvent) return;
+
+    setIsDeleting(true);
+    try {
+      const baseId = String(deleteConfirmEvent.id || '').split('__')[0] || deleteConfirmEvent.id;
+
+      // If this is a calendar-only event (our synthetic id starts with cal_)
+      if (typeof baseId === 'string' && baseId.startsWith('cal_')) {
+        const realId = baseId.replace(/^cal_/, '');
+        // delete calendar event
+        try {
+          await deleteDoc(doc(db, 'calendar_events', realId));
+        } catch (e) {
+          console.error('Error deleting calendar_event:', e);
+        }
+        // also delete linked contact if present
+        const contactRef = (deleteConfirmEvent as any).contactRef;
+        if (contactRef) {
+          try {
+            await deleteDoc(doc(db, 'contacts', contactRef));
+          } catch (e) {
+            console.error('Error deleting linked contact:', e);
+          }
+        }
+
+        setEvents(prev => prev.filter(e => String(e.id || '').replace(/^cal_/, '') !== realId));
+
+        setDeleteConfirmEvent(null);
+        setSelectedEvent(null);
+
+        window.dispatchEvent(new CustomEvent('adminToast', {
+          detail: { message: 'Evento de contacto eliminado correctamente', type: 'success' }
+        }));
+        window.dispatchEvent(new CustomEvent('contactsUpdated'));
+        window.dispatchEvent(new CustomEvent('calendarUpdated'));
+      } else {
+        // default behaviour: delete contract
+        try {
+          await deleteDoc(doc(db, 'contracts', baseId));
+        } catch (e) {
+          console.error('Error deleting contract:', e);
+        }
+
+        setEvents(prev => prev.filter(e => {
+          const id = String(e.id || '').split('__')[0];
+          return id !== baseId;
+        }));
+
+        setDeleteConfirmEvent(null);
+        setSelectedEvent(null);
+
+        try {
+          window.dispatchEvent(new CustomEvent('contractDeleted', { detail: { contractId: baseId } }));
+          window.dispatchEvent(new CustomEvent('contractsUpdated'));
+        } catch {}
+
+        window.dispatchEvent(new CustomEvent('adminToast', {
+          detail: { message: 'Evento eliminado correctamente', type: 'success' }
+        }));
+      }
+    } catch (e) {
+      console.error('Error deleting event:', e);
+      window.dispatchEvent(new CustomEvent('adminToast', {
+        detail: { message: 'Error al eliminar el evento', type: 'error' }
+      }));
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const saveEventChanges = async () => {
+    if (!editingEvent) return;
+
+    try {
+      const baseId = String(editingEvent.id || '').split('__')[0] || editingEvent.id;
+      const updates = {
+        clientName: editForm.clientName || editingEvent.clientName,
+        clientEmail: editForm.clientEmail || editingEvent.clientEmail,
+        phone: editForm.phone || editingEvent.phone,
+        eventType: editForm.eventType || editingEvent.eventType,
+        eventDate: editForm.eventDate || editingEvent.eventDate,
+        eventTime: editForm.eventTime || editingEvent.eventTime,
+        eventLocation: editForm.eventLocation || editingEvent.eventLocation,
+        totalAmount: editForm.totalAmount ? Number(editForm.totalAmount) : editingEvent.totalAmount,
+        travelFee: editForm.travelFee ? Number(editForm.travelFee) : editingEvent.travelFee,
+        paymentMethod: editForm.paymentMethod || editingEvent.paymentMethod,
+        packageTitle: editForm.packageTitle || editingEvent.packageTitle,
+      };
+
+      await updateDoc(doc(db, 'contracts', baseId), updates);
+
+      const updated = { ...editingEvent, ...updates };
+      setEvents(prev => prev.map(e => e.id === editingEvent.id ? updated : e));
+      setSelectedEvent(updated);
+      setEditingEvent(null);
+      setEditForm({});
+      setAppliedCoupons([]);
+
+      window.dispatchEvent(new CustomEvent('contractsUpdated'));
+      window.dispatchEvent(new CustomEvent('adminToast', {
+        detail: { message: 'Evento actualizado correctamente', type: 'success' }
+      }));
+    } catch (e) {
+      console.error('Error updating event:', e);
+      window.dispatchEvent(new CustomEvent('adminToast', {
+        detail: { message: 'Error al actualizar el evento', type: 'error' }
+      }));
+    }
+  };
+
+  // Save a newly created event (contract) from the add-event modal
+  const saveNewEvent = async () => {
+    try {
+      // determine package price
+      let baseAmount = Number(addForm.totalAmount || 0);
+      if (addForm.packageId) {
+        const pkg = packages.find(p => p.id === addForm.packageId);
+        if (pkg) baseAmount = Number(pkg.price || baseAmount);
+      }
+
+      const totalWithDiscount = computeTotalFromBase(baseAmount);
+
+      const payload: any = {
+        clientName: addForm.clientName || 'Sin nombre',
+        clientEmail: addForm.clientEmail || '',
+        eventType: addForm.eventType || 'Evento',
+        eventDate: addForm.eventDate || '',
+        eventTime: addForm.eventTime || '00:00',
+        eventLocation: addForm.eventLocation || '',
+        phone: addForm.phone || '',
+        paymentMethod: addForm.paymentMethod || 'pix',
+        depositPaid: false,
+        finalPaymentPaid: false,
+        eventCompleted: false,
+        isEditing: false,
+        createdAt: new Date().toISOString(),
+        totalAmount: Number(totalWithDiscount) || 0,
+        travelFee: Number(addForm.travelFee || 0) || 0,
+        status: 'booked' as const,
+        packageId: addForm.packageId || null,
+        packageTitle: addForm.packageTitle || '',
+        appliedCoupons: appliedCoupons.slice(),
+      };
+
+      const ref = await addDoc(collection(db, 'contracts'), payload);
+
+      // reload events and reset states
+      await load();
+      setShowAddEventModal(false);
+      setAdding(false);
+      setAddForm({ clientName: '', eventType: '', eventDate: '', eventTime: '', eventLocation: '', paymentMethod: 'pix' });
+      setAppliedCoupons([]);
+
+      window.dispatchEvent(new CustomEvent('contractsUpdated'));
+      window.dispatchEvent(new CustomEvent('adminToast', { detail: { message: 'Evento creado correctamente', type: 'success' } }));
+    } catch (e) {
+      console.error('Error creating event:', e);
+      window.dispatchEvent(new CustomEvent('adminToast', { detail: { message: 'Error al crear el evento', type: 'error' } }));
+    }
+  };
+
+  // Save a newly created contact
+  const saveNewContact = async () => {
+    try {
+      const payload = {
+        name: contactForm.name || 'Sin nombre',
+        email: contactForm.email || '',
+        phone: contactForm.phone || '',
+        packageId: contactForm.packageId || null,
+        notes: contactForm.notes || '',
+        createdAt: new Date().toISOString(),
+      };
+
+      // If editing an existing contact, update instead of creating
+      if (editingContactIds && editingContactIds.contactId) {
+        try {
+          await updateDoc(doc(db, 'contacts', editingContactIds.contactId), payload);
+        } catch (e) {
+          console.error('Error updating contact:', e);
+        }
+
+        // Update calendar event if exists
+        if (editingContactIds.calendarEventId) {
+          try {
+            const calPayload: any = {
+              name: contactForm.name || 'Contacto',
+              email: contactForm.email || '',
+              phone: contactForm.phone || '',
+              packageId: contactForm.packageId || null,
+              packageTitle: packages.find(p=>p.id===contactForm.packageId)?.title || '',
+              notes: contactForm.notes || '',
+              eventDate: contactForm.eventDate || '',
+              eventTime: contactForm.eventTime || '00:00',
+              eventLocation: '',
+              type: 'contact',
+              contactRef: editingContactIds.contactId,
+              createdAt: new Date().toISOString(),
+            };
+            await updateDoc(doc(db, 'calendar_events', editingContactIds.calendarEventId), calPayload);
+            await load();
+          } catch (e) {
+            console.error('Error updating calendar event for contact:', e);
+          }
+        }
+
+        setEditingContactIds(null);
+      } else {
+        const contactRef = await addDoc(collection(db, 'contacts'), payload);
+
+        // if a date/time was provided, create a calendar-only event (not a contract)
+        if (contactForm.eventDate) {
+          try {
+            const calPayload: any = {
+              name: contactForm.name || 'Contacto',
+              email: contactForm.email || '',
+              phone: contactForm.phone || '',
+              packageId: contactForm.packageId || null,
+              packageTitle: packages.find(p=>p.id===contactForm.packageId)?.title || '',
+              notes: contactForm.notes || '',
+              eventDate: contactForm.eventDate,
+              eventTime: contactForm.eventTime || '00:00',
+              eventLocation: '',
+              type: 'contact',
+              contactRef: contactRef.id,
+              createdAt: new Date().toISOString(),
+            };
+            await addDoc(collection(db, 'calendar_events'), calPayload);
+            // reload events so the calendar shows the new calendar-only event
+            await load();
+          } catch (e) {
+            console.error('Error creating calendar event for contact:', e);
+          }
+        }
+      }
+
+      setShowAddContactModal(false);
+      setContactForm({ name: '', email: '', phone: '', packageId: '', notes: '', eventDate: '', eventTime: '' });
+      window.dispatchEvent(new CustomEvent('adminToast', { detail: { message: editingContactIds ? 'Contacto actualizado correctamente' : 'Contacto creado correctamente', type: 'success' } }));
+      window.dispatchEvent(new CustomEvent('contactsUpdated'));
+      window.dispatchEvent(new CustomEvent('calendarUpdated'));
+    } catch (e) {
+      console.error('Error creating contact:', e);
+      window.dispatchEvent(new CustomEvent('adminToast', { detail: { message: 'Error al crear el contacto', type: 'error' } }));
+    }
+  };
+
+  const syncCalendarWithContracts = async () => {
+    setSyncing(true);
+    try {
+      const collectionNames = ['bookings', 'meetings', 'events'];
+      let createdCount = 0;
+
+      const contractsSnap = await getDocs(collection(db, 'contracts'));
+      const existingContracts = contractsSnap.docs.map(d => d.id);
+
+      for (const collectionName of collectionNames) {
+        try {
+          const snap = await getDocs(collection(db, collectionName));
+          const eventsList = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
+
+          for (const event of eventsList) {
+            const contractExists = existingContracts.some(cId => {
+              const contractData = contractsSnap.docs.find(d => d.id === cId)?.data();
+              return contractData?.eventId === event.id || contractData?.originalEventId === event.id || contractData?.bookingId === event.id;
+            });
+
+            if (!contractExists && event.clientName && event.eventDate) {
+              const payload: any = {
+                clientName: event.clientName,
+                clientEmail: event.clientEmail || '',
+                eventType: event.eventType || 'Evento',
+                eventDate: event.eventDate,
+                eventTime: event.eventTime || '00:00',
+                eventLocation: event.eventLocation || '',
+                phone: event.phone || '',
+                paymentMethod: event.paymentMethod || 'pix',
+                depositPaid: false,
+                finalPaymentPaid: false,
+                eventCompleted: false,
+                isEditing: false,
+                createdAt: new Date().toISOString(),
+                totalAmount: Number(event.totalAmount || 0) || 0,
+                travelFee: Number(event.travelFee || 0) || 0,
+                status: 'booked' as const,
+                bookingId: event.id,
+                originalEventId: event.id,
+              };
+
+              await addDoc(collection(db, 'contracts'), payload);
+              createdCount++;
+            }
+          }
+        } catch (e) {
+          continue;
+        }
+      }
+
+      if (createdCount > 0) {
+        window.dispatchEvent(new CustomEvent('adminToast', {
+          detail: { message: `${createdCount} contrato(s) creado(s)`, type: 'success' }
+        }));
+        await load();
+      } else {
+        window.dispatchEvent(new CustomEvent('adminToast', {
+          detail: { message: 'No hay eventos sin contrato', type: 'info' }
+        }));
+      }
+    } catch (e) {
+      console.error('Error syncing calendar:', e);
+      window.dispatchEvent(new CustomEvent('adminToast', {
+        detail: { message: 'Error al sincronizar', type: 'error' }
+      }));
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const isSelectedCalendarContact = selectedEvent && (String(selectedEvent.id || '').startsWith('cal_') || (selectedEvent as any).type === 'contact' || (selectedEvent as any).type === 'Contacto');
+  const selectedEmail = selectedEvent ? (selectedEvent.clientEmail || (selectedEvent as any).email || '') : '';
+  const selectedPhone = selectedEvent ? (selectedEvent.phone || (selectedEvent as any).clientPhone || (selectedEvent as any).phone || '') : '';
+  const selectedPackageTitle = selectedEvent ? ((selectedEvent as any).packageTitle || (selectedEvent as any).packageTitle || '') : '';
+  const selectedNotes = selectedEvent ? ((selectedEvent as any).notes || '') : '';
 
   return (
-    <div className="flex h-full w-full bg-white">
-      {/* Left Sidebar - Mini Calendar */}
-      <div className={`w-64 border-r p-4 flex flex-col overflow-y-auto flex-shrink-0 transition-colors ${darkMode ? 'bg-black border-gray-800' : 'bg-white border-gray-200'}`}>
-        {/* Mini Calendar */}
+    <div className={`flex h-full w-full transition-colors relative ${darkMode ? 'bg-black' : 'bg-white'}`}>
+      {/* Mobile Overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-10 bg-black/50 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Left Sidebar */}
+      <div className={`fixed md:static md:w-64 h-full z-20 border-r p-4 flex flex-col overflow-y-auto flex-shrink-0 transition-all duration-300 transform ${
+        sidebarOpen ? 'translate-x-0' : 'max-md:-translate-x-full'
+      } w-64 ${darkMode ? 'bg-black border-gray-800' : 'bg-white border-gray-200'}`}>
         <div className="mb-6">
           <div className="flex items-center justify-between gap-2 mb-3">
             <button onClick={prevMonth} className={`p-2 rounded-full transition-colors flex-shrink-0 ${darkMode ? 'text-gray-400 hover:text-white hover:bg-gray-800' : 'text-gray-600 hover:text-black hover:bg-gray-200'}`}><ChevronLeft size={16}/></button>
@@ -291,14 +839,14 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
             </div>
             <button onClick={nextMonth} className={`p-2 rounded-full transition-colors flex-shrink-0 ${darkMode ? 'text-gray-400 hover:text-white hover:bg-gray-800' : 'text-gray-600 hover:text-black hover:bg-gray-200'}`}><ChevronRight size={16}/></button>
           </div>
-          <div className={`grid grid-cols-7 gap-px p-2 rounded lg:rounded max-lg:rounded transition-colors ${darkMode ? 'bg-gray-900 max-lg:bg-black' : 'bg-gray-100 max-lg:bg-white'}`}>
+          <div className={`grid grid-cols-7 gap-px p-2 rounded lg:rounded max-lg:rounded transition-colors ${darkMode ? 'bg-black' : 'bg-gray-100 max-lg:bg-white'}`}>
             {['D','L','M','X','J','V','S'].map(d => <div key={d} className={`text-center text-xs font-medium py-1 transition-colors ${darkMode ? 'text-gray-500' : 'text-gray-600'}`}>{d}</div>)}
             {miniMonthDays.map((cell, idx) => {
               const isToday = cell.date && new Date(cell.date.getFullYear(), cell.date.getMonth(), cell.date.getDate()).getTime() === new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
               const key = cell.date ? `${cell.date.getFullYear()}-${String(cell.date.getMonth()+1).padStart(2,'0')}-${String(cell.date.getDate()).padStart(2,'0')}` : `empty-${idx}`;
               const hasEvents = cell.date ? (eventsByDay.get(key) || []).length > 0 : false;
               return (
-                <button key={key} className={`text-center text-xs py-1 rounded transition-colors font-medium ${isToday ? 'bg-secondary text-black' : hasEvents ? (darkMode ? 'bg-blue-600 text-white' : 'bg-blue-200 text-blue-800') : (darkMode ? 'text-gray-400 hover:bg-gray-800' : 'text-gray-600 hover:bg-gray-200')}`}>
+                <button key={key} onClick={() => { if (cell.date) { setFilterMonth(cell.date.getMonth()); setFilterYear(cell.date.getFullYear()); setSidebarOpen(false); } }} className={`text-center text-xs py-1 rounded transition-colors font-medium ${isToday ? 'bg-secondary text-black' : hasEvents ? (darkMode ? 'bg-blue-600 text-white' : 'bg-blue-200 text-blue-800') : (darkMode ? 'text-gray-400 hover:bg-gray-800' : 'text-gray-600 hover:bg-gray-200')}`}>
                   {cell.date ? cell.date.getDate() : ''}
                 </button>
               );
@@ -306,44 +854,141 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
           </div>
         </div>
 
-        {/* Phone Filter */}
         <div className="space-y-2 mb-4">
-          <label className={`text-xs block transition-colors ${darkMode ? 'text-gray-500' : 'text-gray-600'}`}>Filtrar por teléfono</label>
-          <input
-            type="text"
-            value={filterPhone}
-            onChange={e => setFilterPhone(e.target.value)}
-            placeholder="Ej: 1234567890"
-            className={`w-full px-3 py-2 border rounded-lg text-sm transition-colors ${darkMode ? 'border-gray-700 bg-gray-900 text-gray-300 placeholder-gray-600' : 'border-gray-300 bg-white text-gray-900 placeholder-gray-400'}`}
-          />
+          <div className="grid grid-cols-2 gap-2">
+            <button onClick={() => { setStatusFilter('deposit_pending'); setSidebarOpen(false); }} className={`p-3 rounded-lg border transition-colors cursor-pointer hover:shadow-md ${darkMode ? 'bg-gray-900 border-gray-800 hover:bg-gray-800' : 'bg-gray-50 border-gray-200 hover:bg-gray-100'}`}>
+              <div className={`text-xs transition-colors ${darkMode ? 'text-gray-500' : 'text-gray-600'}`}>Pendientes Depósito</div>
+              <div className={`text-2xl font-bold transition-colors ${darkMode ? 'text-blue-400' : 'text-blue-600'}`}>{eventSummary.pending}</div>
+            </button>
+            <button onClick={() => { setStatusFilter('editing'); setSidebarOpen(false); }} className={`p-3 rounded-lg border transition-colors cursor-pointer hover:shadow-md ${darkMode ? 'bg-gray-900 border-gray-800 hover:bg-gray-800' : 'bg-gray-50 border-gray-200 hover:bg-gray-100'}`}>
+              <div className={`text-xs transition-colors ${darkMode ? 'text-gray-500' : 'text-gray-600'}`}>Por editar</div>
+              <div className={`text-2xl font-bold transition-colors ${darkMode ? 'text-yellow-400' : 'text-yellow-600'}`}>{eventSummary.editing}</div>
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <button onClick={() => { setStatusFilter('completed'); setSidebarOpen(false); }} className={`p-3 rounded-lg border transition-colors cursor-pointer hover:shadow-md ${darkMode ? 'bg-gray-900 border-gray-800 hover:bg-gray-800' : 'bg-gray-50 border-gray-200 hover:bg-gray-100'}`}>
+              <div className={`text-xs transition-colors ${darkMode ? 'text-gray-500' : 'text-gray-600'}`}>Eventos Finalizados</div>
+              <div className={`text-2xl font-bold transition-colors ${darkMode ? 'text-green-400' : 'text-green-600'}`}>{eventSummary.completed}</div>
+            </button>
+            <div className={`p-3 rounded-lg border transition-colors flex flex-col ${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-gray-50 border-gray-200'}`}>
+              <div className={`text-xs transition-colors ${darkMode ? 'text-gray-500' : 'text-gray-600'}`}>Eventos Totales</div>
+              <div className={`text-2xl font-bold transition-colors mx-auto ${darkMode ? 'text-purple-400' : 'text-purple-600'}`}>{eventSummary.allTotal}</div>
+            </div>
+          </div>
+          <div className={`p-4 rounded-lg border transition-colors flex items-center justify-between ${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-gray-50 border-gray-200'}`}>
+            <div className="flex-1">
+              <div className={`text-xs transition-colors ${darkMode ? 'text-gray-500' : 'text-gray-600'}`}>Ingresos del Mes</div>
+              <div className={`text-3xl font-bold transition-colors ${darkMode ? 'text-green-400' : 'text-green-600'}`}>
+                {showRevenue ? `R$ ${eventSummary.totalRevenue.toFixed(0)}` : '****'}
+              </div>
+            </div>
+            <button
+              onClick={() => setShowRevenue(!showRevenue)}
+              className={`p-2 rounded-full transition-colors ${darkMode ? 'text-gray-400 hover:text-white hover:bg-gray-800' : 'text-gray-600 hover:text-black hover:bg-gray-200'}`}
+              title={showRevenue ? 'Ocultar monto' : 'Mostrar monto'}
+            >
+              {showRevenue ? <Eye size={20} /> : <EyeOff size={20} />}
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Right Calendar Area */}
       <div className={`flex-1 flex flex-col overflow-hidden transition-colors ${darkMode ? 'bg-black' : 'bg-white'}`}>
-        {/* Calendar header with month display */}
-        <div className={`px-4 py-0 border-b flex items-center justify-between flex-shrink-0 transition-colors ${darkMode ? 'border-gray-800' : 'border-gray-200'}`}>
-          <div className={`text-lg font-semibold transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>
-            {new Date(filterYear, filterMonth, 1).toLocaleString('es', { month: 'long', year: 'numeric' })}
+        <div className={`px-4 py-[3px] border-b flex items-center justify-between flex-shrink-0 transition-colors ${darkMode ? 'border-gray-800' : 'border-gray-200'}`}>
+          <div className="flex items-center gap-3">
+            {/* Mobile Menu Toggle */}
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className={`md:hidden p-2 rounded-full transition-colors ${darkMode ? 'text-gray-400 hover:text-white hover:bg-gray-800' : 'text-gray-600 hover:text-black hover:bg-gray-200'}`}
+              title="Mostrar calendario"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M3 12h18M3 6h18M3 18h18" />
+              </svg>
+            </button>
+            <button onClick={() => {
+              if (filterMonth === 0) {
+                setFilterYear(y => y - 1);
+                setFilterMonth(11);
+              } else {
+                setFilterMonth(m => m - 1);
+              }
+              setCurrent(c => { const y = c.m === 0 ? c.y - 1 : c.y; const m = c.m === 0 ? 11 : c.m - 1; return { y, m }; });
+            }} className={`p-2 rounded-full transition-colors flex-shrink-0 ${darkMode ? 'text-gray-400 hover:text-white hover:bg-gray-800' : 'text-gray-600 hover:text-black hover:bg-gray-200'}`}><ChevronLeft size={18}/></button>
+            <div className={`text-base md:text-lg font-semibold transition-colors whitespace-nowrap ${darkMode ? 'text-white' : 'text-black'}`}>
+              {new Date(filterYear, filterMonth, 1).toLocaleString('es', { month: 'long', year: 'numeric' })}
+            </div>
+            <button onClick={() => {
+              if (filterMonth === 11) {
+                setFilterYear(y => y + 1);
+                setFilterMonth(0);
+              } else {
+                setFilterMonth(m => m + 1);
+              }
+              setCurrent(c => { const y = c.m === 11 ? c.y + 1 : c.y; const m = c.m === 11 ? 0 : c.m + 1; return { y, m }; });
+            }} className={`p-2 rounded-full transition-colors flex-shrink-0 ${darkMode ? 'text-gray-400 hover:text-white hover:bg-gray-800' : 'text-gray-600 hover:text-black hover:bg-gray-200'}`}><ChevronRight size={18}/></button>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 relative">
+            <div className="relative flex-shrink-0">
+              <input
+                type="text"
+                value={filterPhone}
+                onChange={e => setFilterPhone(e.target.value)}
+                placeholder="Filtrar por"
+                className={`px-3 py-1.5 border rounded-lg text-sm transition-colors min-w-[200px] ${darkMode ? 'border-gray-700 bg-gray-800 text-gray-300 placeholder-gray-500' : 'border-gray-300 bg-white text-gray-900 placeholder-gray-400'}`}
+              />
+              {searchResults.length > 0 && (
+                <div className={`absolute top-full left-0 right-0 mt-1 rounded-lg border shadow-lg z-50 max-h-64 overflow-y-auto transition-colors ${darkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-300'}`}>
+                  {searchResults.map((ev) => {
+                    const eventDate = new Date(ev.eventDate + 'T00:00:00');
+                    const dateStr = eventDate.toLocaleDateString('es', { month: 'short', day: 'numeric', year: '2-digit' });
+                    return (
+                      <button
+                        key={ev.id}
+                        onClick={() => {
+                          const d = toLocalDate(ev.eventDate);
+                          if (d) {
+                            setFilterMonth(d.getMonth());
+                            setFilterYear(d.getFullYear());
+                            setCurrent({ y: d.getFullYear(), m: d.getMonth() });
+                          }
+                          setSelectedEvent(ev);
+                          setFilterPhone('');
+                        }}
+                        className={`w-full text-left px-3 py-2 transition-colors border-b last:border-b-0 ${darkMode ? 'hover:bg-gray-800 text-gray-200' : 'hover:bg-gray-50 text-gray-900'}`}
+                      >
+                        <div className="font-medium text-sm">{ev.clientName}</div>
+                        <div className={`text-xs mt-0.5 transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                          {dateStr} {ev.eventTime ? `- ${ev.eventTime}` : ''}
+                        </div>
+                        {ev.eventLocation && (
+                          <div className={`text-xs mt-0.5 transition-colors ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                            {ev.eventLocation}
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
             <button onClick={goToday} className="px-4 py-0.5 rounded-full bg-gray-600 text-white font-medium hover:opacity-90 transition-opacity mt-0.5">Hoy</button>
             <button onClick={()=> setAdding(true)} className="p-2 rounded-full bg-green-600 text-white hover:bg-green-700 transition-colors" title="Añadir evento"><Plus size={18}/></button>
+            <button onClick={syncCalendarWithContracts} disabled={syncing} className={`p-2 rounded-full transition-colors ${syncing ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'} bg-blue-600 text-white`} title="Sincronizar eventos sin contrato"><RefreshCw size={18} className={syncing ? 'animate-spin' : ''}/></button>
           </div>
         </div>
 
-        {/* Calendar grid */}
         <div className={`flex-1 overflow-hidden flex flex-col transition-colors ${darkMode ? 'bg-black' : 'bg-white'}`}>
-          <div className={`grid grid-cols-7 text-center text-xs py-0 px-1 border-b flex-shrink-0 transition-colors ${darkMode ? 'border-gray-800 bg-gray-950 lg:bg-gray-950 max-lg:bg-black text-gray-400' : 'border-gray-200 bg-gray-50 lg:bg-gray-50 max-lg:bg-white text-gray-600'}`}>
+          <div className={`grid grid-cols-7 text-center text-xs py-0 px-1 border-b flex-shrink-0 transition-colors ${darkMode ? 'border-gray-800 bg-black text-gray-400' : 'border-gray-200 bg-gray-50 lg:bg-gray-50 max-lg:bg-white text-gray-600'}`}>
             {['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'].map((d)=> <div key={d} className="py-1 font-medium">{d}</div>)}
           </div>
-          <div className={`grid grid-cols-7 gap-px flex-1 auto-rows-fr overflow-hidden w-full h-full transition-colors ${darkMode ? 'bg-gray-900 lg:bg-gray-900 max-lg:bg-black' : 'bg-gray-100 lg:bg-gray-100 max-lg:bg-white'}`}>
+          <div className={`grid grid-cols-7 gap-px flex-1 auto-rows-fr overflow-hidden w-full h-full transition-colors ${darkMode ? 'bg-black' : 'bg-gray-100 lg:bg-gray-100 max-lg:bg-white'}`}>
             {monthDays.map((cell, idx)=>{
               const isToday = cell.date && new Date(cell.date.getFullYear(), cell.date.getMonth(), cell.date.getDate()).getTime() === new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
               const key = cell.date ? `${cell.date.getFullYear()}-${String(cell.date.getMonth()+1).padStart(2,'0')}-${String(cell.date.getDate()).padStart(2,'0')}` : `empty-${idx}`;
               const dayEvents = cell.date ? (eventsByDay.get(key) || []) : [];
               return (
-                <button key={key} onClick={() => cell.date && setExpandedDay(key)} className={`p-2 relative overflow-hidden flex flex-col border transition-colors text-left cursor-pointer group ${darkMode ? 'bg-gray-900 lg:bg-gray-900 max-lg:bg-black border-gray-800 hover:bg-gray-800' : 'bg-white lg:bg-white max-lg:bg-white border-gray-200 hover:bg-gray-50'}`}>
+                <button key={key} onClick={() => cell.date && setExpandedDay(key)} className={`p-2 relative overflow-hidden flex flex-col border transition-colors text-left cursor-pointer group ${darkMode ? 'bg-black border-gray-800 hover:bg-gray-900' : 'bg-white lg:bg-white max-lg:bg-white border-gray-200 hover:bg-gray-50'}`}>
                   <div className="flex items-center justify-between gap-1 mb-1 flex-shrink-0">
                     <div className={`text-sm font-medium transition-colors ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                       {cell.date ? (isToday ? (
@@ -354,25 +999,20 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
                         <span>{cell.date.getDate()}</span>
                       )) : ''}
                     </div>
-                    {cell.date && (eventsByDay.get(key) || []).length > 0 && (
-                      <span className="text-xs bg-secondary text-black px-1.5 py-0.5 rounded-full font-semibold">
-                        {(eventsByDay.get(key) || []).length}
+                    {dayEvents.length > 0 && (
+                      <span className={`text-xs font-semibold px-1.5 py-0.5 rounded transition-colors ${darkMode ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-700'}`}>
+                        {dayEvents.length}
                       </span>
                     )}
                   </div>
-                  <div className="space-y-0.5 flex-1 overflow-hidden">
-                    {dayEvents.slice(0, 3).map(ev => {
-                      const label = `${(ev.eventTime || '00:00')}`;
-                      return (
-                        <div key={ev.id} className={`w-full text-left px-1 py-0.5 rounded text-xs ${getEventColor(ev)} truncate opacity-90 group-hover:opacity-100`}>
-                          {label}
-                        </div>
-                      );
-                    })}
-                    {dayEvents.length > 3 && (
-                      <div className={`text-xs px-1 transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                        +{dayEvents.length - 3} más
+                  <div className="flex flex-wrap gap-0.5 flex-1 pointer-events-none">
+                    {dayEvents.slice(0, 3).map((ev) => (
+                      <div key={ev.id} onClick={(e) => { e.stopPropagation(); setSelectedEvent(ev); }} title={ev.clientName} className={`text-xs px-1 py-0.5 rounded text-white truncate transition-colors cursor-pointer pointer-events-auto ${getEventColor(ev)}`}>
+                        <span className="inline-block align-middle max-w-[220px] break-words">{ev.clientName}</span>
                       </div>
+                    ))}
+                    {dayEvents.length > 3 && (
+                      <span className={`text-xs px-1 py-0.5 transition-colors ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>+{dayEvents.length - 3}</span>
                     )}
                   </div>
                 </button>
@@ -382,468 +1022,66 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
         </div>
       </div>
 
-      {/* Expanded Day Modal */}
       {expandedDay && (
-        <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-colors ${darkMode ? 'bg-black/80' : 'bg-white/80'}`} onClick={()=> setExpandedDay(null)}>
-          <div className={`rounded-lg w-full max-w-3xl max-h-[80vh] overflow-y-auto p-6 border transition-colors ${darkMode ? 'bg-black border-gray-800' : 'bg-white border-gray-200'}`} onClick={e=> e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-6">
-              <div className={`text-2xl font-bold transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>
-                {new Date(expandedDay).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-              </div>
-              <button onClick={()=> setExpandedDay(null)} className={`text-2xl transition-colors ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-black'}`}>✕</button>
+        <div className={`fixed inset-0 z-[50] flex items-center justify-center p-4 transition-colors ${darkMode ? 'bg-black/70' : 'bg-black/50'}`} onClick={() => setExpandedDay(null)}>
+          <div className={`rounded-xl w-full max-w-2xl p-6 transition-colors overflow-hidden max-h-[80vh] overflow-y-auto ${darkMode ? 'bg-black border border-gray-800' : 'bg-white border border-gray-200'}`} onClick={(e) => e.stopPropagation()}>
+            <div className={`flex items-center justify-between mb-6 pb-4 border-b transition-colors ${darkMode ? 'border-gray-800' : 'border-gray-200'}`}>
+              <h3 className={`text-lg font-semibold transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>
+                {new Date(expandedDay).toLocaleDateString('es', { weekday: 'long', month: 'long', day: 'numeric' })}
+              </h3>
+              <button onClick={() => setExpandedDay(null)} className={`text-2xl transition-colors ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-black'}`}>✕</button>
             </div>
-
-            {(eventsByDay.get(expandedDay) || []).length > 0 ? (
-              <div className="space-y-4">
-                {(eventsByDay.get(expandedDay) || []).map((ev, idx) => (
-                  <div key={ev.id} className={`border rounded-lg p-4 transition-colors ${darkMode ? 'bg-black border-gray-700' : 'bg-transparent border-gray-300'}`}>
-                    <div className={`font-semibold text-lg transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{idx + 1}. {ev.clientName || 'Evento sin nombre'}</div>
-                    <div className="grid grid-cols-2 gap-3 text-sm mt-3">
-                      <div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Hora:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{ev.eventTime || '-'}</span></div>
-                      <div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Tipo:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{ev.eventType || '-'}</span></div>
-                      <div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Teléfono:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{ev.phone || (ev as any).formSnapshot?.phone || '-'}</span></div>
-                      <div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Duración:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{ev.packageDuration || '-'}</span></div>
-                      <div className="col-span-2"><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Ubicación:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{ev.eventLocation || '-'}</span></div>
-                    </div>
-
-                    {Array.isArray((ev as any).formSnapshot?.selectedDresses) && (ev as any).formSnapshot.selectedDresses.length > 0 ? (
-                      <div className={`mt-4 pt-4 border-t transition-colors ${darkMode ? 'border-gray-700' : 'border-gray-300'}`}>
-                        <div className={`text-sm font-medium mb-3 transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>Vestidos:</div>
-                        <div className="grid grid-cols-3 gap-3">
-                          {(ev as any).formSnapshot.selectedDresses
-                            .map((id: string) => dressOptions.find(d => d.id === id))
-                            .filter(Boolean)
-                            .map((dress: any) => (
-                              <div key={(dress as any).id} className="flex flex-col items-center">
-                                <div className={`w-20 h-24 rounded overflow-hidden mb-2 border transition-colors ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-200 border-gray-300'}`}>
-                                  {(dress as any).image ? (
-                                    <img src={(dress as any).image} alt={(dress as any).name} className="w-full h-full object-cover" />
-                                  ) : (
-                                    <div className={`w-full h-full flex items-center justify-center text-xs transition-colors ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Sin foto</div>
-                                  )}
-                                </div>
-                                <span className={`text-xs text-center truncate w-full transition-colors ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>{(dress as any).name}</span>
-                              </div>
-                            ))}
-                        </div>
+            <div className="space-y-2 mb-6">
+              {(eventsByDay.get(expandedDay) || []).map(ev => (
+                <div key={ev.id} className={`w-full text-left p-4 rounded-lg border transition-colors ${darkMode ? 'bg-gray-900 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-2">
+                    <button onClick={() => { setSelectedEvent(ev); setExpandedDay(null); }} className="text-left flex-1 hover:opacity-80 transition-opacity">
+                      <div className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{ev.clientName}</div>
+                      <div className={`text-sm mt-1 transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                        {ev.eventTime ? `${ev.eventTime} · ` : ''}{ev.eventType || ''}
                       </div>
-                    ) : null}
-
-                    <div className={`mt-4 pt-4 border-t transition-colors ${darkMode ? 'border-gray-700' : 'border-gray-300'}`}>
-                      <div className={`text-sm font-medium mb-2 transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>Resumen de Pago:</div>
-                      <div className="space-y-1 text-sm">
-                        <div className="flex justify-between">
-                          <span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total:</span>
-                          <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>R$ {Number(ev.totalAmount || 0).toFixed(0)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Entrada (20%):</span>
-                          <span className={`font-medium ${ev.depositPaid ? (darkMode ? 'text-green-400' : 'text-green-600') : (darkMode ? 'text-red-400' : 'text-red-600')}`}>R$ {(Number(ev.totalAmount || 0) * 0.2).toFixed(0)} {ev.depositPaid ? '✓' : ''}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Restante:</span>
-                          <span className={`font-medium ${ev.finalPaymentPaid ? (darkMode ? 'text-green-400' : 'text-green-600') : (darkMode ? 'text-red-400' : 'text-red-600')}`}>R$ {(Number(ev.totalAmount || 0) * 0.8).toFixed(0)} {ev.finalPaymentPaid ? '✓' : ''}</span>
-                        </div>
+                      <div className={`text-sm mt-1 transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                        {ev.eventLocation || ''}
                       </div>
-                    </div>
+                      {ev.phone && (
+                        <div className={`text-sm mt-1 transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                          Tel: {ev.phone || (ev as any).clientPhone || (ev as any).formSnapshot?.phone}
+                        </div>
+                      )}
+
+                      {/* Thumbnails for selected dresses in daily list */}
+                      {Array.isArray((ev as any).formSnapshot?.selectedDresses) && (ev as any).formSnapshot.selectedDresses.length > 0 && (
+                        <div className="flex gap-2 mt-2">
+                          {(ev as any).formSnapshot.selectedDresses.map((id: string) => {
+                            const dress = dressOptions.find(d => d.id === id);
+                            if (!dress || !dress.image) return null;
+                            return (
+                              <img key={id} src={dress.image} alt={dress.name} onClick={(e) => { e.stopPropagation(); openImageModal(dress.image, dress.name); }} className="w-10 h-10 object-cover rounded-lg border cursor-pointer" />
+                            );
+                          })}
+                        </div>
+                      )}
+                    </button>
                   </div>
-                ))}
-
-                <div className="flex gap-2 mt-6">
-                  <button onClick={() => {
-                    const content = document.querySelector('.daily-list-print');
-                    if (!content) return;
-                    const printWindow = window.open('', '', 'width=800,height=600');
-                    if (printWindow) {
-                      printWindow.document.write(content.innerHTML);
-                      printWindow.document.close();
-                      printWindow.print();
-                    }
-                  }} className={`flex-1 border-2 px-4 py-2 rounded-lg inline-flex items-center justify-center gap-2 transition-colors ${darkMode ? 'border-gray-600 text-gray-300 hover:bg-gray-800' : 'border-gray-400 text-gray-700 hover:bg-gray-100'}`}>
-                    <Printer size={18} /> Imprimir
+                  <button
+                    onClick={() => window.dispatchEvent(new CustomEvent('adminOpenContract', { detail: { id: String(ev.id).split('__')[0] } }))}
+                    className="w-full md:w-auto px-3 py-2 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <ExternalLink size={14} />
+                    Ir al contrato
                   </button>
-                  <button onClick={async () => {
-                    try {
-                      const events = eventsByDay.get(expandedDay) || [];
-                      const pdf = new jsPDF('p', 'mm', 'a4');
-                      const pageHeight = pdf.internal.pageSize.getHeight();
-                      const pageWidth = pdf.internal.pageSize.getWidth();
-                      const margin = 15;
-                      const contentWidth = pageWidth - 2 * margin;
-                      let yPosition = margin;
-
-                      const dateStr = new Date(expandedDay).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-
-                      pdf.setFontSize(16);
-                      pdf.setFont(undefined, 'bold');
-                      pdf.text('Eventos del día', margin, yPosition);
-                      yPosition += 10;
-
-                      pdf.setFontSize(12);
-                      pdf.setFont(undefined, 'normal');
-                      pdf.text(dateStr, margin, yPosition);
-                      yPosition += 12;
-
-                      const loadImageAsBase64 = (url: string): Promise<string | null> => {
-                        return new Promise((resolve) => {
-                          const img = new Image();
-                          img.crossOrigin = 'anonymous';
-                          img.onload = () => {
-                            const canvas = document.createElement('canvas');
-                            canvas.width = img.width;
-                            canvas.height = img.height;
-                            const ctx = canvas.getContext('2d');
-                            if (ctx) {
-                              ctx.drawImage(img, 0, 0);
-                              resolve(canvas.toDataURL('image/jpeg', 0.7));
-                            } else {
-                              resolve(null);
-                            }
-                          };
-                          img.onerror = () => resolve(null);
-                          img.src = url;
-                        });
-                      };
-
-                      for (const ev of events) {
-                        if (yPosition > pageHeight - 30) {
-                          pdf.addPage();
-                          yPosition = margin;
-                        }
-
-                        pdf.setFontSize(11);
-                        pdf.setFont(undefined, 'bold');
-                        pdf.text(`${events.indexOf(ev) + 1}. ${ev.clientName || 'Evento sin nombre'}`, margin, yPosition);
-                        yPosition += 7;
-
-                        pdf.setFontSize(9);
-                        pdf.setFont(undefined, 'normal');
-
-                        const details = [
-                          `Hora: ${ev.eventTime || '-'}`,
-                          `Tipo: ${ev.eventType || '-'}`,
-                          `Teléfono: ${ev.phone || (ev as any).formSnapshot?.phone || '-'}`,
-                          `Duración: ${ev.packageDuration || '-'}`,
-                          `Ubicación: ${ev.eventLocation || '-'}`
-                        ];
-
-                        details.forEach(detail => {
-                          pdf.text(detail, margin + 3, yPosition);
-                          yPosition += 5;
-                        });
-
-                        if (Array.isArray((ev as any).formSnapshot?.selectedDresses) && (ev as any).formSnapshot.selectedDresses.length > 0) {
-                          yPosition += 3;
-                          pdf.setFont(undefined, 'bold');
-                          pdf.text('Vestidos:', margin + 3, yPosition);
-                          yPosition += 8;
-
-                          const selectedDressIds = (ev as any).formSnapshot.selectedDresses;
-                          const selectedDressObjects = selectedDressIds
-                            .map((id: string) => dressOptions.find(d => d.id === id))
-                            .filter(Boolean);
-
-                          const dressImagesPerRow = 3;
-                          const dressWidth = (contentWidth - 6) / dressImagesPerRow - 2;
-                          const dressHeight = dressWidth * 1.3;
-
-                          let xOffset = margin + 3;
-                          let dressCount = 0;
-
-                          for (const dress of selectedDressObjects) {
-                            if (yPosition + dressHeight > pageHeight - 20) {
-                              pdf.addPage();
-                              yPosition = margin;
-                              xOffset = margin + 3;
-                              dressCount = 0;
-                            }
-
-                            if (dressCount > 0 && dressCount % dressImagesPerRow === 0) {
-                              xOffset = margin + 3;
-                              yPosition += dressHeight + 5;
-                            }
-
-                            try {
-                              if ((dress as any).image) {
-                                const imageBase64 = await loadImageAsBase64((dress as any).image);
-                                if (imageBase64) {
-                                  pdf.addImage(imageBase64, 'JPEG', xOffset, yPosition, dressWidth, dressHeight);
-                                }
-                              }
-                            } catch (e) {
-                              console.warn('Error loading dress image:', e);
-                            }
-
-                            pdf.setFontSize(8);
-                            pdf.setFont(undefined, 'normal');
-                            const dressName = (dress as any).name || 'Vestido';
-                            const wrappedName = pdf.splitTextToSize(dressName, dressWidth - 1);
-                            let nameY = yPosition + dressHeight + 1;
-                            wrappedName.forEach((line: string) => {
-                              pdf.text(line, xOffset, nameY, { maxWidth: dressWidth - 1 });
-                              nameY += 3;
-                            });
-
-                            xOffset += dressWidth + 2;
-                            dressCount++;
-                          }
-
-                          yPosition += dressHeight + 12;
-                        }
-
-                        pdf.setFontSize(9);
-                        pdf.setFont(undefined, 'bold');
-                        pdf.text('Resumen de Pago:', margin + 3, yPosition);
-                        yPosition += 5;
-
-                        pdf.setFont(undefined, 'normal');
-                        const paymentLines = [
-                          `Total: R$ ${Number(ev.totalAmount || 0).toFixed(0)}`,
-                          `Entrada (20%): R$ ${(Number(ev.totalAmount || 0) * 0.2).toFixed(0)} ${ev.depositPaid ? '✓ Pago' : 'Pendiente'}`,
-                          `Restante: R$ ${(Number(ev.totalAmount || 0) * 0.8).toFixed(0)} ${ev.finalPaymentPaid ? '✓ Pago' : 'Pendiente'}`
-                        ];
-
-                        paymentLines.forEach(line => {
-                          pdf.text(line, margin + 3, yPosition);
-                          yPosition += 5;
-                        });
-
-                        yPosition += 8;
-                      }
-
-                      const dateKey = new Date(expandedDay).toLocaleDateString('es-ES', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-');
-                      pdf.save(`eventos_${dateKey}.pdf`);
-                    } catch (error) {
-                      console.error('Error generating PDF:', error);
-                      alert('Error al generar PDF. Intenta con Imprimir en su lugar.');
-                    }
-                  }} className={`flex-1 border-2 px-4 py-2 rounded-lg inline-flex items-center justify-center gap-2 transition-colors ${darkMode ? 'border-green-600 text-green-400 hover:bg-green-900 hover:bg-opacity-20' : 'border-green-500 text-green-600 hover:bg-green-100'}`}>
-                    <Download size={18} /> PDF
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <p className="text-gray-400 text-lg">No hay eventos este día</p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Event modal */}
-      {selected && (
-        <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-colors ${darkMode ? 'bg-black/50' : 'bg-white/50'}`} onClick={()=> setSelected(null)}>
-          <div className={`rounded-xl w-full max-w-xl p-4 transition-colors ${darkMode ? 'bg-gray-900' : 'bg-white'}`} onClick={e=> e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-2">
-              <div className={`text-lg font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{selected.clientName}</div>
-              <button onClick={()=> setSelected(null)} className={`transition-colors ${darkMode ? 'text-gray-500 hover:text-gray-300' : 'text-gray-500 hover:text-gray-900'}`}><X/></button>
-            </div>
-            <div className={`text-sm space-y-2 transition-colors ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-              <div className="flex items-center gap-2"><FileText size={16}/> <span>Tipo:</span> <strong>{selected.eventType || '-'}</strong></div>
-              <div className="flex items-center gap-2"><IconCalendar size={16}/> <span>Fecha:</span> <strong>{selected.eventDate}</strong> <Clock size={16}/> <span>Hora:</span> <strong>{selected.eventTime || '-'}</strong></div>
-              <div className="flex items-center gap-2"><MapPin size={16}/> <span>Ubicación:</span> <strong>{selected.eventLocation || '-'}</strong></div>
-              <div className="flex items-center gap-2"><Phone size={16}/> <span>Tel.:</span> <strong>{selected.formSnapshot?.phone || '-'}</strong></div>
-              {(() => { const calc = computeAmounts(selected); return (
-                <div className="flex items-center gap-2"><DollarSign size={16}/> <span>Pago:</span> <strong>{selected.paymentMethod || '-'}</strong> • <span>Depósito:</span> <strong>{selected.depositPaid ? 'Pago' : `Pendiente (R$ ${calc.depositAmount.toFixed(0)})`}</strong> • <span>Saldo:</span> <strong>{selected.finalPaymentPaid ? 'Pago' : `Pendiente (R$ ${calc.remainingAmount.toFixed(0)})`}</strong></div>
-              ); })()}
-
-              {Array.isArray(selected.formSnapshot?.selectedDresses) && selected.formSnapshot!.selectedDresses.length > 0 && (
-                <div>
-                  <div className="text-sm font-medium mb-1">Vestidos seleccionados</div>
-                  <div className="grid grid-cols-2 gap-2">
-                    {selected.formSnapshot!.selectedDresses
-                      .map((id: string) => dressOptions.find(d => d.id === id))
-                      .filter(Boolean)
-                      .map((dress: any) => (
-                        <div key={(dress as any).id} className="flex items-center gap-2">
-                          <div className="w-10 h-16 rounded overflow-hidden bg-gray-100 relative">
-                            {(dress as any).image && <img src={(dress as any).image} alt={(dress as any).name} className="absolute inset-0 w-full h-full object-cover" />}
-                          </div>
-                          <div className="text-xs">
-                            <div className="font-medium text-gray-800">{(dress as any).name}</div>
-                            {(dress as any).color && <div className="text-[10px] text-gray-500">{(dress as any).color}</div>}
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="flex items-center gap-2"><span>Estado:</span>
-                <select value={selected.status || (selected.eventCompleted && selected.finalPaymentPaid ? 'delivered' : (selected.depositPaid === false ? 'pending_payment' : 'booked'))} onChange={async e=>{ const st = e.target.value as ContractItem['status']; await handleSaveStatus(selected.id, st); setSelected(s=> s ? ({ ...s, status: st }) : s); }} className="px-2 py-1 border rounded-none text-sm">
-                  <option value="pending_approval">Pendiente de aprobación</option>
-                  <option value="booked">Contratado</option>
-                  <option value="confirmed">Confirmado</option>
-                  <option value="pending_payment">Pendiente de pago</option>
-                  <option value="delivered">Entregado</option>
-                  <option value="cancelled">Cancelado</option>
-                  <option value="released">Liberado</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="mt-4 pt-4 border-t">
-              <div className="text-sm font-medium mb-3">Progreso del evento</div>
-              <WorkflowStatusButtons
-                depositPaid={selected.depositPaid}
-                finalPaymentPaid={selected.finalPaymentPaid}
-                isEditing={selected.isEditing}
-                eventCompleted={selected.eventCompleted}
-                onUpdate={async (updates) => {
-                  try {
-                    const baseId = selected.id.includes('__') ? selected.id.split('__')[0] : selected.id;
-                    await updateDoc(doc(db, 'contracts', baseId), updates as any);
-                    setSelected(s => s ? { ...s, ...updates } : s);
-                    window.dispatchEvent(new CustomEvent('contractsUpdated'));
-                    window.dispatchEvent(new CustomEvent('adminToast', { detail: { message: 'Estado actualizado', type: 'success' } }));
-                  } catch (e) {
-                    console.error('Error updating contract status:', e);
-                    window.dispatchEvent(new CustomEvent('adminToast', { detail: { message: 'Error al actualizar', type: 'error' } }));
-                  }
-                }}
-              />
-            </div>
-
-            <div className="mt-4 flex justify-end">
-              <button onClick={()=> openContractPreview(selected)} className="px-4 py-2 rounded-md bg-blue-600 text-white inline-flex items-center gap-2 hover:bg-blue-700"><ExternalLink size={16}/> Ver Contrato</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Add modal */}
-      {adding && (
-        <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-colors ${darkMode ? 'bg-black/50' : 'bg-white/50'}`} onClick={()=> setAdding(false)}>
-          <div className={`rounded-xl w-full max-w-xl p-4 transition-colors ${darkMode ? 'bg-gray-900' : 'bg-white'}`} onClick={e=> e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-2">
-              <div className={`text-lg font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>Añadir evento</div>
-              <button onClick={()=> setAdding(false)} className={`transition-colors ${darkMode ? 'text-gray-500 hover:text-gray-300' : 'text-gray-500 hover:text-gray-900'}`}><X/></button>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label className={`text-xs transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Cliente</label>
-                <input value={addForm.clientName} onChange={e=> setAddForm((f:any)=> ({ ...f, clientName: e.target.value }))} className={`w-full px-3 py-2 border rounded-none transition-colors ${darkMode ? 'bg-gray-800 border-gray-700 text-gray-300' : 'bg-white border-gray-300 text-gray-900'}`} />
-              </div>
-              <div>
-                <label className={`text-xs transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Tipo de evento</label>
-                <input value={addForm.eventType} onChange={e=> setAddForm((f:any)=> ({ ...f, eventType: e.target.value }))} className={`w-full px-3 py-2 border rounded-none transition-colors ${darkMode ? 'bg-gray-800 border-gray-700 text-gray-300' : 'bg-white border-gray-300 text-gray-900'}`} />
-              </div>
-              <div>
-                <label className={`text-xs transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Fecha</label>
-                <input type="date" value={addForm.eventDate} onChange={e=> setAddForm((f:any)=> ({ ...f, eventDate: e.target.value }))} className={`w-full px-3 py-2 border rounded-none transition-colors ${darkMode ? 'bg-gray-800 border-gray-700 text-gray-300' : 'bg-white border-gray-300 text-gray-900'}`} />
-              </div>
-              <div>
-                <label className={`text-xs transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Hora</label>
-                <input type="time" value={addForm.eventTime} onChange={e=> setAddForm((f:any)=> ({ ...f, eventTime: e.target.value }))} className={`w-full px-3 py-2 border rounded-none transition-colors ${darkMode ? 'bg-gray-800 border-gray-700 text-gray-300' : 'bg-white border-gray-300 text-gray-900'}`} />
-              </div>
-              <div className="md:col-span-2">
-                <label className={`text-xs transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Ubicación</label>
-                <input value={addForm.eventLocation} onChange={e=> setAddForm((f:any)=> ({ ...f, eventLocation: e.target.value }))} className={`w-full px-3 py-2 border rounded-none transition-colors ${darkMode ? 'bg-gray-800 border-gray-700 text-gray-300' : 'bg-white border-gray-300 text-gray-900'}`} />
-              </div>
-              <div>
-                <label className={`text-xs transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Método de pago</label>
-                <select value={addForm.paymentMethod} onChange={e=> setAddForm((f:any)=> ({ ...f, paymentMethod: e.target.value }))} className={`w-full px-3 py-2 border rounded-none transition-colors ${darkMode ? 'bg-gray-800 border-gray-700 text-gray-300' : 'bg-white border-gray-300 text-gray-900'}`}>
-                  <option value="pix">PIX</option>
-                  <option value="credit">Crédito</option>
-                  <option value="cash">Efectivo</option>
-                </select>
-              </div>
-              <div>
-                <label className={`text-xs transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Desplazamiento (R$)</label>
-                <input type="number" value={addForm.travelFee || 0} onChange={e=> setAddForm((f:any)=> ({ ...f, travelFee: e.target.value }))} className={`w-full px-3 py-2 border rounded-none transition-colors ${darkMode ? 'bg-gray-800 border-gray-700 text-gray-300' : 'bg-white border-gray-300 text-gray-900'}`} />
-              </div>
-              <div>
-                <label className={`text-xs transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total (R$)</label>
-                <input type="number" value={addForm.totalAmount || 0} onChange={e=> setAddForm((f:any)=> ({ ...f, totalAmount: e.target.value }))} className={`w-full px-3 py-2 border rounded-none transition-colors ${darkMode ? 'bg-gray-800 border-gray-700 text-gray-300' : 'bg-white border-gray-300 text-gray-900'}`} />
-              </div>
-            </div>
-            <div className="mt-4 flex justify-end gap-2">
-              <button onClick={()=> setAdding(false)} className={`px-3 py-2 border rounded-none transition-colors ${darkMode ? 'border-gray-600 text-gray-300 hover:bg-gray-800' : 'border-gray-300 text-gray-700 hover:bg-gray-100'}`}>Cancelar</button>
-              <button onClick={handleAddEvent} className={`px-3 py-2 border-2 rounded-none transition-colors ${darkMode ? 'border-gray-500 bg-gray-800 text-white hover:bg-gray-700' : 'border-black bg-black text-white hover:bg-gray-900'}`}>Guardar</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Daily List modal */}
-      {showDailyList && (
-        <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-colors ${darkMode ? 'bg-black/50' : 'bg-white/50'}`} onClick={()=> setShowDailyList(null)}>
-          <div className={`rounded-xl w-full max-w-2xl p-4 max-h-[80vh] overflow-y-auto transition-colors ${darkMode ? 'bg-gray-900' : 'bg-white'}`} onClick={e=> e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <div className={`text-lg font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>Eventos - {new Date(showDailyList).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
-              <button onClick={()=> setShowDailyList(null)} className={`transition-colors ${darkMode ? 'text-gray-500 hover:text-gray-300' : 'text-gray-500 hover:text-gray-900'}`}>✕</button>
-            </div>
-
-            <div className="space-y-4">
-              {(eventsByDay.get(showDailyList) || []).map((ev, idx) => (
-                <div key={ev.id} className={`border rounded-lg p-4 ${getEventColor(ev).split(' ')[0]} bg-opacity-10`}>
-                  <div className="font-semibold text-lg">{(idx + 1)}. {ev.clientName || 'Evento sin nombre'}</div>
-                  <div className="grid grid-cols-2 gap-3 text-sm mt-2">
-                    <div><span className="text-gray-600">Hora:</span> <span className="font-medium">{ev.eventTime || '-'}</span></div>
-                    <div><span className="text-gray-600">Tipo:</span> <span className="font-medium">{ev.eventType || '-'}</span></div>
-                    <div><span className="text-gray-600">Teléfono:</span> <span className="font-medium">{ev.phone || (ev as any).formSnapshot?.phone || '-'}</span></div>
-                    <div><span className="text-gray-600">Duración:</span> <span className="font-medium">{ev.packageDuration || '-'}</span></div>
-                    <div className="col-span-2"><span className="text-gray-600">Ubicación:</span> <span className="font-medium">{ev.eventLocation || '-'}</span></div>
-                  </div>
-
-                  {Array.isArray((ev as any).formSnapshot?.selectedDresses) && (ev as any).formSnapshot.selectedDresses.length > 0 ? (
-                    <div className="mt-3 pt-3 border-t">
-                      <div className="text-sm font-medium mb-2">Vestidos:</div>
-                      <div className="grid grid-cols-3 gap-2">
-                        {(ev as any).formSnapshot.selectedDresses
-                          .map((id: string) => {
-                            const found = dressOptions.find(d => d.id === id);
-                            return found;
-                          })
-                          .filter(Boolean)
-                          .map((dress: any) => (
-                            <div key={(dress as any).id} className="flex flex-col items-center">
-                              <div className="w-16 h-20 rounded overflow-hidden bg-gray-100 mb-1 border border-gray-300">
-                                {(dress as any).image ? (
-                                  <img src={(dress as any).image} alt={(dress as any).name} className="w-full h-full object-cover" onError={(e) => {
-                                    (e.currentTarget as HTMLImageElement).style.display = 'none';
-                                  }} />
-                                ) : (
-                                  <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">Sin foto</div>
-                                )}
-                              </div>
-                              <span className="text-xs text-gray-700 text-center truncate w-full">{(dress as any).name}</span>
-                            </div>
-                          ))}
-                      </div>
-                    </div>
-                  ) : null}
-
-                  <div className="mt-3 pt-3 border-t">
-                    <div className="text-sm font-medium mb-2">Resumen de Pago:</div>
-                    <div className="space-y-1 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Total:</span>
-                        <span className="font-medium">R$ {Number(ev.totalAmount || 0).toFixed(0)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Entrada (20%):</span>
-                        <span className={`font-medium ${ev.depositPaid ? 'text-green-600' : 'text-red-600'}`}>R$ {(Number(ev.totalAmount || 0) * 0.2).toFixed(0)} {ev.depositPaid ? '✓ Pago' : 'Pendiente'}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Restante:</span>
-                        <span className={`font-medium ${ev.finalPaymentPaid ? 'text-green-600' : 'text-red-600'}`}>R$ {(Number(ev.totalAmount || 0) * 0.8).toFixed(0)} {ev.finalPaymentPaid ? '✓ Pago' : 'Pendiente'}</span>
-                      </div>
-                    </div>
-                  </div>
                 </div>
               ))}
             </div>
 
-            <div className="mt-4 flex justify-end gap-2">
+            <div className={`flex gap-2 pt-4 border-t transition-colors ${darkMode ? 'border-gray-800' : 'border-gray-200'}`}>
               <button onClick={() => {
-                const dateStr = new Date(showDailyList).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-                const content = document.querySelector('.daily-list-print');
-                if (!content) return;
+                const dateStr = new Date(expandedDay).toLocaleDateString('es', { weekday: 'long', month: 'long', day: 'numeric' });
+                const events = eventsByDay.get(expandedDay) || [];
+                const html = `<h2>${dateStr}</h2><ul>${events.map(ev => `<li><strong>${ev.clientName}</strong><br/>${ev.eventTime || ''} ${ev.eventType || ''}<br/>${ev.eventLocation || ''}</li>`).join('')}</ul>`;
                 const printWindow = window.open('', '', 'width=800,height=600');
                 if (printWindow) {
-                  printWindow.document.write(content.innerHTML);
+                  printWindow.document.write(html);
                   printWindow.document.close();
                   printWindow.print();
                 }
@@ -852,279 +1090,709 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
               </button>
               <button onClick={async () => {
                 try {
-                  const events = eventsByDay.get(showDailyList) || [];
+                  const events = eventsByDay.get(expandedDay) || [];
                   const pdf = new jsPDF('p', 'mm', 'a4');
 
                   const pageHeight = pdf.internal.pageSize.getHeight();
                   const pageWidth = pdf.internal.pageSize.getWidth();
                   const margin = 15;
-                  const contentWidth = pageWidth - 2 * margin;
                   let yPosition = margin;
 
-                  const dateStr = new Date(showDailyList).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                  const dateStr = new Date(expandedDay).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
                   pdf.setFontSize(16);
-                  pdf.setFont(undefined, 'bold');
+                  pdf.setFont('', 'bold');
                   pdf.text('Eventos del día', margin, yPosition);
                   yPosition += 10;
 
                   pdf.setFontSize(12);
-                  pdf.setFont(undefined, 'normal');
+                  pdf.setFont('', 'normal');
                   pdf.text(dateStr, margin, yPosition);
                   yPosition += 12;
 
-                  const loadImageAsBase64 = (url: string): Promise<string | null> => {
-                    return new Promise((resolve) => {
-                      const img = new Image();
-                      img.crossOrigin = 'anonymous';
-                      img.onload = () => {
-                        const canvas = document.createElement('canvas');
-                        canvas.width = img.width;
-                        canvas.height = img.height;
-                        const ctx = canvas.getContext('2d');
-                        if (ctx) {
-                          ctx.drawImage(img, 0, 0);
-                          resolve(canvas.toDataURL('image/jpeg', 0.7));
-                        } else {
-                          resolve(null);
-                        }
-                      };
-                      img.onerror = () => resolve(null);
-                      img.src = url;
-                    });
-                  };
-
-                  for (const ev of events) {
+                  for (const event of events) {
                     if (yPosition > pageHeight - 30) {
                       pdf.addPage();
                       yPosition = margin;
                     }
 
                     pdf.setFontSize(11);
-                    pdf.setFont(undefined, 'bold');
-                    pdf.text(`${events.indexOf(ev) + 1}. ${ev.clientName || 'Evento sin nombre'}`, margin, yPosition);
+                    pdf.setFont('', 'bold');
+                    pdf.text(event.clientName || 'Sin nombre', margin, yPosition);
                     yPosition += 7;
 
                     pdf.setFontSize(9);
-                    pdf.setFont(undefined, 'normal');
-
+                    pdf.setFont('', 'normal');
                     const details = [
-                      `Hora: ${ev.eventTime || '-'}`,
-                      `Tipo: ${ev.eventType || '-'}`,
-                      `Teléfono: ${ev.phone || (ev as any).formSnapshot?.phone || '-'}`,
-                      `Duración: ${ev.packageDuration || '-'}`,
-                      `Ubicación: ${ev.eventLocation || '-'}`
-                    ];
+                      event.eventTime ? `Hora: ${event.eventTime}` : '',
+                      event.eventType ? `Tipo: ${event.eventType}` : '',
+                      event.eventLocation ? `Ubicación: ${event.eventLocation}` : '',
+                      event.phone ? `Teléfono: ${event.phone}` : '',
+                    ].filter(Boolean);
 
-                    details.forEach(detail => {
+                    for (const detail of details) {
                       pdf.text(detail, margin + 3, yPosition);
                       yPosition += 5;
-                    });
-
-                    if (Array.isArray((ev as any).formSnapshot?.selectedDresses) && (ev as any).formSnapshot.selectedDresses.length > 0) {
-                      yPosition += 3;
-                      pdf.setFont(undefined, 'bold');
-                      pdf.text('Vestidos:', margin + 3, yPosition);
-                      yPosition += 8;
-
-                      const selectedDressIds = (ev as any).formSnapshot.selectedDresses;
-                      const selectedDressObjects = selectedDressIds
-                        .map((id: string) => dressOptions.find(d => d.id === id))
-                        .filter(Boolean);
-
-                      const dressImagesPerRow = 3;
-                      const dressWidth = (contentWidth - 6) / dressImagesPerRow - 2;
-                      const dressHeight = dressWidth * 1.3;
-
-                      let xOffset = margin + 3;
-                      let dressCount = 0;
-
-                      for (const dress of selectedDressObjects) {
-                        if (yPosition + dressHeight > pageHeight - 20) {
-                          pdf.addPage();
-                          yPosition = margin;
-                          xOffset = margin + 3;
-                          dressCount = 0;
-                        }
-
-                        if (dressCount > 0 && dressCount % dressImagesPerRow === 0) {
-                          xOffset = margin + 3;
-                          yPosition += dressHeight + 5;
-                        }
-
-                        try {
-                          if ((dress as any).image) {
-                            const imageBase64 = await loadImageAsBase64((dress as any).image);
-                            if (imageBase64) {
-                              pdf.addImage(imageBase64, 'JPEG', xOffset, yPosition, dressWidth, dressHeight);
-                            }
-                          }
-                        } catch (e) {
-                          console.warn('Error loading dress image:', e);
-                        }
-
-                        pdf.setFontSize(8);
-                        pdf.setFont(undefined, 'normal');
-                        const dressName = (dress as any).name || 'Vestido';
-                        const wrappedName = pdf.splitTextToSize(dressName, dressWidth - 1);
-                        let nameY = yPosition + dressHeight + 1;
-                        wrappedName.forEach((line: string) => {
-                          pdf.text(line, xOffset, nameY, { maxWidth: dressWidth - 1 });
-                          nameY += 3;
-                        });
-
-                        xOffset += dressWidth + 2;
-                        dressCount++;
-                      }
-
-                      yPosition += dressHeight + 12;
                     }
 
-                    pdf.setFontSize(9);
-                    pdf.setFont(undefined, 'bold');
-                    pdf.text('Resumen de Pago:', margin + 3, yPosition);
                     yPosition += 5;
-
-                    pdf.setFont(undefined, 'normal');
-                    const paymentLines = [
-                      `Total: R$ ${Number(ev.totalAmount || 0).toFixed(0)}`,
-                      `Entrada (20%): R$ ${(Number(ev.totalAmount || 0) * 0.2).toFixed(0)} ${ev.depositPaid ? '✓ Pago' : 'Pendiente'}`,
-                      `Restante: R$ ${(Number(ev.totalAmount || 0) * 0.8).toFixed(0)} ${ev.finalPaymentPaid ? '✓ Pago' : 'Pendiente'}`
-                    ];
-
-                    paymentLines.forEach(line => {
-                      pdf.text(line, margin + 3, yPosition);
-                      yPosition += 5;
-                    });
-
-                    yPosition += 8;
                   }
 
-                  const dateKey = new Date(showDailyList).toLocaleDateString('es-ES', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-');
-                  pdf.save(`eventos_${dateKey}.pdf`);
-                } catch (error) {
-                  console.error('Error generating PDF:', error);
-                  alert('Error al generar PDF. Intenta con Imprimir en su lugar.');
+                  pdf.save(`eventos-${expandedDay}.pdf`);
+                } catch (e) {
+                  console.error('Error generating PDF:', e);
                 }
-              }} className="border-2 border-green-600 text-green-600 px-4 py-2 rounded-none hover:bg-green-600 hover:text-white inline-flex items-center gap-2">
+              }} className="border-2 border-black text-black px-4 py-2 rounded-none hover:bg-black hover:text-white inline-flex items-center gap-2">
                 <Download size={16} /> PDF
               </button>
-            </div>
-
-            <div className="daily-list-print hidden">
-              <h1 style={{ textAlign: 'center', marginBottom: '20px' }}>Eventos del día</h1>
-              <p style={{ textAlign: 'center', marginBottom: '20px' }}>{new Date(showDailyList).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
-              <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px' }}>
-                <thead>
-                  <tr style={{ borderBottom: '2px solid #000' }}>
-                    <th style={{ textAlign: 'left', padding: '8px', borderBottom: '1px solid #000' }}>Hora</th>
-                    <th style={{ textAlign: 'left', padding: '8px', borderBottom: '1px solid #000' }}>Cliente</th>
-                    <th style={{ textAlign: 'left', padding: '8px', borderBottom: '1px solid #000' }}>Tipo</th>
-                    <th style={{ textAlign: 'left', padding: '8px', borderBottom: '1px solid #000' }}>Teléfono</th>
-                    <th style={{ textAlign: 'left', padding: '8px', borderBottom: '1px solid #000' }}>Ubicación</th>
-                    <th style={{ textAlign: 'left', padding: '8px', borderBottom: '1px solid #000' }}>Vestidos</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(eventsByDay.get(showDailyList) || []).map((ev) => (
-                    <tr key={ev.id} style={{ borderBottom: '1px solid #ddd' }}>
-                      <td style={{ padding: '8px' }}>{ev.eventTime || '-'}</td>
-                      <td style={{ padding: '8px' }}>{ev.clientName || '-'}</td>
-                      <td style={{ padding: '8px' }}>{ev.eventType || '-'}</td>
-                      <td style={{ padding: '8px' }}>{ev.phone || (ev as any).formSnapshot?.phone || '-'}</td>
-                      <td style={{ padding: '8px' }}>{ev.eventLocation || '-'}</td>
-                      <td style={{ padding: '8px' }}>
-                        {Array.isArray((ev as any).formSnapshot?.selectedDresses) && (ev as any).formSnapshot.selectedDresses.length > 0
-                          ? (ev as any).formSnapshot.selectedDresses
-                              .map((id: string) => dressOptions.find(d => d.id === id))
-                              .filter(Boolean)
-                              .map((d: any) => (d as any).name)
-                              .join(', ')
-                          : '-'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="daily-list-pdf hidden" style={{ padding: '20px', backgroundColor: '#fff' }}>
-              <h1 style={{ textAlign: 'center', marginBottom: '10px', fontSize: '24px', fontWeight: 'bold' }}>Eventos del día</h1>
-              <p style={{ textAlign: 'center', marginBottom: '20px', fontSize: '14px', color: '#666' }}>{new Date(showDailyList).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
-
-              {(eventsByDay.get(showDailyList) || []).map((ev, idx) => (
-                <div key={ev.id} style={{ marginBottom: '30px', pageBreakInside: 'avoid', borderTop: '1px solid #ddd', paddingTop: '15px' }}>
-                  <h2 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '10px' }}>
-                    {idx + 1}. {ev.clientName || 'Evento sin nombre'}
-                  </h2>
-
-                  <table style={{ width: '100%', marginBottom: '15px', fontSize: '12px' }}>
-                    <tbody>
-                      <tr>
-                        <td style={{ padding: '4px', paddingRight: '20px' }}><strong>Hora:</strong> {ev.eventTime || '-'}</td>
-                        <td style={{ padding: '4px' }}><strong>Tipo:</strong> {ev.eventType || '-'}</td>
-                      </tr>
-                      <tr>
-                        <td style={{ padding: '4px', paddingRight: '20px' }}><strong>Teléfono:</strong> {ev.phone || (ev as any).formSnapshot?.phone || '-'}</td>
-                        <td style={{ padding: '4px' }}><strong>Duración:</strong> {ev.packageDuration || '-'}</td>
-                      </tr>
-                      <tr>
-                        <td colSpan={2} style={{ padding: '4px' }}><strong>Ubicación:</strong> {ev.eventLocation || '-'}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-
-                  {Array.isArray((ev as any).formSnapshot?.selectedDresses) && (ev as any).formSnapshot.selectedDresses.length > 0 && (
-                    <div style={{ marginBottom: '15px' }}>
-                      <h3 style={{ fontSize: '13px', fontWeight: 'bold', marginBottom: '8px' }}>Vestidos:</h3>
-                      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                        {(ev as any).formSnapshot.selectedDresses
-                          .map((id: string) => {
-                            const found = dressOptions.find(d => d.id === id);
-                            return found;
-                          })
-                          .filter(Boolean)
-                          .map((dress: any) => (
-                            <div key={(dress as any).id} style={{ textAlign: 'center' }}>
-                              {(dress as any).image ? (
-                                <img src={(dress as any).image} alt={(dress as any).name} style={{ width: '60px', height: '80px', objectFit: 'cover', marginBottom: '4px', border: '1px solid #ccc' }} />
-                              ) : (
-                                <div style={{ width: '60px', height: '80px', backgroundColor: '#f0f0f0', marginBottom: '4px', border: '1px solid #ccc', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: '#999' }}>Sin foto</div>
-                              )}
-                              <div style={{ fontSize: '10px', maxWidth: '60px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{(dress as any).name}</div>
-                            </div>
-                          ))}
-                      </div>
-                    </div>
-                  )}
-
-                  <div style={{ marginBottom: '10px', fontSize: '12px', backgroundColor: '#f5f5f5', padding: '10px', borderRadius: '4px' }}>
-                    <h3 style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '6px' }}>Resumen de Pago:</h3>
-                    <table style={{ width: '100%' }}>
-                      <tbody>
-                        <tr>
-                          <td style={{ padding: '2px' }}>Total:</td>
-                          <td style={{ textAlign: 'right', padding: '2px', fontWeight: 'bold' }}>R$ {Number(ev.totalAmount || 0).toFixed(0)}</td>
-                        </tr>
-                        <tr>
-                          <td style={{ padding: '2px' }}>Entrada (20%):</td>
-                          <td style={{ textAlign: 'right', padding: '2px', fontWeight: 'bold', color: ev.depositPaid ? 'green' : 'red' }}>R$ {(Number(ev.totalAmount || 0) * 0.2).toFixed(0)} {ev.depositPaid ? '✓ Pago' : 'Pendiente'}</td>
-                        </tr>
-                        <tr>
-                          <td style={{ padding: '2px' }}>Restante:</td>
-                          <td style={{ textAlign: 'right', padding: '2px', fontWeight: 'bold', color: ev.finalPaymentPaid ? 'green' : 'red' }}>R$ {(Number(ev.totalAmount || 0) * 0.8).toFixed(0)} {ev.finalPaymentPaid ? '✓ Pago' : 'Pendiente'}</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              ))}
             </div>
           </div>
         </div>
       )}
 
-      {loading && <div className="text-sm text-gray-500">Cargando���</div>}
+      {/* Image lightbox modal for thumbnails */}
+      {imageModal.open && (
+        <div className={`fixed inset-0 z-[70] flex items-center justify-center p-4 transition-colors ${darkMode ? 'bg-black/80' : 'bg-black/60'}`} onClick={() => closeImageModal()}>
+          <div className={`rounded-xl w-full max-w-3xl p-4 transition-colors ${darkMode ? 'bg-black border border-gray-800' : 'bg-white border border-gray-200'}`} onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-end justify-end mb-2">
+              <button onClick={() => closeImageModal()} className={`text-2xl transition-colors ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-black'}`}>✕</button>
+            </div>
+            <div className="w-full flex items-center justify-center">
+              {imageModal.src ? (
+                <img src={imageModal.src} alt={imageModal.alt || 'Imagen'} className="max-h-[70vh] w-auto object-contain" />
+              ) : null}
+            </div>
+            {imageModal.alt && (
+              <div className="text-center text-sm mt-3 text-gray-400">{imageModal.alt}</div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {statusFilter && (
+        <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-colors ${darkMode ? 'bg-black/70' : 'bg-white/70'}`} onClick={() => setStatusFilter(null)}>
+          <div className={`rounded-lg w-full max-w-2xl max-h-[80vh] overflow-y-auto p-6 border transition-colors ${darkMode ? 'bg-black border-gray-800' : 'bg-white border-gray-200'}`} onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-6">
+              <div className={`text-2xl font-bold transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>
+                {statusFilter === 'deposit_pending' && 'Pendientes Depósito'}
+                {statusFilter === 'editing' && 'Por editar'}
+                {statusFilter === 'completed' && 'Eventos Finalizados'}
+              </div>
+              <button onClick={() => setStatusFilter(null)} className={`text-2xl transition-colors ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-black'}`}>✕</button>
+            </div>
+
+            {(() => {
+              const filtered = filteredEvents.filter(ev => {
+                if (statusFilter === 'deposit_pending') {
+                  return ev.depositPaid !== true;
+                } else if (statusFilter === 'editing') {
+                  return ev.depositPaid === true && ev.finalPaymentPaid === true && ev.eventCompleted !== true;
+                } else if (statusFilter === 'completed') {
+                  return ev.depositPaid === true && ev.finalPaymentPaid === true && ev.eventCompleted === true;
+                }
+                return false;
+              });
+
+              return filtered.length > 0 ? (
+                <div className="space-y-2">
+                  {filtered.map((ev, idx) => (
+                    <div
+                      key={ev.id}
+                      className={`w-full text-left p-4 rounded-lg border transition-colors ${darkMode ? 'bg-gray-900 border-gray-700' : 'bg-gray-50 border-gray-200'}`}
+                    >
+                      <div className="flex flex-col md:flex-row md:items-center gap-3">
+                        <button
+                          onClick={() => setSelectedEvent(ev)}
+                          className="text-left flex-1 hover:opacity-80 transition-opacity"
+                        >
+                          <div className={`font-semibold transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>
+                            {idx + 1}. {ev.clientName || 'Evento sin nombre'}
+                          </div>
+                          <div className={`text-sm mt-1 transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                            {ev.eventDate} {ev.eventTime ? `· ${ev.eventTime}` : ''} {ev.eventType ? `· ${ev.eventType}` : ''}
+                          </div>
+                        </button>
+                        <div className={`text-xs px-2 py-1 rounded whitespace-nowrap ${darkMode ? 'bg-gray-800 text-gray-300' : 'bg-gray-200 text-gray-700'}`}>
+                          R$ {Number(ev.totalAmount || 0).toFixed(0)}
+                        </div>
+                        <button
+                          onClick={() => window.dispatchEvent(new CustomEvent('adminOpenContract', { detail: { id: String(ev.id).split('__')[0] } }))}
+                          className="w-full md:w-auto px-4 py-2 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                        >
+                          <ExternalLink size={16} />
+                          Ir al contrato
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className={`text-center py-8 transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                  No hay eventos en esta categoría
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      )}
+
+      {adding && (
+        <div className={`fixed inset-0 z-[52] flex items-center justify-center p-4 transition-colors ${darkMode ? 'bg-black/70' : 'bg-black/50'}`} onClick={() => setAdding(false)}>
+          <div className={`rounded-xl w-full max-w-md p-6 transition-colors ${darkMode ? 'bg-black border border-gray-800' : 'bg-white border border-gray-200'}`} onClick={(e)=> e.stopPropagation()}>
+            <h3 className={`text-lg font-bold transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>Crear</h3>
+            <p className={`text-sm mt-2 transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Selecciona el tipo de elemento a crear</p>
+            <div className="mt-4 flex gap-2">
+              <button onClick={() => { setShowAddEventModal(true); setAdding(false); }} className="flex-1 px-4 py-2 bg-blue-600 text-white rounded">Evento</button>
+              <button onClick={() => { setShowAddContactModal(true); setAdding(false); }} className="flex-1 px-4 py-2 bg-green-600 text-white rounded">Contacto Cliente</button>
+            </div>
+            <div className="mt-4">
+              <button onClick={() => setAdding(false)} className="w-full px-4 py-2 border rounded">Cancelar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showAddEventModal && (
+        <div className={`fixed inset-0 z-[53] flex items-center justify-center p-4 transition-colors ${darkMode ? 'bg-black/70' : 'bg-black/50'}`} onClick={() => setShowAddEventModal(false)}>
+          <div className={`rounded-xl w-full max-w-2xl p-6 overflow-y-auto max-h-[80vh] transition-colors ${darkMode ? 'bg-black border border-gray-800' : 'bg-white border border-gray-200'}`} onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className={`text-lg font-bold transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>Crear Evento</h3>
+              <button onClick={() => setShowAddEventModal(false)} className={`p-1 rounded transition-colors ${darkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-100'}`}>✕</button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <input type="text" placeholder="Nombre" value={addForm.clientName} onChange={(e) => setAddForm({...addForm, clientName: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+              <input type="email" placeholder="Email" value={addForm.clientEmail} onChange={(e) => setAddForm({...addForm, clientEmail: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+              <input type="tel" placeholder="Teléfono" value={addForm.phone || ''} onChange={(e) => setAddForm({...addForm, phone: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+              <input type="text" placeholder="Tipo de evento" value={addForm.eventType} onChange={(e) => setAddForm({...addForm, eventType: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+              <input type="date" value={addForm.eventDate} onChange={(e) => setAddForm({...addForm, eventDate: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+              <input type="time" value={addForm.eventTime} onChange={(e) => setAddForm({...addForm, eventTime: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+              <input type="text" placeholder="Ubicación" value={addForm.eventLocation} onChange={(e) => setAddForm({...addForm, eventLocation: e.target.value})} className={`px-3 py-2 border rounded text-sm md:col-span-2 ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+              <select value={addForm.packageId || ''} onChange={(e) => { const pkg = packages.find(p=>p.id===e.target.value); setAddForm({...addForm, packageId: e.target.value, packageTitle: pkg?.title, totalAmount: pkg?.price || addForm.totalAmount}); }} className={`px-3 py-2 border rounded text-sm md:col-span-2 ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`}>
+                <option value="">Seleccionar paquete</option>
+                {packages.map(pkg => (<option key={pkg.id} value={pkg.id}>{pkg.title} - R$ {pkg.price}</option>))}
+              </select>
+              <input type="number" placeholder="Deslocamiento" value={addForm.travelFee || ''} onChange={(e) => setAddForm({...addForm, travelFee: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+              <input type="text" placeholder="Método de pago" value={addForm.paymentMethod || 'pix'} onChange={(e) => setAddForm({...addForm, paymentMethod: e.target.value})} className={`px-3 py-2 border rounded text-sm md:col-span-2 ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+            </div>
+            <div className="flex gap-2 mt-3">
+              <button onClick={() => setShowCouponModal(true)} className="flex-1 px-4 py-2 bg-amber-600 text-white rounded">Aplicar Cupones ({appliedCoupons.length})</button>
+              <button onClick={saveNewEvent} className="flex-1 px-4 py-2 bg-green-600 text-white rounded">Crear Evento</button>
+              <button onClick={() => { setShowAddEventModal(false); setAddForm({ clientName: '', eventType: '', eventDate: '', eventTime: '', eventLocation: '', paymentMethod: 'pix' }); setAppliedCoupons([]); }} className={`flex-1 px-4 py-2 border rounded ${darkMode ? 'border-gray-600 text-gray-300' : 'border-gray-300 text-gray-700'}`}>Cancelar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showAddContactModal && (
+        <div className={`fixed inset-0 z-[53] flex items-center justify-center p-4 transition-colors ${darkMode ? 'bg-black/70' : 'bg-black/50'}`} onClick={() => setShowAddContactModal(false)}>
+          <div className={`rounded-xl w-full max-w-md p-6 transition-colors ${darkMode ? 'bg-black border border-gray-800' : 'bg-white border border-gray-200'}`} onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className={`text-lg font-bold transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{editingContactIds && editingContactIds.contactId ? 'Editar Contacto' : 'Crear Contacto'}</h3>
+              <button onClick={() => setShowAddContactModal(false)} className={`p-1 rounded transition-colors ${darkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-100'}`}>✕</button>
+            </div>
+            <div className="grid grid-cols-1 gap-3">
+              <input type="text" placeholder="Nombre" value={contactForm.name} onChange={(e)=> setContactForm({...contactForm, name: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+              <input type="tel" placeholder="Teléfono" value={contactForm.phone} onChange={(e)=> setContactForm({...contactForm, phone: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+              <div className="grid grid-cols-2 gap-2">
+                <input type="date" value={contactForm.eventDate || ''} onChange={(e)=> setContactForm({...contactForm, eventDate: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`}/>
+                <input type="time" value={contactForm.eventTime || ''} onChange={(e)=> setContactForm({...contactForm, eventTime: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`}/>
+              </div>
+              <select value={contactForm.packageId || ''} onChange={(e)=> setContactForm({...contactForm, packageId: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`}>
+                <option value="">Paquete de interés</option>
+                {packages.map(pkg => (<option key={pkg.id} value={pkg.id}>{pkg.title}</option>))}
+              </select>
+              <textarea placeholder="Observaciones" value={contactForm.notes || ''} onChange={(e)=> setContactForm({...contactForm, notes: e.target.value})} className={`px-3 py-2 border rounded text-sm h-24 ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+            </div>
+            <div className="flex gap-2 mt-4">
+              <button onClick={saveNewContact} className="flex-1 px-4 py-2 bg-green-600 text-white rounded">{editingContactIds && editingContactIds.contactId ? 'Guardar cambios' : 'Crear Contacto'}</button>
+              <button onClick={() => setShowAddContactModal(false)} className={`flex-1 px-4 py-2 border rounded ${darkMode ? 'border-gray-600 text-gray-300' : 'border-gray-300 text-gray-700'}`}>Cancelar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showCouponModal && (
+        <div className={`fixed inset-0 z-[60] flex items-center justify-center p-4 transition-colors ${darkMode ? 'bg-black/70' : 'bg-black/50'}`} onClick={() => setShowCouponModal(false)}>
+          <div className={`rounded-xl w-full max-w-2xl p-6 overflow-y-auto max-h-[80vh] transition-colors ${darkMode ? 'bg-gray-900 border border-gray-800' : 'bg-white border border-gray-200'}`} onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className={`text-lg font-bold transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>
+                Aplicar Cupones de Descuento
+              </h3>
+              <button onClick={() => setShowCouponModal(false)} className={`p-1 rounded transition-colors ${darkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-100'}`}>
+                <X size={20} className={darkMode ? 'text-gray-400' : 'text-gray-600'} />
+              </button>
+            </div>
+
+            {coupons.length === 0 ? (
+              <p className={`text-sm transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                No hay cupones disponibles en este momento.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {coupons.map(coupon => {
+                  const isApplied = appliedCoupons.includes(coupon.id);
+                  const discountAmount = (() => {
+                    const baseAmount = Number(editingEvent?.totalAmount || selectedEvent?.totalAmount || addForm.totalAmount || 0);
+                    if (coupon.discountType === 'percentage') {
+                      return baseAmount * ((coupon.discountValue || 0) / 100);
+                    } else if (coupon.discountType === 'fixed') {
+                      return coupon.discountValue || 0;
+                    } else if (coupon.discountType === 'full') {
+                      return baseAmount;
+                    }
+                    return 0;
+                  })();
+
+                  return (
+                    <label key={coupon.id} className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
+                      isApplied
+                        ? darkMode
+                          ? 'bg-amber-900/20 border-amber-700'
+                          : 'bg-amber-50 border-amber-300'
+                        : darkMode
+                        ? 'bg-gray-800 border-gray-700 hover:bg-gray-700'
+                        : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                    }`}>
+                      <input
+                        type="checkbox"
+                        checked={isApplied}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setAppliedCoupons([...appliedCoupons, coupon.id]);
+                          } else {
+                            setAppliedCoupons(appliedCoupons.filter(id => id !== coupon.id));
+                          }
+                        }}
+                        className="mt-1 w-4 h-4 cursor-pointer flex-shrink-0"
+                      />
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>
+                              {coupon.code}
+                            </p>
+                            {coupon.description && (
+                              <p className={`text-sm transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                                {coupon.description}
+                              </p>
+                            )}
+                          </div>
+                          <div className="text-right">
+                            <p className={`font-medium transition-colors ${darkMode ? 'text-amber-400' : 'text-amber-600'}`}>
+                              {coupon.discountType === 'percentage' && `${coupon.discountValue}%`}
+                              {coupon.discountType === 'fixed' && `R$ ${coupon.discountValue}`}
+                              {coupon.discountType === 'full' && '100%'}
+                            </p>
+                            <p className={`text-xs transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                              Ahorro: R$ {discountAmount.toFixed(0)}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </label>
+                  );
+                })}</div>
+            )}
+
+            <div className={`mt-6 p-4 rounded-lg border transition-colors ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>Monto original:</span>
+                  <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>
+                    R$ {Number(editingEvent?.totalAmount || selectedEvent?.totalAmount || addForm.totalAmount || 0).toFixed(0)}
+                  </span>
+                </div>
+                {appliedCoupons.length > 0 && (
+                  <>
+                    <div className="flex justify-between">
+                      <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>Descuento total:</span>
+                      <span className={`font-medium transition-colors ${darkMode ? 'text-amber-400' : 'text-amber-600'}`}>
+                        -R$ {(Number(editingEvent?.totalAmount || selectedEvent?.totalAmount || addForm.totalAmount || 0) - computeTotalFromBase(Number(editingEvent?.totalAmount || selectedEvent?.totalAmount || addForm.totalAmount || 0))).toFixed(0)}
+                      </span>
+                    </div>
+                    <div className="border-t border-gray-400/20 pt-2 flex justify-between">
+                      <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>Total con descuento:</span>
+                      <span className={`font-bold transition-colors ${darkMode ? 'text-green-400' : 'text-green-600'}`}>
+                        R$ {(editingEvent || selectedEvent ? calculateTotalWithDiscount() : computeTotalFromBase(Number(addForm.totalAmount || 0))).toFixed(0)}
+                      </span>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            <div className="flex gap-2 mt-6">
+              <button
+                onClick={() => {
+                  setShowCouponModal(false);
+                }}
+                className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
+                  darkMode
+                    ? 'bg-green-600 hover:bg-green-700 text-white'
+                    : 'bg-green-600 hover:bg-green-700 text-white'
+                }`}
+              >
+                Aceptar
+              </button>
+              <button
+                onClick={() => {
+                  setAppliedCoupons([]);
+                  setShowCouponModal(false);
+                }}
+                className={`flex-1 px-4 py-2 rounded-lg font-medium border transition-colors ${
+                  darkMode
+                    ? 'border-gray-700 text-gray-300 hover:bg-gray-800'
+                    : 'border-gray-300 text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                Limpiar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {selectedEvent && isSelectedCalendarContact && (
+        <div className={`fixed inset-0 z-[51] flex items-center justify-center p-2 sm:p-4 transition-colors ${darkMode ? 'bg-black/70' : 'bg-white/70'}`} onClick={() => setSelectedEvent(null)}>
+          <div className={`rounded-xl w-full max-w-md p-4 md:p-6 overflow-hidden max-h-[90vh] overflow-y-auto transition-colors ${darkMode ? 'bg-black border border-gray-800' : 'bg-white border border-gray-200'}`} onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <div className={`text-lg font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{selectedEvent.clientName}</div>
+                <div className={`text-xs transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{(selectedEvent as any).type === 'contact' ? 'Contacto' : (selectedEvent.eventType || '')}</div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button onClick={() => {
+                  // prepare contact form for editing
+                  const calId = String(selectedEvent.id || '').startsWith('cal_') ? String(selectedEvent.id).replace(/^cal_/, '') : undefined;
+                  const contactId = (selectedEvent as any).contactRef || undefined;
+                  setEditingContactIds({ contactId, calendarEventId: calId });
+                  setContactForm({
+                    name: selectedEvent.clientName || '',
+                    email: selectedEvent.clientEmail || (selectedEvent as any).email || '',
+                    phone: selectedEvent.phone || (selectedEvent as any).phone || '',
+                    packageId: (selectedEvent as any).packageId || (selectedEvent as any).packageId || '',
+                    notes: (selectedEvent as any).notes || '',
+                    eventDate: selectedEvent.eventDate || '',
+                    eventTime: selectedEvent.eventTime || ''
+                  });
+                  setShowAddContactModal(true);
+                  setSelectedEvent(null);
+                }} className="px-3 py-1 rounded bg-yellow-500 text-white text-sm">Editar</button>
+                <button onClick={() => setSelectedEvent(null)} className={`text-2xl transition-colors ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-black'}`}>✕</button>
+              </div>
+            </div>
+
+            <div className="space-y-3 text-sm">
+              <div>{selectedEvent.clientName ? <><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Nombre:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{selectedEvent.clientName}</span></> : null}</div>
+              {selectedEmail ? (<div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Email:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{selectedEmail}</span></div>) : null}
+              {selectedPhone ? (<div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Teléfono:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{selectedPhone}</span></div>) : null}
+              {(selectedEvent as any).packageTitle ? (<div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Paquete de interés:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{(selectedEvent as any).packageTitle}</span></div>) : null}
+              {(selectedEvent as any).notes ? (<div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Observaciones:</span> <div className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{(selectedEvent as any).notes}</div></div>) : null}
+              {selectedEvent.eventDate ? (<div className="grid grid-cols-2 gap-2"><div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Fecha:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{selectedEvent.eventDate}</span></div><div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Hora:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{selectedEvent.eventTime || '-'}</span></div></div>) : null}
+
+              <div className="flex gap-2 mt-4">
+                <button onClick={() => markContactAttended(selectedEvent)} className="flex-1 px-4 py-2 bg-green-600 text-white rounded">Marcar atendido</button>
+                <button onClick={() => { setDeleteConfirmEvent(selectedEvent); }} className="flex-1 px-4 py-2 border rounded text-red-600">Eliminar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {selectedEvent && !isSelectedCalendarContact && (
+        <div className={`fixed inset-0 z-[51] flex items-center justify-center p-2 sm:p-4 transition-colors ${darkMode ? 'bg-black/70' : 'bg-white/70'}`} onClick={() => setSelectedEvent(null)}>
+          <div className={`rounded-xl w-full max-w-5xl p-4 md:p-6 overflow-hidden max-h-[90vh] overflow-y-auto transition-colors ${darkMode ? 'bg-black border border-gray-800' : 'bg-white border border-gray-200'}`} onClick={(e) => e.stopPropagation()}>
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-3">
+              <div>
+                <div className={`text-lg font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{selectedEvent.clientName} — {selectedEvent.eventType || 'Trabajo'}</div>
+                <div className={`text-xs transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Fecha principal: {selectedEvent.eventDate || '-'} | Hora: {selectedEvent.eventTime || '-'}</div>
+              </div>
+              {!isSelectedCalendarContact && (
+                <div className="flex items-center gap-2 justify-between">
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => deleteEvent(selectedEvent)} className={`p-2 rounded-full transition-colors ${darkMode ? 'text-red-400 hover:bg-red-900/20' : 'text-red-600 hover:bg-red-100'}`} title="Eliminar evento" />
+                  </div>
+                  <div className="flex flex-col md:flex-row items-center gap-2">
+                    <button
+                      onClick={() => { setEditingEvent(selectedEvent); setEditForm({}); setAppliedCoupons([]); }}
+                      className="hidden md:flex px-4 py-2 bg-green-600 text-white rounded text-sm font-medium hover:bg-green-700 transition-colors items-center gap-2"
+                      title="Editar evento"
+                    >
+                      <Edit size={16} />
+                      Editar
+                    </button>
+                    <button
+                      onClick={() => window.dispatchEvent(new CustomEvent('adminOpenContract', { detail: { id: String(selectedEvent.id).split('__')[0] } }))}
+                      className="hidden md:flex px-4 py-2 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 transition-colors items-center gap-2"
+                      title="Ir al contrato"
+                    >
+                      <ExternalLink size={16} />
+                      Ir al contrato
+                    </button>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      data-loc="src/components/store/AdminCalendar.tsx:1072:226"
+                      style={{ display: 'block', height: '20px', width: '20px', stroke: 'rgb(248, 113, 113)' }}
+                    >
+                      <path d="M3 6h18" data-loc="src/components/store/AdminCalendar.tsx:1072:226" fill="none" stroke="rgb(248, 113, 113)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                      <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" data-loc="src/components/store/AdminCalendar.tsx:1072:226" fill="none" stroke="rgb(248, 113, 113)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" data-loc="src/components/store/AdminCalendar.tsx:1072:226" fill="none" stroke="rgb(248, 113, 113)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                      <line x1="10" x2="10" y1="11" y2="17" data-loc="src/components/store/AdminCalendar.tsx:1072:226" stroke="rgb(248, 113, 113)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                      <line x1="14" x2="14" y1="11" y2="17" data-loc="src/components/store/AdminCalendar.tsx:1072:226" stroke="rgb(248, 113, 113)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    <button onClick={() => setSelectedEvent(null)} className={`text-2xl transition-colors ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-black'}`}>✕</button>
+                  </div>
+                </div>
+              )}
+              {isSelectedCalendarContact && (
+                <div className="flex items-center gap-2 justify-between">
+                  <div />
+                  <button onClick={() => setSelectedEvent(null)} className={`text-2xl transition-colors ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-black'}`}>✕</button>
+                </div>
+              )}
+            </div>
+            {!editingEvent && !isSelectedCalendarContact && (
+              <div className="flex md:hidden gap-2 mb-4">
+                <button
+                  onClick={() => { setEditingEvent(selectedEvent); setEditForm({}); setAppliedCoupons([]); }}
+                  className="flex-1 p-2 bg-green-600 text-white rounded transition-colors hover:bg-green-700 flex items-center justify-center"
+                  title="Editar evento"
+                >
+                  <Edit size={16} />
+                </button>
+                <button
+                  onClick={() => window.dispatchEvent(new CustomEvent('adminOpenContract', { detail: { id: String(selectedEvent.id).split('__')[0] } }))}
+                  className="flex-1 p-2 bg-blue-600 text-white rounded transition-colors hover:bg-blue-700 flex items-center justify-center"
+                  title="Ir al contrato"
+                >
+                  <ExternalLink size={16} />
+                </button>
+              </div>
+            )}
+
+            {editingEvent && !isSelectedCalendarContact && (
+              <div className={`p-4 rounded-lg border mb-4 ${darkMode ? 'bg-gray-900 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
+                <h3 className={`font-semibold mb-3 ${darkMode ? 'text-white' : 'text-black'}`}>Editar Evento</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <input type="text" placeholder="Nombre" value={editForm.clientName || editingEvent.clientName} onChange={(e) => setEditForm({...editForm, clientName: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+                  <input type="email" placeholder="Email" value={editForm.clientEmail || editingEvent.clientEmail} onChange={(e) => setEditForm({...editForm, clientEmail: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+                  <input type="tel" placeholder="Teléfono" value={editForm.phone || editingEvent.phone || ''} onChange={(e) => setEditForm({...editForm, phone: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+                  <input type="text" placeholder="Tipo de evento" value={editForm.eventType || editingEvent.eventType} onChange={(e) => setEditForm({...editForm, eventType: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+                  <input type="date" placeholder="Fecha evento" value={editForm.eventDate || editingEvent.eventDate} onChange={(e) => setEditForm({...editForm, eventDate: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+                  <input type="time" placeholder="Hora" value={editForm.eventTime || editingEvent.eventTime} onChange={(e) => setEditForm({...editForm, eventTime: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+                  <input type="text" placeholder="Ubicación" value={editForm.eventLocation || editingEvent.eventLocation} onChange={(e) => setEditForm({...editForm, eventLocation: e.target.value})} className={`px-3 py-2 border rounded text-sm md:col-span-2 ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+                  <select value={editForm.packageTitle || editingEvent.packageTitle || ''} onChange={(e) => setEditForm({...editForm, packageTitle: e.target.value, totalAmount: packages.find(p => p.title === e.target.value)?.price || editForm.totalAmount})} className={`px-3 py-2 border rounded text-sm md:col-span-2 ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`}>
+                    <option value="">Seleccionar paquete</option>
+                    {packages.map(pkg => (
+                      <option key={pkg.id} value={pkg.title}>
+                        {pkg.title} - R$ {pkg.price}
+                      </option>
+                    ))}
+                  </select>
+                  <input type="number" placeholder="Monto total" value={editForm.totalAmount || editingEvent.totalAmount} onChange={(e) => setEditForm({...editForm, totalAmount: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+                  <input type="number" placeholder="Deslocamiento" value={editForm.travelFee || editingEvent.travelFee || ''} onChange={(e) => setEditForm({...editForm, travelFee: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+                  <input type="text" placeholder="Método de pago" value={editForm.paymentMethod || editingEvent.paymentMethod} onChange={(e) => setEditForm({...editForm, paymentMethod: e.target.value})} className={`px-3 py-2 border rounded text-sm md:col-span-2 ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+                </div>
+                <div className="flex gap-2 mt-3 flex-col">
+                  <button onClick={() => setShowCouponModal(true)} className="flex-1 px-4 py-2 bg-amber-600 text-white rounded hover:bg-amber-700 transition-colors text-sm font-medium flex items-center justify-center gap-2">
+                    <Percent size={16} />
+                    Aplicar Cupones ({appliedCoupons.length})
+                  </button>
+                  <div className="flex gap-2">
+                    <button onClick={saveEventChanges} className="flex-1 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors text-sm font-medium">Guardar</button>
+                    <button onClick={() => { setEditingEvent(null); setEditForm({}); setAppliedCoupons([]); }} className={`flex-1 px-4 py-2 border rounded text-sm font-medium transition-colors ${darkMode ? 'border-gray-600 text-gray-400 hover:bg-gray-800' : 'border-gray-300 text-gray-600 hover:bg-gray-100'}`}>Cancelar</button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Nombre:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{selectedEvent.clientName || '-'}</span></div>
+                {selectedEmail ? (<div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Email:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{selectedEmail}</span></div>) : null}
+                {selectedPhone ? (<div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Teléfono:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{selectedPhone}</span></div>) : null}
+                {(selectedEvent as any).clientCPF ? (<div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>CPF:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{(selectedEvent as any).clientCPF}</span></div>) : null}
+                {(selectedEvent as any).clientRG ? (<div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>RG:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{(selectedEvent as any).clientRG}</span></div>) : null}
+                {(selectedEvent as any).clientAddress ? (<div className="col-span-2"><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Dirección:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{(selectedEvent as any).clientAddress}</span></div>) : null}
+                {selectedEvent.eventType ? (<div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Tipo de evento:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{selectedEvent.eventType}</span></div>) : null}
+                {(selectedEvent as any).contractDate ? (<div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Fecha contrato:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{(selectedEvent as any).contractDate}</span></div>) : null}
+                {(selectedEvent as any).signatureTime ? (<div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Hora firma:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{(selectedEvent as any).signatureTime}</span></div>) : null}
+                {(selectedEvent.paymentMethod) ? (<div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Método de pago:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{selectedEvent.paymentMethod}</span></div>) : null}
+              </div>
+
+              <div className={`border-t pt-4 transition-colors ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Fecha evento:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{selectedEvent.eventDate || '-'}</span></div>
+                  <div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Hora:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{selectedEvent.eventTime || '-'}</span></div>
+                  <div className="col-span-2"><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Ubicación:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{selectedEvent.eventLocation || '-'}</span></div>
+                  <div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Paquete:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{(selectedEvent as any).packageTitle || '-'}</span></div>
+                  <div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Duraci��n:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{selectedEvent.packageDuration || '-'}</span></div>
+                </div>
+              </div>
+
+              {(selectedEvent as any).formSnapshot?.selectedDresses && Array.isArray((selectedEvent as any).formSnapshot.selectedDresses) && (
+                <div className={`border-t pt-4 transition-colors ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                  <div className="text-sm font-medium mb-3">Vestidos</div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                    {(selectedEvent as any).formSnapshot.selectedDresses
+                      .map((id: string) => dressOptions.find(d => d.id === id))
+                      .filter((d: any) => d)
+                      .map((dress: any) => (
+                        <div key={dress.id} className="relative group">
+                          <img src={dress.image} alt={dress.name} className="w-full h-32 object-cover rounded-lg border" />
+                          <div className={`absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center`}>
+                            <span className="text-white text-xs font-medium text-center px-2">{dress.name}</span>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+
+              <div className={`border-t pt-4 transition-colors ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                <div className="text-sm font-medium mb-3">Información de Pago</div>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Depósito (20%):</span>
+                    <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>R$ {calculateDepositWithDiscount().toFixed(0)}</span>
+                    <span className={`px-2 py-0.5 rounded text-xs ${selectedEvent.depositPaid ? (darkMode ? 'bg-green-900/30 text-green-400' : 'bg-green-100 text-green-700') : (darkMode ? 'bg-red-900/30 text-red-400' : 'bg-red-100 text-red-700')}`}>{selectedEvent.depositPaid ? 'Pagado' : 'No pagado'}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Restante (80%):</span>
+                    <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>R$ {calculateRemainingWithDiscount().toFixed(0)}</span>
+                    <span className={`px-2 py-0.5 rounded text-xs ${selectedEvent.finalPaymentPaid ? (darkMode ? 'bg-green-900/30 text-green-400' : 'bg-green-100 text-green-700') : (darkMode ? 'bg-red-900/30 text-red-400' : 'bg-red-100 text-red-700')}`}>{selectedEvent.finalPaymentPaid ? 'Pagado' : 'No pagado'}</span>
+                  </div>
+                  <div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>R$ {calculateTotalWithDiscount().toFixed(0)}</span></div>
+                  <div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Deslocamiento:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>R$ {(selectedEvent.travelFee ?? 0).toFixed(0)}</span></div>
+                </div>
+              </div>
+
+              <div className={`border-t pt-4 transition-colors ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                <div className="text-sm font-medium mb-3">Progreso del evento</div>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => updateEventProgress('depositPaid', !selectedEvent.depositPaid)}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded text-sm font-medium cursor-pointer transition-colors ${selectedEvent.depositPaid ? (darkMode ? 'bg-green-900/30 text-green-400 border border-green-900 hover:bg-green-900/50' : 'bg-green-100 text-green-700 border border-green-200 hover:bg-green-200') : (darkMode ? 'bg-gray-800 text-gray-300 border border-gray-700 hover:bg-gray-700' : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200')}`}
+                  >
+                    <span className="w-4 h-4 rounded-full border flex items-center justify-center text-xs">{selectedEvent.depositPaid ? '✓' : ''}</span>
+                    Depósito Realizado
+                  </button>
+                  <button
+                    onClick={() => updateEventProgress('finalPaymentPaid', !selectedEvent.finalPaymentPaid)}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded text-sm font-medium cursor-pointer transition-colors ${selectedEvent.finalPaymentPaid ? (darkMode ? 'bg-green-900/30 text-green-400 border border-green-900 hover:bg-green-900/50' : 'bg-green-100 text-green-700 border border-green-200 hover:bg-green-200') : (darkMode ? 'bg-gray-800 text-gray-300 border border-gray-700 hover:bg-gray-700' : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200')}`}
+                  >
+                    <span className="w-4 h-4 rounded-full border flex items-center justify-center text-xs">{selectedEvent.finalPaymentPaid ? '✓' : ''}</span>
+                    Pago Final
+                  </button>
+                  <button
+                    onClick={() => updateEventProgress('eventCompleted', !selectedEvent.eventCompleted)}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded text-sm font-medium cursor-pointer transition-colors ${selectedEvent.eventCompleted ? (darkMode ? 'bg-green-900/30 text-green-400 border border-green-900 hover:bg-green-900/50' : 'bg-green-100 text-green-700 border border-green-200 hover:bg-green-200') : (darkMode ? 'bg-gray-800 text-gray-300 border border-gray-700 hover:bg-gray-700' : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200')}`}
+                  >
+                    <span className="w-4 h-4 rounded-full border flex items-center justify-center text-xs">{selectedEvent.eventCompleted ? '✓' : ''}</span>
+                    Evento Completado
+                  </button>
+                </div>
+              </div>
+
+              {(Array.isArray(selectedEvent.storeItems) && selectedEvent.storeItems.length > 0) && (
+                <div className={`border-t pt-4 transition-colors ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                  <div className="text-sm font-medium mb-3">Items del contrato</div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                          <th className="py-1 text-left">Item</th>
+                          <th className="py-1 text-left">Cantidad</th>
+                          <th className="py-1 text-left">Unitario</th>
+                          <th className="py-1 text-right">Subtotal</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selectedEvent.storeItems.map((it: any, idx: number) => (
+                          <tr key={idx} className={`border-t transition-colors ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                            <td className="py-2">{it.name}</td>
+                            <td className="py-2">{it.quantity}</td>
+                            <td className="py-2">R$ {Number(it.price || 0).toFixed(0)}</td>
+                            <td className="py-2 text-right">R$ {(Number(it.price || 0) * Number(it.quantity || 0)).toFixed(0)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteConfirmEvent && (
+        <div className={`fixed inset-0 z-[52] flex items-center justify-center p-4 transition-colors ${darkMode ? 'bg-black/70' : 'bg-black/50'}`} onClick={() => !isDeleting && setDeleteConfirmEvent(null)}>
+          <div className={`rounded-xl w-full max-w-md p-6 transition-colors ${darkMode ? 'bg-gray-900 border border-gray-800' : 'bg-white border border-gray-200'}`} onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start gap-4 mb-4">
+              <div className={`p-3 rounded-full ${darkMode ? 'bg-red-900/30' : 'bg-red-100'}`}>
+                <Trash2 size={24} className={darkMode ? 'text-red-400' : 'text-red-600'} />
+              </div>
+              <div className="flex-1">
+                <h3 className={`text-lg font-bold transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>
+                  ¿Eliminar evento?
+                </h3>
+                <p className={`text-sm mt-1 transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  Se eliminará el evento <strong>{deleteConfirmEvent.clientName || 'sin nombre'}</strong> y su contrato asociado.
+                </p>
+                <p className={`text-xs mt-2 transition-colors ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                  Esta acción no se puede deshacer.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 mt-6">
+              <button
+                onClick={() => setDeleteConfirmEvent(null)}
+                disabled={isDeleting}
+                className={`flex-1 px-4 py-2 rounded-lg border transition-colors font-medium ${
+                  darkMode
+                    ? 'border-gray-700 text-gray-300 hover:bg-gray-800'
+                    : 'border-gray-300 text-gray-700 hover:bg-gray-100'
+                } ${isDeleting ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={isDeleting}
+                className={`flex-1 px-4 py-2 rounded-lg font-medium text-white transition-colors flex items-center justify-center gap-2 ${
+                  isDeleting
+                    ? 'bg-red-700/50 cursor-not-allowed'
+                    : darkMode
+                    ? 'bg-red-600 hover:bg-red-700'
+                    : 'bg-red-600 hover:bg-red-700'
+                }`}
+              >
+                {isDeleting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Eliminando...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={18} />
+                    Eliminar
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

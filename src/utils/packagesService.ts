@@ -25,6 +25,7 @@ export interface DBPackage {
   features?: string[];
   image_url: string;
   category?: string;
+  serviceType?: string;
   created_at?: any;
   updated_at?: any;
   active?: boolean;
@@ -45,6 +46,7 @@ function coercePackage(id: string, data: any): DBPackage {
     features: Array.isArray(data?.features) ? data.features.map((x: any) => String(x)) : [],
     image_url: String(data?.image_url || ''),
     category: data?.category ? String(data.category) : undefined,
+    serviceType: data?.serviceType ? String(data.serviceType) : undefined,
     created_at: data?.created_at ?? null,
     updated_at: data?.updated_at ?? null,
     active: data?.active ?? true,

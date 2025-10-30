@@ -106,7 +106,7 @@ export const saveContract = async (formData: BookingFormData, userUid?: string):
     }
 
     // Prepare contract data
-    const contractData: ContractData & { status?: string; eventEndTime?: string } = {
+    const contractData: ContractData & { status?: string; eventEndTime?: string; isNew?: boolean } = {
       clientName: formData.name,
       clientEmail: formData.email,
       eventType: formData.cartItems?.[0]?.type === 'events' ? 'Eventos' :
@@ -119,6 +119,7 @@ export const saveContract = async (formData: BookingFormData, userUid?: string):
       depositPaid: false,
       finalPaymentPaid: false,
       eventCompleted: false,
+      isNew: true,
       packageTitle: formData.cartItems?.[0]?.name || '',
       packageDuration: pkgDuration,
       eventLocation: formData.cartItems?.[0] ? formData[`eventLocation_0`] || '' : '',

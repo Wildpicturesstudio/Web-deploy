@@ -11,8 +11,8 @@ export interface GeneratePdfOptions {
 }
 
 export async function generatePDF(element: HTMLElement, opts: GeneratePdfOptions = {}): Promise<string | Blob> {
-  const quality = Math.max(0.3, Math.min(1, opts.quality ?? 0.6));
-  const scale = Math.max(1, Math.min(3, opts.scale ?? (typeof window !== 'undefined' && (window.devicePixelRatio || 0) > 1 ? Math.min(3, window.devicePixelRatio) : 2)));
+  const quality = Math.max(0.3, Math.min(1, opts.quality ?? 0.5));
+  const scale = Math.max(1, Math.min(3, opts.scale ?? (typeof window !== 'undefined' && (window.devicePixelRatio || 0) > 1 ? Math.min(2, window.devicePixelRatio) : 1.5)));
   const marginTopPt = Math.max(0, opts.marginTopPt ?? 20);
   const marginBottomPt = Math.max(0, opts.marginBottomPt ?? 20);
 
@@ -27,16 +27,16 @@ export async function generatePDF(element: HTMLElement, opts: GeneratePdfOptions
     const ratio = targetWidthPt / imgWidthPx;
     const renderHeightPt = imgHeightPx * ratio;
 
-    const pdf = new jsPDF({ unit: 'pt', format: [targetWidthPt, Math.max(50, renderHeightPt)], compress: false });
-    const imgData = canvas.toDataURL('image/png');
-    pdf.addImage(imgData, 'PNG', 0, 0, targetWidthPt, renderHeightPt);
+    const pdf = new jsPDF({ unit: 'pt', format: [targetWidthPt, Math.max(50, renderHeightPt)], compress: true });
+    const imgData = canvas.toDataURL('image/jpeg', quality);
+    pdf.addImage(imgData, 'JPEG', 0, 0, targetWidthPt, renderHeightPt);
     const blob = pdf.output('blob') as Blob;
     if (opts.returnType === 'blob') return blob;
     return URL.createObjectURL(blob);
   }
 
   // Create A4 PDF (multi-page)
-  const pdf = new jsPDF({ unit: 'pt', format: 'a4', compress: false });
+  const pdf = new jsPDF({ unit: 'pt', format: 'a4', compress: true });
   const pageWidthPt = pdf.internal.pageSize.getWidth();
   const pageHeightPt = pdf.internal.pageSize.getHeight();
 
@@ -133,9 +133,9 @@ export async function generatePDF(element: HTMLElement, opts: GeneratePdfOptions
       y += sl.heightPx;
     }
 
-    const imgData = pageCanvas.toDataURL('image/png');
+    const imgData = pageCanvas.toDataURL('image/jpeg', quality);
     const renderHeightPt = usedHeightPx * ratio;
-    pdf.addImage(imgData, 'PNG', 0, marginTopPt, pageWidthPt, renderHeightPt);
+    pdf.addImage(imgData, 'JPEG', 0, marginTopPt, pageWidthPt, renderHeightPt);
   }
 
   const blob = pdf.output('blob') as Blob;
