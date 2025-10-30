@@ -1224,23 +1224,31 @@ const ContractsManagement: React.FC<{ openContractId?: string | null; onOpened?:
                   const calc = computeAmounts(viewing, viewing.couponCode, customPackagePrice);
                   return (
                     <>
-                      <div className="flex items-center gap-2">
-                        <span className="text-gray-600">Depósito:</span>
-                        <span className="font-medium">R$ {calc.depositAmount.toFixed(0)}</span>
-                        <span className={`px-2 py-0.5 rounded text-xs ${viewing.depositPaid? 'bg-green-100 text-green-700':'bg-red-100 text-red-700'}`}>{viewing.depositPaid? 'Pagado':'No pagado'}</span>
-                        <button
-                          onClick={async ()=>{ await toggleFlag(viewing.id, 'depositPaid'); setViewing(v=> v? { ...v, depositPaid: !v.depositPaid }: v); }}
-                          className={`text-xs px-2 py-1 border rounded-none ${viewing.depositPaid? 'border-green-600 text-green-700 hover:bg-green-600 hover:text-white':'border-red-600 text-red-700 hover:bg-red-600 hover:text-white'}`}
-                        >{viewing.depositPaid? 'Marcar No pagado':'Marcar Pagado'}</button>
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-600">Depósito:</span>
+                          <span className="font-medium">R$ {calc.depositAmount.toFixed(0)}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-0.5 rounded text-xs ${viewing.depositPaid? 'bg-green-100 text-green-700':'bg-red-100 text-red-700'}`}>{viewing.depositPaid? 'Pagado':'No pagado'}</span>
+                          <button
+                            onClick={async ()=>{ await toggleFlag(viewing.id, 'depositPaid'); setViewing(v=> v? { ...v, depositPaid: !v.depositPaid }: v); }}
+                            className={`text-xs px-2 py-1 border rounded-none ${viewing.depositPaid? 'border-green-600 text-green-700 hover:bg-green-600 hover:text-white':'border-red-600 text-red-700 hover:bg-red-600 hover:text-white'}`}
+                          >{viewing.depositPaid? 'Marcar No pagado':'Marcar Pagado'}</button>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-gray-600">Restante:</span>
-                        <span className="font-medium">R$ {calc.remainingAmount.toFixed(0)}</span>
-                        <span className={`px-2 py-0.5 rounded text-xs ${viewing.finalPaymentPaid? 'bg-green-100 text-green-700':'bg-red-100 text-red-700'}`}>{viewing.finalPaymentPaid? 'Pagado':'No pagado'}</span>
-                        <button
-                          onClick={async ()=>{ await toggleFlag(viewing.id, 'finalPaymentPaid'); setViewing(v=> v? { ...v, finalPaymentPaid: !v.finalPaymentPaid }: v); }}
-                          className={`text-xs px-2 py-1 border rounded-none ${viewing.finalPaymentPaid? 'border-green-600 text-green-700 hover:bg-green-600 hover:text-white':'border-red-600 text-red-700 hover:bg-red-600 hover:text-white'}`}
-                        >{viewing.finalPaymentPaid? 'Marcar No pagado':'Marcar Pagado'}</button>
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-600">Restante:</span>
+                          <span className="font-medium">R$ {calc.remainingAmount.toFixed(0)}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-0.5 rounded text-xs ${viewing.finalPaymentPaid? 'bg-green-100 text-green-700':'bg-red-100 text-red-700'}`}>{viewing.finalPaymentPaid? 'Pagado':'No pagado'}</span>
+                          <button
+                            onClick={async ()=>{ await toggleFlag(viewing.id, 'finalPaymentPaid'); setViewing(v=> v? { ...v, finalPaymentPaid: !v.finalPaymentPaid }: v); }}
+                            className={`text-xs px-2 py-1 border rounded-none ${viewing.finalPaymentPaid? 'border-green-600 text-green-700 hover:bg-green-600 hover:text-white':'border-red-600 text-red-700 hover:bg-red-600 hover:text-white'}`}
+                          >{viewing.finalPaymentPaid? 'Marcar No pagado':'Marcar Pagado'}</button>
+                        </div>
                       </div>
                     </>
                   );
