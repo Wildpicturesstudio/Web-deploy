@@ -496,6 +496,16 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
       <div className={`flex-1 flex flex-col overflow-hidden transition-colors ${darkMode ? 'bg-black' : 'bg-white'}`}>
         <div className={`px-4 py-[3px] border-b flex items-center justify-between flex-shrink-0 transition-colors ${darkMode ? 'border-gray-800' : 'border-gray-200'}`}>
           <div className="flex items-center gap-3">
+            {/* Mobile Menu Toggle */}
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className={`md:hidden p-2 rounded-full transition-colors ${darkMode ? 'text-gray-400 hover:text-white hover:bg-gray-800' : 'text-gray-600 hover:text-black hover:bg-gray-200'}`}
+              title="Mostrar calendario"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M3 12h18M3 6h18M3 18h18" />
+              </svg>
+            </button>
             <button onClick={() => {
               if (filterMonth === 0) {
                 setFilterYear(y => y - 1);
