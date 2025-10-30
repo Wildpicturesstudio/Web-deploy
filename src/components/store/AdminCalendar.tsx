@@ -1020,7 +1020,7 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
                 {coupons.map(coupon => {
                   const isApplied = appliedCoupons.includes(coupon.id);
                   const discountAmount = (() => {
-                    const baseAmount = Number(editingEvent?.totalAmount || selectedEvent?.totalAmount || 0);
+                    const baseAmount = Number(editingEvent?.totalAmount || selectedEvent?.totalAmount || addForm.totalAmount || 0);
                     if (coupon.discountType === 'percentage') {
                       return baseAmount * ((coupon.discountValue || 0) / 100);
                     } else if (coupon.discountType === 'fixed') {
